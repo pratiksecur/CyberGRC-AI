@@ -6,6 +6,8 @@ from app.database.database import get_db
 from app.schemas.user import UserCreate, UserLogin, UserResponse, Token
 from app.auth.auth_service import create_user, login_user
 from app.auth.dependencies import get_current_user
+from app.auth.permissions import require_roles
+from app.core.roles import UserRole
 from app.models.user import User
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -65,3 +67,24 @@ def get_me(
     Get the currently logged-in user's details.
     """
     return current_user
+
+@router.get("/admin")
+def admin_dashboard(
+    current_user: User = Depends(require_roles(UserRole.ADMIN))
+):
+    return {
+        "message": f"Welcome Admin {current_user.full_name}",
+        "role": current_user.role
+    }
+
+@router.get("/management")
+def management_dashboard(
+    current_user: User = Depends(
+    require_roles(UserRole.ADMIN, UserRole.GRC_MANAGER)
+    )
+):
+    return {
+        "message": f"Welcome {current_user.full_name}",
+        "role": current_user.role,
+        "access": "Management Dashboard"
+    }

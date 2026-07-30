@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, DateTime
 from sqlalchemy.sql import func
 
 from app.database.database import Base
+from app.core.roles import UserRole
 
 
 class User(Base):
@@ -15,7 +16,7 @@ class User(Base):
 
     hashed_password = Column(String(255), nullable=False)
 
-    role = Column(String(50), default="Employee")
+    role = Column(String(50), default=UserRole.EMPLOYEE.value)
 
     created_at = Column(
         DateTime(timezone=True),
