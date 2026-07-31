@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, DateTime
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from app.database.database import Base
@@ -21,4 +22,16 @@ class User(Base):
     created_at = Column(
         DateTime(timezone=True),
         server_default=func.now()
+    )
+
+    updated_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now()
+    )
+
+    risks = relationship(
+        "Risk",
+        back_populates="owner",
+        cascade="all, delete-orphan"
     )
