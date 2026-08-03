@@ -122,3 +122,26 @@ def update_risk(
     db.refresh(risk)
 
     return risk
+
+def delete_risk(
+    db: Session,
+    risk_id: int
+):
+    """
+    Delete a risk.
+    """
+
+    risk = (
+        db.query(Risk)
+        .filter(Risk.id == risk_id)
+        .first()
+    )
+
+    if risk is None:
+        return None
+
+    db.delete(risk)
+
+    db.commit()
+
+    return True

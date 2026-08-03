@@ -17,6 +17,7 @@ from app.services.risk_service import (
     get_all_risks,
     get_risk_by_id,
     update_risk,
+    delete_risk,
 )
 
 router = APIRouter(
@@ -147,3 +148,35 @@ def update_existing_risk(
         )
 
     return risk
+
+@router.delete(
+    "/{risk_id}"
+)
+def delete_existing_risk(
+    risk_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_roles(
+            UserRole.ADMIN,
+            UserRole.GRC_MANAGER,
+        )
+    )
+):
+    """
+    Delete an existing risk.
+    """
+
+    deleted = delete_risk(
+        db,
+        risk_id
+    )
+
+    if deleted is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Risk not found."
+        )
+
+    return {
+        "message": "Risk deleted successfully."
+    }
