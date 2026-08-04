@@ -35,3 +35,9 @@ class User(Base):
         back_populates="owner",
         cascade="all, delete-orphan"
     )
+
+    controls = relationship(
+        "Control",
+        back_populates="owner",
+        cascade="all, delete-orphan"
+    )
