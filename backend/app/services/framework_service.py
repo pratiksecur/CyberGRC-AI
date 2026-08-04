@@ -1,9 +1,15 @@
 from sqlalchemy.orm import Session
 
 from app.models.framework import Framework
+
 from app.schemas.framework import (
     FrameworkCreate,
     FrameworkUpdate,
+)
+
+from app.exceptions.exceptions import (
+    ResourceNotFound,
+    DuplicateResource,
 )
 
 
@@ -24,7 +30,7 @@ def create_framework(
     )
 
     if existing:
-        return "FRAMEWORK_EXISTS"
+        raise DuplicateResource("Framework")
 
     framework = Framework(
         name=framework_data.name,
@@ -60,13 +66,18 @@ def get_framework_by_id(
     Get a framework by ID.
     """
 
-    return (
+    framework = (
         db.query(Framework)
         .filter(
             Framework.id == framework_id
         )
         .first()
     )
+
+    if framework is None:
+        raise ResourceNotFound("Framework")
+
+    return framework
 
 
 def update_framework(
@@ -87,7 +98,7 @@ def update_framework(
     )
 
     if framework is None:
-        return None
+        raise ResourceNotFound("Framework")
 
     if (
         framework_data.name is not None
@@ -102,7 +113,7 @@ def update_framework(
         )
 
         if existing:
-            return "FRAMEWORK_EXISTS"
+            raise DuplicateResource("Framework")
 
         framework.name = framework_data.name
 
@@ -136,7 +147,7 @@ def delete_framework(
     )
 
     if framework is None:
-        return None
+        raise ResourceNotFound("Framework")
 
     db.delete(framework)
 

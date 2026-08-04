@@ -14,12 +14,17 @@ from app.api.v1.routes.audits import router as audits_router
 from app.api.v1.routes.audit_findings import router as audit_findings_router
 from app.api.v1.routes.corrective_actions import router as corrective_actions_router
 
+from app.exceptions.handlers import register_exception_handlers
+
 
 app = FastAPI(
     title="CyberGRC AI",
     description="AI-Powered Governance, Risk & Compliance Platform",
     version="1.0.0"
 )
+
+# Register global exception handlers
+register_exception_handlers(app)
 
 
 app.include_router(
@@ -86,6 +91,7 @@ app.include_router(
     corrective_actions_router,
     prefix="/api/v1"
 )
+
 
 @app.get("/")
 def root():
