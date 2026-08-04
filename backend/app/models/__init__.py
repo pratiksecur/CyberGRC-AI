@@ -7,3 +7,4 @@ from app.models.framework_control import FrameworkControl
 from app.models.control_framework_control import ControlFrameworkControl
 from app.models.evidence import Evidence
 from app.models.audit import Audit
+from app.models.audit_finding import AuditFinding
