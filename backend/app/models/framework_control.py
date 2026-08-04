@@ -4,6 +4,7 @@ from sqlalchemy import (
     String,
     Text,
     DateTime,
+    ForeignKey,
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -11,8 +12,8 @@ from sqlalchemy.sql import func
 from app.database.database import Base
 
 
-class Framework(Base):
-    __tablename__ = "frameworks"
+class FrameworkControl(Base):
+    __tablename__ = "framework_controls"
 
     id = Column(
         Integer,
@@ -20,14 +21,19 @@ class Framework(Base):
         index=True
     )
 
-    name = Column(
-        String(100),
-        nullable=False,
-        unique=True
+    framework_id = Column(
+        Integer,
+        ForeignKey("frameworks.id"),
+        nullable=False
     )
 
-    version = Column(
+    control_code = Column(
         String(50),
+        nullable=False
+    )
+
+    title = Column(
+        String(255),
         nullable=False
     )
 
@@ -47,8 +53,7 @@ class Framework(Base):
         onupdate=func.now()
     )
 
-    framework_controls = relationship(
-        "FrameworkControl",
-        back_populates="framework",
-        cascade="all, delete-orphan"
+    framework = relationship(
+        "Framework",
+        back_populates="framework_controls"
     )
