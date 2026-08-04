@@ -62,3 +62,9 @@ class Control(Base):
         "User",
         back_populates="controls"
     )
+
+    risk_controls = relationship(
+    "RiskControl",
+    back_populates="control",
+    cascade="all, delete-orphan"
+    )

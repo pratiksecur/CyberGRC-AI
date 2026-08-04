@@ -5,6 +5,7 @@ from app.api.v1.routes.auth import router as auth_router
 from app.api.v1.routes.users import router as users_router
 from app.api.v1.routes.risks import router as risks_router
 from app.api.v1.routes.controls import router as controls_router
+from app.api.v1.routes.risk_controls import router as risk_controls_router
 
 
 app = FastAPI(
@@ -39,6 +40,10 @@ app.include_router(
     prefix="/api/v1"
 )
 
+app.include_router(
+    risk_controls_router,
+    prefix="/api/v1"
+)
 
 @app.get("/")
 def root():
