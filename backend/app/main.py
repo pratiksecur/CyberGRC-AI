@@ -9,6 +9,7 @@ from app.api.v1.routes.risk_controls import router as risk_controls_router
 from app.api.v1.routes.frameworks import router as frameworks_router
 from app.api.v1.routes.framework_controls import router as framework_controls_router
 from app.api.v1.routes.control_framework_controls import router as control_framework_controls_router
+from app.api.v1.routes.evidence import router as evidence_router
 
 
 app = FastAPI(
@@ -60,6 +61,11 @@ app.include_router(
 
 app.include_router(
     control_framework_controls_router,
+    prefix="/api/v1"
+)
+
+app.include_router(
+    evidence_router,
     prefix="/api/v1"
 )
 

@@ -5,3 +5,4 @@ from app.models.risk_control import RiskControl
 from app.models.framework import Framework
 from app.models.framework_control import FrameworkControl
 from app.models.control_framework_control import ControlFrameworkControl
+from app.models.evidence import Evidence

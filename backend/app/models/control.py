@@ -74,3 +74,9 @@ class Control(Base):
     back_populates="control",
     cascade="all, delete-orphan"
     )
+
+    evidence = relationship(
+    "Evidence",
+    back_populates="control",
+    cascade="all, delete-orphan"
+    )
