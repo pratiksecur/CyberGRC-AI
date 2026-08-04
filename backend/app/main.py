@@ -12,6 +12,7 @@ from app.api.v1.routes.control_framework_controls import router as control_frame
 from app.api.v1.routes.evidence import router as evidence_router
 from app.api.v1.routes.audits import router as audits_router
 from app.api.v1.routes.audit_findings import router as audit_findings_router
+from app.api.v1.routes.corrective_actions import router as corrective_actions_router
 
 
 app = FastAPI(
@@ -78,6 +79,11 @@ app.include_router(
 
 app.include_router(
     audit_findings_router,
+    prefix="/api/v1"
+)
+
+app.include_router(
+    corrective_actions_router,
     prefix="/api/v1"
 )
 
