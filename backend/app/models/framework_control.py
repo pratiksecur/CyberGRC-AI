@@ -57,3 +57,9 @@ class FrameworkControl(Base):
         "Framework",
         back_populates="framework_controls"
     )
+
+    control_mappings = relationship(
+    "ControlFrameworkControl",
+    back_populates="framework_control",
+    cascade="all, delete-orphan"
+    )
