@@ -75,6 +75,21 @@ def get_audit_finding_by_id(
         .first()
     )
 
+def get_findings_for_audit(
+    db: Session,
+    audit_id: int
+):
+    """
+    Get all findings for an audit.
+    """
+
+    return (
+        db.query(AuditFinding)
+        .filter(
+            AuditFinding.audit_id == audit_id
+        )
+        .all()
+    )
 
 def update_audit_finding(
     db: Session,

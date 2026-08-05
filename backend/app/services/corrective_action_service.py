@@ -89,6 +89,21 @@ def get_corrective_action_by_id(
         .first()
     )
 
+def get_corrective_actions_for_finding(
+    db: Session,
+    finding_id: int
+):
+    """
+    Get all corrective actions for an audit finding.
+    """
+
+    return (
+        db.query(CorrectiveAction)
+        .filter(
+            CorrectiveAction.finding_id == finding_id
+        )
+        .all()
+    )
 
 def update_corrective_action(
     db: Session,
