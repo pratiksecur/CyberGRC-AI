@@ -1,13 +1,16 @@
 import api from "./axios";
 
-export interface AISummaryResponse {
-  organizationRiskLevel: string;
-  executiveSummary: string;
-  topPriorities: string[];
-  recommendedNextSteps: string[];
+export interface ExecutiveSummary {
+  organization_risk_level: string;
+  executive_summary: string;
+  top_priorities: string[];
+  recommended_next_steps: string[];
 }
 
-export const getAISummary = async (): Promise<AISummaryResponse> => {
-  const response = await api.post("/ai/dashboard-summary");
+export async function getExecutiveSummary(): Promise<ExecutiveSummary> {
+  const response = await api.get(
+    "/ai/dashboard/executive-summary"
+  );
+
   return response.data;
-};
+}

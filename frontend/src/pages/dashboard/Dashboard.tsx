@@ -7,6 +7,7 @@ import RecentActivity from "@/components/dashboard/RecentActivity";
 import RiskTrend from "@/components/dashboard/RiskTrend";
 
 import { useDashboard } from "@/hooks/useDashboard";
+import { useExecutiveSummary } from "@/hooks/useExecutiveSummary";
 
 import {
   ShieldAlert,
@@ -14,8 +15,6 @@ import {
   ClipboardList,
   BadgeCheck,
 } from "lucide-react";
-
-import { aiSummary } from "@/data/dashboard";
 
 const icons = {
   risk: ShieldAlert,
@@ -64,6 +63,12 @@ const createDashboardStats = (data: {
 export default function Dashboard() {
 
   const { data, isLoading, error } = useDashboard();
+
+  const {
+    data: aiData,
+    isLoading: aiLoading,
+    error: aiError,
+  } = useExecutiveSummary();
 
   if (isLoading) {
     return (
@@ -141,12 +146,36 @@ export default function Dashboard() {
 
           <div className="lg:col-span-2">
 
-            <AISummary
-              riskLevel={aiSummary.organizationRiskLevel}
-              summary={aiSummary.executiveSummary}
-              priorities={aiSummary.topPriorities}
-              nextSteps={aiSummary.recommendedNextSteps}
-            />
+            {aiLoading ? (
+
+              <div className="rounded-2xl border bg-white p-8 text-center">
+
+                <p className="text-slate-500">
+                  Generating AI Executive Summary...
+                </p>
+
+              </div>
+
+            ) : aiError || !aiData ? (
+
+              <div className="rounded-2xl border bg-white p-8 text-center">
+
+                <p className="text-red-500">
+                  Failed to load AI summary.
+                </p>
+
+              </div>
+
+            ) : (
+
+              <AISummary
+                riskLevel={aiData.organization_risk_level}
+                summary={aiData.executive_summary}
+                priorities={aiData.top_priorities}
+                nextSteps={aiData.recommended_next_steps}
+              />
+
+            )}
 
           </div>
 
