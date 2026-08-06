@@ -14,6 +14,7 @@ from app.api.v1.routes.audits import router as audits_router
 from app.api.v1.routes.audit_findings import router as audit_findings_router
 from app.api.v1.routes.corrective_actions import router as corrective_actions_router
 from app.api.v1.routes.ai import router as ai_router
+from app.api.v1.routes.dashboard import router as dashboard_router
 
 from app.exceptions.handlers import register_exception_handlers
 
@@ -100,6 +101,11 @@ app.include_router(
 
 app.include_router(
     ai_router,
+    prefix="/api/v1"
+)
+
+app.include_router(
+    dashboard_router,
     prefix="/api/v1"
 )
 

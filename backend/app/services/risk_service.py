@@ -145,3 +145,13 @@ def delete_risk(
     db.commit()
 
     return True
+
+def get_total_risks(db: Session):
+    """
+    Get the total number of risks.
+    """
+
+    return (
+        db.query(Risk)
+        .count()
+    )

@@ -157,3 +157,13 @@ def delete_audit(
     db.commit()
 
     return True
+
+def get_total_audits(db: Session):
+    """
+    Get the total number of audits.
+    """
+
+    return (
+        db.query(Audit)
+        .count()
+    )

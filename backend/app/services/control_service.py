@@ -139,3 +139,13 @@ def delete_control(
     db.commit()
 
     return True
+
+def get_total_controls(db: Session):
+    """
+    Get the total number of controls.
+    """
+
+    return (
+        db.query(Control)
+        .count()
+    )
