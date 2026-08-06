@@ -1,43 +1,72 @@
 import DashboardCard from "./DashboardCard";
 import { TrendingUp } from "lucide-react";
 
+import { useRiskTrend } from "@/hooks/useRiskTrend";
+
 import {
+  ResponsiveContainer,
   LineChart,
   Line,
   XAxis,
   YAxis,
-  Tooltip,
-  ResponsiveContainer,
   CartesianGrid,
+  Tooltip,
 } from "recharts";
 
-const data = [
-  { month: "Jan", risks: 6 },
-  { month: "Feb", risks: 8 },
-  { month: "Mar", risks: 7 },
-  { month: "Apr", risks: 5 },
-  { month: "May", risks: 4 },
-  { month: "Jun", risks: 3 },
-];
-
 export default function RiskTrend() {
+
+  const { data, isLoading, error } = useRiskTrend();
+
+  if (isLoading) {
+    return (
+      <DashboardCard
+        title="Risk Trend"
+        subtitle="Open risks over the last 6 months"
+        icon={<TrendingUp size={24} className="text-blue-600" />}
+      >
+        <p className="text-slate-500">
+          Loading chart...
+        </p>
+      </DashboardCard>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <DashboardCard
+        title="Risk Trend"
+        subtitle="Open risks over the last 6 months"
+        icon={<TrendingUp size={24} className="text-blue-600" />}
+      >
+        <p className="text-red-500">
+          Failed to load chart.
+        </p>
+      </DashboardCard>
+    );
+  }
+
   return (
     <DashboardCard
       title="Risk Trend"
       subtitle="Open risks over the last 6 months"
       icon={<TrendingUp size={24} className="text-blue-600" />}
     >
-      <div className="h-64">
+      <div className="h-72">
 
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer
+          width="100%"
+          height="100%"
+        >
 
           <LineChart data={data}>
 
-            <CartesianGrid strokeDasharray="3 3" />
+            <CartesianGrid
+              strokeDasharray="3 3"
+            />
 
             <XAxis dataKey="month" />
 
-            <YAxis />
+            <YAxis allowDecimals={false} />
 
             <Tooltip />
 
@@ -47,6 +76,8 @@ export default function RiskTrend() {
               stroke="#2563eb"
               strokeWidth={3}
               dot={{ r: 5 }}
+              activeDot={{ r: 8 }}
+              animationDuration={1200}
             />
 
           </LineChart>

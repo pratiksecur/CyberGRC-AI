@@ -7,38 +7,54 @@ import {
   FileText,
 } from "lucide-react";
 
-const activities = [
-  {
-    icon: ShieldAlert,
-    title: "High Risk Created",
-    description: "SQL Injection Vulnerability",
-    time: "2 hours ago",
-    color: "text-red-500",
-  },
-  {
-    icon: ShieldCheck,
-    title: "Control Implemented",
-    description: "Multi-Factor Authentication",
-    time: "5 hours ago",
-    color: "text-emerald-500",
-  },
-  {
-    icon: ClipboardList,
-    title: "Audit Started",
-    description: "ISO 27001 Internal Audit",
-    time: "Yesterday",
-    color: "text-blue-500",
-  },
-  {
-    icon: FileText,
-    title: "Evidence Uploaded",
-    description: "Firewall Configuration.pdf",
-    time: "2 days ago",
-    color: "text-amber-500",
-  },
-];
+import { useActivity } from "@/hooks/useActivity";
+
+const iconMap = {
+  risk: ShieldAlert,
+  control: ShieldCheck,
+  audit: ClipboardList,
+  evidence: FileText,
+};
+
+const colorMap = {
+  risk: "text-red-500",
+  control: "text-emerald-500",
+  audit: "text-blue-500",
+  evidence: "text-amber-500",
+};
 
 export default function RecentActivity() {
+
+  const { data, isLoading, error } = useActivity();
+
+  if (isLoading) {
+    return (
+      <DashboardCard
+        title="Recent Activity"
+        subtitle="Latest cybersecurity events"
+        icon={<Activity size={24} className="text-blue-600" />}
+      >
+        <p className="text-slate-500">
+          Loading activity...
+        </p>
+      </DashboardCard>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <DashboardCard
+        title="Recent Activity"
+        subtitle="Latest cybersecurity events"
+        icon={<Activity size={24} className="text-blue-600" />}
+      >
+        <p className="text-red-500">
+          Failed to load activity.
+        </p>
+      </DashboardCard>
+    );
+  }
+
   return (
     <DashboardCard
       title="Recent Activity"
@@ -47,16 +63,26 @@ export default function RecentActivity() {
     >
       <div className="divide-y">
 
-        {activities.map((activity) => {
-          const Icon = activity.icon;
+        {data.map((activity, index) => {
+
+          const Icon =
+            iconMap[
+              activity.type as keyof typeof iconMap
+            ] ?? Activity;
+
+          const color =
+            colorMap[
+              activity.type as keyof typeof colorMap
+            ] ?? "text-slate-500";
 
           return (
             <div
-              key={activity.title}
+              key={index}
               className="flex items-start gap-4 py-4 first:pt-0 last:pb-0 transition-colors hover:bg-slate-50"
             >
+
               <div
-                className={`rounded-xl bg-slate-100 p-3 ${activity.color}`}
+                className={`rounded-xl bg-slate-100 p-3 ${color}`}
               >
                 <Icon size={20} />
               </div>
@@ -74,11 +100,12 @@ export default function RecentActivity() {
               </div>
 
               <span className="text-xs whitespace-nowrap text-slate-400">
-                {activity.time}
+                {new Date(activity.time).toLocaleDateString()}
               </span>
 
             </div>
           );
+
         })}
 
       </div>

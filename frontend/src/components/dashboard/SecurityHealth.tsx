@@ -3,9 +3,16 @@ import { ShieldCheck } from "lucide-react";
 
 interface Props {
   score: number;
+  activeControls: number;
+  criticalRisks: number;
 }
 
-export default function SecurityHealth({ score }: Props) {
+export default function SecurityHealth({
+  score,
+  activeControls,
+  criticalRisks,
+}: Props) {
+
   const getStatus = () => {
     if (score >= 90)
       return {
@@ -81,7 +88,7 @@ export default function SecurityHealth({ score }: Props) {
           <div>
 
             <p className="text-2xl font-bold text-emerald-600">
-              42
+              {activeControls}
             </p>
 
             <p className="text-sm text-slate-500">
@@ -93,7 +100,7 @@ export default function SecurityHealth({ score }: Props) {
           <div>
 
             <p className="text-2xl font-bold text-red-600">
-              3
+              {criticalRisks}
             </p>
 
             <p className="text-sm text-slate-500">

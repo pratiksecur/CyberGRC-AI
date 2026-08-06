@@ -6,6 +6,8 @@ import SecurityHealth from "@/components/dashboard/SecurityHealth";
 import RecentActivity from "@/components/dashboard/RecentActivity";
 import RiskTrend from "@/components/dashboard/RiskTrend";
 
+import { useDashboard } from "@/hooks/useDashboard";
+
 import {
   ShieldAlert,
   ShieldCheck,
@@ -13,10 +15,7 @@ import {
   BadgeCheck,
 } from "lucide-react";
 
-import {
-  dashboardStats,
-  aiSummary,
-} from "@/data/dashboard";
+import { aiSummary } from "@/data/dashboard";
 
 const icons = {
   risk: ShieldAlert,
@@ -25,7 +24,73 @@ const icons = {
   compliance: BadgeCheck,
 };
 
+const createDashboardStats = (data: {
+  totalRisks: number;
+  controls: number;
+  audits: number;
+  compliance: number;
+  activeControls: number;
+}) => [
+  {
+    title: "Total Risks",
+    value: data.totalRisks,
+    subtitle: "Live Database",
+    icon: "risk",
+    color: "bg-red-500",
+  },
+  {
+    title: "Controls",
+    value: data.controls,
+    subtitle: `${data.activeControls} Active`,
+    icon: "control",
+    color: "bg-emerald-500",
+  },
+  {
+    title: "Audits",
+    value: data.audits,
+    subtitle: "In Database",
+    icon: "audit",
+    color: "bg-blue-600",
+  },
+  {
+    title: "Compliance",
+    value: `${data.compliance}%`,
+    subtitle: "ISO 27001",
+    icon: "compliance",
+    color: "bg-amber-500",
+  },
+];
+
 export default function Dashboard() {
+
+  const { data, isLoading, error } = useDashboard();
+
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <div className="flex h-96 items-center justify-center">
+          <p className="text-lg text-slate-500">
+            Loading dashboard...
+          </p>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <AppLayout>
+        <div className="flex h-96 items-center justify-center">
+          <p className="text-lg text-red-500">
+            Failed to load dashboard.
+          </p>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  const dashboardStats = createDashboardStats(data);
+
   return (
     <AppLayout>
       <div className="space-y-8">
@@ -49,6 +114,7 @@ export default function Dashboard() {
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
 
           {dashboardStats.map((stat) => {
+
             const Icon =
               icons[
                 stat.icon as keyof typeof icons
@@ -64,6 +130,7 @@ export default function Dashboard() {
                 iconColor={stat.color}
               />
             );
+
           })}
 
         </div>
@@ -71,8 +138,6 @@ export default function Dashboard() {
         {/* Dashboard Widgets */}
 
         <div className="grid gap-6 lg:grid-cols-3">
-
-          {/* AI Summary */}
 
           <div className="lg:col-span-2">
 
@@ -85,9 +150,11 @@ export default function Dashboard() {
 
           </div>
 
-          {/* Security Health */}
-
-          <SecurityHealth score={92} />
+          <SecurityHealth
+            score={data.securityHealth}
+            activeControls={data.activeControls}
+            criticalRisks={data.criticalRisks}
+          />
 
         </div>
 
