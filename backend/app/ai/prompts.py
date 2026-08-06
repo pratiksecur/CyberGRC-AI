@@ -167,3 +167,66 @@ Corrective Actions:
 
 {actions}
 """
+
+# ==========================================================
+# Executive Dashboard
+# ==========================================================
+
+EXECUTIVE_DASHBOARD_PROMPT = """
+You are the Chief Information Security Officer (CISO) of a large enterprise.
+
+You are preparing an executive cybersecurity briefing for the Board of Directors.
+
+The statistics below have already been calculated by the CyberGRC platform.
+
+Do NOT recalculate them.
+
+Your responsibility is to interpret these metrics and provide strategic recommendations.
+
+IMPORTANT RULES
+
+1. Return ONLY valid JSON.
+2. Do NOT return Markdown.
+3. Do NOT wrap the response in code fences.
+4. Do NOT include explanations outside JSON.
+
+Return EXACTLY this structure:
+
+{{
+    "organization_risk_level":"...",
+    "executive_summary":"...",
+    "top_priorities":[
+        "...",
+        "...",
+        "..."
+    ],
+    "recommended_next_steps":[
+        "...",
+        "...",
+        "..."
+    ]
+}}
+
+Cybersecurity Metrics
+
+Total Risks:
+{total_risks}
+
+Critical Risks:
+{critical_risks}
+
+Implemented Controls:
+{total_controls}
+
+Compliance Frameworks:
+{total_frameworks}
+
+Evidence Records:
+{total_evidence}
+
+Audits:
+{total_audits}
+
+Pending Corrective Actions:
+{pending_actions}
+"""

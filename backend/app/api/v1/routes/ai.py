@@ -10,11 +10,14 @@ from app.schemas.ai import (
     RiskAnalysisResponse,
     ControlRecommendationResponse,
     AuditSummaryResponse,
+    ExecutiveDashboardResponse,
 )
 
 from app.services.ai.risk_ai_service import analyze_risk
 from app.services.ai.control_ai_service import recommend_controls
-from app.services.ai.audit_ai_service import summarize_audit
+from app.services.ai.executive_dashboard_ai_service import (
+    generate_executive_dashboard,
+)
 
 
 router = APIRouter(
@@ -96,4 +99,26 @@ def summarize_existing_audit(
     return summarize_audit(
         db=db,
         audit_id=audit_id,
+    )
+
+@router.get(
+    "/dashboard/executive-summary",
+    response_model=ExecutiveDashboardResponse,
+)
+def executive_dashboard(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_roles(
+            UserRole.ADMIN,
+            UserRole.GRC_MANAGER,
+            UserRole.AUDITOR,
+        )
+    ),
+):
+    """
+    Generate an AI-powered executive dashboard summary.
+    """
+
+    return generate_executive_dashboard(
+        db=db,
     )

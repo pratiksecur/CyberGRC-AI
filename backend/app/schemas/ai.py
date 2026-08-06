@@ -101,3 +101,17 @@ class AuditSummaryResponse(BaseModel):
     executive_summary: str
 
     priority_recommendations: List[str]
+
+# ==========================================================
+# Executive Dashboard
+# ==========================================================
+
+class ExecutiveDashboardResponse(BaseModel):
+
+    organization_risk_level: str
+
+    executive_summary: str
+
+    top_priorities: List[str]
+
+    recommended_next_steps: List[str]
