@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.routes.health import router as health_router
 from app.api.v1.routes.auth import router as auth_router
@@ -15,6 +16,8 @@ from app.api.v1.routes.audit_findings import router as audit_findings_router
 from app.api.v1.routes.corrective_actions import router as corrective_actions_router
 from app.api.v1.routes.ai import router as ai_router
 from app.api.v1.routes.dashboard import router as dashboard_router
+from app.api.v1.routes.activity import router as activity_router
+from app.api.v1.routes.risk_trend import router as risk_trend_router
 
 from app.exceptions.handlers import register_exception_handlers
 
@@ -25,9 +28,20 @@ app = FastAPI(
     version="1.0.0"
 )
 
+# Enable CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Register global exception handlers
 register_exception_handlers(app)
-
 
 app.include_router(
     health_router,
@@ -46,11 +60,6 @@ app.include_router(
 
 app.include_router(
     risks_router,
-    prefix="/api/v1"
-)
-
-app.include_router(
-    ai_router,
     prefix="/api/v1"
 )
 
@@ -106,6 +115,16 @@ app.include_router(
 
 app.include_router(
     dashboard_router,
+    prefix="/api/v1"
+)
+
+app.include_router(
+    activity_router,
+    prefix="/api/v1"
+)
+
+app.include_router(
+    risk_trend_router,
     prefix="/api/v1"
 )
 
