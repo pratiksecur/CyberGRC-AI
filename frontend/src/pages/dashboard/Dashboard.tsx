@@ -2,6 +2,9 @@ import AppLayout from "@/layouts/AppLayout";
 
 import StatCard from "@/components/dashboard/StatCard";
 import AISummary from "@/components/dashboard/AISummary";
+import SecurityHealth from "@/components/dashboard/SecurityHealth";
+import RecentActivity from "@/components/dashboard/RecentActivity";
+import RiskTrend from "@/components/dashboard/RiskTrend";
 
 import {
   ShieldAlert,
@@ -82,19 +85,17 @@ export default function Dashboard() {
 
           </div>
 
-          {/* Placeholder */}
+          {/* Security Health */}
 
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-6">
+          <SecurityHealth score={92} />
 
-            <h2 className="text-xl font-bold">
-              Risk Trend
-            </h2>
+        </div>
 
-            <p className="mt-4 text-slate-500">
-              Chart coming in the next phase...
-            </p>
+        <div className="grid gap-6 lg:grid-cols-2">
 
-          </div>
+          <RecentActivity />
+
+          <RiskTrend />
 
         </div>
 
