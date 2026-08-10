@@ -41,37 +41,45 @@ export default function RiskOverview({
 
     <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
 
-      <StatCard
-        title="Total Risks"
-        value={total}
-        subtitle="All registered risks"
-        icon={ShieldCheck}
-        iconColor="bg-blue-600"
-      />
+        <StatCard
+            title="Total Risks"
+            value={total}
+            subtitle="All registered risks"
+            trend="+2 this week"
+            trendPositive={true}
+            icon={ShieldCheck}
+            iconColor="bg-blue-600"
+        />
 
-      <StatCard
-        title="Open Risks"
-        value={open}
-        subtitle="Require attention"
-        icon={ShieldAlert}
-        iconColor="bg-amber-500"
-      />
+        <StatCard
+            title="Open Risks"
+            value={open}
+            subtitle="Require attention"
+            trend="+1 today"
+            trendPositive={true}
+            icon={ShieldAlert}
+            iconColor="bg-amber-500"
+        />
 
-      <StatCard
-        title="Critical Risks"
-        value={critical}
-        subtitle="Score ≥ 15"
-        icon={TriangleAlert}
-        iconColor="bg-red-600"
-      />
+        <StatCard
+            title="Critical Risks"
+            value={critical}
+            subtitle="Score ≥ 15"
+            trend="-1 today"
+            trendPositive={false}
+            icon={TriangleAlert}
+            iconColor="bg-red-600"
+        />
 
-      <StatCard
-        title="Average Score"
-        value={average}
-        subtitle="Overall risk level"
-        icon={BarChart3}
-        iconColor="bg-emerald-600"
-      />
+        <StatCard
+            title="Average Score"
+            value={average}
+            subtitle="Overall risk level"
+            trend="+0.8"
+            trendPositive={true}
+            icon={BarChart3}
+            iconColor="bg-emerald-600"
+        />
 
     </div>
 

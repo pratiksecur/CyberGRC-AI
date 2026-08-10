@@ -16,6 +16,7 @@ import RiskSeverityChart from "@/components/dashboard/RiskSeverityChart";
 import RiskStatusChart from "@/components/dashboard/RiskStatusChart";
 import RecentRisks from "@/components/dashboard/RecentRisks";
 import HighestRisk from "@/components/dashboard/HighestRisk";
+import DashboardSkeleton from "@/components/dashboard/DashboardSkeleton";
 
 export default function Risks() {
 
@@ -85,9 +86,7 @@ export default function Risks() {
   if (isLoading) {
     return (
       <AppLayout>
-        <div className="p-10 text-center">
-          Loading Risks...
-        </div>
+        <DashboardSkeleton />
       </AppLayout>
     );
   }

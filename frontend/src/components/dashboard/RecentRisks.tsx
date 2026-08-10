@@ -28,9 +28,21 @@ export default function RecentRisks({
 
         {recentRisks.length === 0 ? (
 
-          <p className="text-sm text-slate-500">
-            No risks found.
-          </p>
+          <div className="flex h-40 items-center justify-center rounded-xl border-2 border-dashed border-slate-200">
+
+            <div className="text-center">
+
+                <p className="text-lg font-medium text-slate-500">
+                No Recent Risks
+                </p>
+
+                <p className="mt-2 text-sm text-slate-400">
+                Create your first risk to get started.
+                </p>
+
+            </div>
+
+          </div>
 
         ) : (
 

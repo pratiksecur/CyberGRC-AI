@@ -1,5 +1,4 @@
 import type { Risk } from "@/api/risks";
-
 import RiskScoreBadge from "@/components/risks/RiskScoreBadge";
 
 interface Props {
@@ -16,13 +15,25 @@ export default function HighestRisk({
 
       <div className="rounded-2xl border bg-white p-6 shadow-sm">
 
-        <h2 className="text-lg font-semibold">
+        <h2 className="mb-6 text-lg font-semibold">
           Highest Risk
         </h2>
 
-        <p className="mt-4 text-slate-500">
-          No risks available.
-        </p>
+        <div className="flex h-40 items-center justify-center rounded-xl border-2 border-dashed border-slate-200">
+
+          <div className="text-center">
+
+            <p className="text-lg font-medium text-slate-500">
+              No Risk Data
+            </p>
+
+            <p className="mt-2 text-sm text-slate-400">
+              Highest risk will appear here.
+            </p>
+
+          </div>
+
+        </div>
 
       </div>
 
@@ -51,11 +62,9 @@ export default function HighestRisk({
       </p>
 
       <div className="mt-6">
-
         <RiskScoreBadge
           score={highestRisk.risk_score}
         />
-
       </div>
 
     </div>

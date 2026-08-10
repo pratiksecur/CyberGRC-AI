@@ -7,6 +7,9 @@ interface StatCardProps {
   subtitle: string;
   icon: LucideIcon;
   iconColor?: string;
+
+  trend?: string;
+  trendPositive?: boolean;
 }
 
 export default function StatCard({
@@ -15,6 +18,9 @@ export default function StatCard({
   subtitle,
   icon: Icon,
   iconColor = "bg-blue-600",
+
+  trend,
+  trendPositive = true,
 }: StatCardProps) {
   return (
     <motion.div
@@ -39,9 +45,27 @@ export default function StatCard({
             {value}
           </h2>
 
-          <p className="mt-3 text-sm text-slate-500">
-            {subtitle}
-          </p>
+          <div className="mt-3">
+
+            <p className="text-sm text-slate-500">
+              {subtitle}
+            </p>
+
+            {trend && (
+
+              <span
+                className={`mt-2 inline-flex rounded-full px-2 py-1 text-xs font-medium ${
+                  trendPositive
+                    ? "bg-green-100 text-green-700"
+                    : "bg-red-100 text-red-700"
+                }`}
+              >
+                {trend}
+              </span>
+
+            )}
+
+          </div>
 
         </div>
 
