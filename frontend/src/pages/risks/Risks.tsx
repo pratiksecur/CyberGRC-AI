@@ -11,6 +11,12 @@ import { useRisks } from "@/hooks/useRisks";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 
+import RiskOverview from "@/components/dashboard/RiskOverview";
+import RiskSeverityChart from "@/components/dashboard/RiskSeverityChart";
+import RiskStatusChart from "@/components/dashboard/RiskStatusChart";
+import RecentRisks from "@/components/dashboard/RecentRisks";
+import HighestRisk from "@/components/dashboard/HighestRisk";
+
 export default function Risks() {
 
   const navigate = useNavigate();
@@ -133,7 +139,35 @@ export default function Risks() {
           onSortChange={setSort}
         />
 
-        <RiskTable risks={filteredRisks} />
+        <RiskOverview risks={filteredRisks} />
+
+          <div className="grid gap-6 lg:grid-cols-2">
+
+            <RiskSeverityChart
+              risks={filteredRisks}
+            />
+
+            <RiskStatusChart
+              risks={filteredRisks}
+            />
+
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-2">
+
+            <RecentRisks
+              risks={filteredRisks}
+            />
+
+            <HighestRisk
+              risks={filteredRisks}
+            />
+
+          </div>
+
+        <RiskTable
+          risks={filteredRisks}
+        />
 
       </div>
 
