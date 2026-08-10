@@ -13,6 +13,7 @@ import Login from "@/pages/auth/Login";
 
 import ProtectedRoute from "./ProtectedRoute";
 import ViewRisk from "@/pages/risks/ViewRisk";
+import EditRisk from "@/pages/risks/EditRisk";
 
 export default function AppRouter() {
   return (
@@ -69,6 +70,15 @@ export default function AppRouter() {
               <ViewRisk />
             </ProtectedRoute>
         }
+        />
+
+        <Route
+          path="/risks/:id/edit"
+          element={
+            <ProtectedRoute>
+              <EditRisk />
+            </ProtectedRoute>
+          }
         />
 
         <Route

@@ -44,3 +44,15 @@ export async function getRisk(
   return response.data;
 
 }
+
+export async function updateRisk(
+  id: number,
+  data: CreateRiskRequest
+): Promise<Risk> {
+  const response = await api.patch(
+    `/risks/${id}`,
+    data
+  );
+
+  return response.data;
+}

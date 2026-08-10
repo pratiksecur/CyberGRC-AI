@@ -81,7 +81,7 @@ export default function ViewRisk() {
             </Button>
 
             <Button
-              onClick={() => navigate(`/risks/${data.id}/edit`)}
+            onClick={() => navigate(`/risks/${data.id}/edit`)}
             >
               <Pencil className="mr-2 h-4 w-4" />
               Edit Risk
