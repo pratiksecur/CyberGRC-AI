@@ -32,3 +32,15 @@ export async function createRisk(
   const response = await api.post("/risks/", data);
   return response.data;
 }
+
+export async function getRisk(
+  id: number
+): Promise<Risk> {
+
+  const response = await api.get(
+    `/risks/${id}`
+  );
+
+  return response.data;
+
+}

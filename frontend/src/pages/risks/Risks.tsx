@@ -1,12 +1,15 @@
+import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+
 import AppLayout from "@/layouts/AppLayout";
 
 import RiskTable from "@/components/risks/RiskTable";
+import RiskFilters from "@/components/risks/RiskFilters";
 
 import { useRisks } from "@/hooks/useRisks";
 
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 
 export default function Risks() {
 
@@ -17,6 +20,10 @@ export default function Risks() {
     isLoading,
     error,
   } = useRisks();
+
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("");
+  const [sort, setSort] = useState("");
 
   if (isLoading) {
     return (
@@ -37,6 +44,55 @@ export default function Risks() {
       </AppLayout>
     );
   }
+
+  const filteredRisks = useMemo(() => {
+
+    let risks = [...data];
+
+    // Search
+
+    if (search) {
+
+      const query = search.toLowerCase();
+
+      risks = risks.filter((risk) =>
+        risk.title.toLowerCase().includes(query) ||
+        risk.description.toLowerCase().includes(query)
+      );
+
+    }
+
+    // Status
+
+    if (status) {
+
+      risks = risks.filter(
+        (risk) => risk.status === status
+      );
+
+    }
+
+    // Sort
+
+    if (sort === "high") {
+
+      risks.sort(
+        (a, b) => b.risk_score - a.risk_score
+      );
+
+    }
+
+    if (sort === "low") {
+
+      risks.sort(
+        (a, b) => a.risk_score - b.risk_score
+      );
+
+    }
+
+    return risks;
+
+  }, [data, search, status, sort]);
 
   return (
     <AppLayout>
@@ -68,9 +124,20 @@ export default function Risks() {
 
         </div>
 
+        {/* Filters */}
+
+        <RiskFilters
+          search={search}
+          onSearchChange={setSearch}
+          status={status}
+          onStatusChange={setStatus}
+          sort={sort}
+          onSortChange={setSort}
+        />
+
         {/* Risk Table */}
 
-        <RiskTable risks={data} />
+        <RiskTable risks={filteredRisks} />
 
       </div>
 

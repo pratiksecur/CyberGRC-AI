@@ -1,21 +1,30 @@
+import { useNavigate } from "react-router-dom";
+
 import type { Risk } from "@/api/risks";
+
+import RiskActions from "./RiskActions";
+import RiskScoreBadge from "./RiskScoreBadge";
+import RiskStatusBadge from "./RiskStatusBadge";
 
 interface Props {
   risks: Risk[];
 }
 
 export default function RiskTable({ risks }: Props) {
+
+  const navigate = useNavigate();
+
   return (
     <div className="overflow-hidden rounded-xl border bg-white shadow-sm">
 
       <table className="min-w-full">
 
-        <thead className="bg-slate-50">
+        <thead className="border-b bg-slate-50">
 
           <tr>
 
             <th className="px-6 py-4 text-left text-sm font-semibold">
-              Title
+              Risk
             </th>
 
             <th className="px-6 py-4 text-left text-sm font-semibold">
@@ -23,19 +32,19 @@ export default function RiskTable({ risks }: Props) {
             </th>
 
             <th className="px-6 py-4 text-left text-sm font-semibold">
-              Likelihood
-            </th>
-
-            <th className="px-6 py-4 text-left text-sm font-semibold">
-              Impact
-            </th>
-
-            <th className="px-6 py-4 text-left text-sm font-semibold">
               Status
             </th>
 
             <th className="px-6 py-4 text-left text-sm font-semibold">
+              Owner
+            </th>
+
+            <th className="px-6 py-4 text-left text-sm font-semibold">
               Created
+            </th>
+
+            <th className="px-6 py-4 text-right text-sm font-semibold">
+              Actions
             </th>
 
           </tr>
@@ -48,37 +57,57 @@ export default function RiskTable({ risks }: Props) {
 
             <tr
               key={risk.id}
-              className="border-t hover:bg-slate-50"
+              className="border-b transition hover:bg-slate-50"
             >
 
-              <td className="px-6 py-4 font-medium">
-                {risk.title}
-              </td>
+              {/* Risk */}
 
-              <td className="px-6 py-4">
-                {risk.risk_score}
-              </td>
+              <td className="px-6 py-5">
 
-              <td className="px-6 py-4">
-                {risk.likelihood}
-              </td>
+                <div className="font-semibold text-slate-900">
+                  {risk.title}
+                </div>
 
-              <td className="px-6 py-4">
-                {risk.impact}
-              </td>
-
-              <td className="px-6 py-4">
-
-                <span className="rounded-full bg-blue-100 px-3 py-1 text-sm text-blue-700">
-
-                  {risk.status}
-
-                </span>
+                <div className="mt-1 max-w-md truncate text-sm text-slate-500">
+                  {risk.description}
+                </div>
 
               </td>
 
-              <td className="px-6 py-4">
+              {/* Risk Score */}
+
+              <td className="px-6 py-5">
+                <RiskScoreBadge score={risk.risk_score} />
+              </td>
+
+              {/* Status */}
+
+              <td className="px-6 py-5">
+                <RiskStatusBadge status={risk.status} />
+              </td>
+
+              {/* Owner */}
+
+              <td className="px-6 py-5">
+                User #{risk.owner_id}
+              </td>
+
+              {/* Created */}
+
+              <td className="px-6 py-5">
                 {new Date(risk.created_at).toLocaleDateString()}
+              </td>
+
+              {/* Actions */}
+
+              <td className="px-6 py-5 text-right">
+
+                <RiskActions
+                  onView={() => navigate(`/risks/${risk.id}`)}
+                  onEdit={() => {}}
+                  onDelete={() => {}}
+                />
+
               </td>
 
             </tr>

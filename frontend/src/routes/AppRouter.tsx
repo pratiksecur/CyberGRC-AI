@@ -12,6 +12,7 @@ import Settings from "@/pages/settings/Settings";
 import Login from "@/pages/auth/Login";
 
 import ProtectedRoute from "./ProtectedRoute";
+import ViewRisk from "@/pages/risks/ViewRisk";
 
 export default function AppRouter() {
   return (
@@ -59,6 +60,15 @@ export default function AppRouter() {
               <CreateRisk />
             </ProtectedRoute>
           }
+        />
+
+        <Route
+        path="/risks/:id"
+        element={
+            <ProtectedRoute>
+              <ViewRisk />
+            </ProtectedRoute>
+        }
         />
 
         <Route
