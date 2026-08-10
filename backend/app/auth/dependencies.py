@@ -15,11 +15,15 @@ def get_current_user(
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db)
 ):
-    """
-    Get the currently authenticated user.
-    """
+    print("=" * 60)
+    print("TOKEN RECEIVED:")
+    print(token)
 
     payload = verify_access_token(token)
+
+    print("PAYLOAD:")
+    print(payload)
+    print("=" * 60)
 
     if payload is None:
         raise HTTPException(

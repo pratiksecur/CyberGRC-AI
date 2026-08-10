@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import Dashboard from "@/pages/dashboard/Dashboard";
 import Risks from "@/pages/risks/Risks";
+import CreateRisk from "@/pages/risks/CreateRisk";
 import Controls from "@/pages/controls/Controls";
 import Frameworks from "@/pages/frameworks/Frameworks";
 import Evidence from "@/pages/evidence/Evidence";
@@ -18,12 +19,14 @@ export default function AppRouter() {
       <Routes>
 
         {/* Public Route */}
+
         <Route
           path="/login"
           element={<Login />}
         />
 
-        {/* Redirect root */}
+        {/* Redirect Root */}
+
         <Route
           path="/"
           element={<Navigate to="/dashboard" replace />}
@@ -45,6 +48,15 @@ export default function AppRouter() {
           element={
             <ProtectedRoute>
               <Risks />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/risks/new"
+          element={
+            <ProtectedRoute>
+              <CreateRisk />
             </ProtectedRoute>
           }
         />
