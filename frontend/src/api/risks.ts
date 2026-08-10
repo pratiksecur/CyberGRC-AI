@@ -56,3 +56,11 @@ export async function updateRisk(
 
   return response.data;
 }
+
+export async function deleteRisk(
+  id: number
+): Promise<void> {
+
+  await api.delete(`/risks/${id}`);
+
+}

@@ -25,27 +25,9 @@ export default function Risks() {
   const [status, setStatus] = useState("");
   const [sort, setSort] = useState("");
 
-  if (isLoading) {
-    return (
-      <AppLayout>
-        <div className="p-10 text-center">
-          Loading Risks...
-        </div>
-      </AppLayout>
-    );
-  }
-
-  if (error || !data) {
-    return (
-      <AppLayout>
-        <div className="p-10 text-center text-red-500">
-          Failed to load risks.
-        </div>
-      </AppLayout>
-    );
-  }
-
   const filteredRisks = useMemo(() => {
+
+    if (!data) return [];
 
     let risks = [...data];
 
@@ -94,12 +76,30 @@ export default function Risks() {
 
   }, [data, search, status, sort]);
 
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <div className="p-10 text-center">
+          Loading Risks...
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <AppLayout>
+        <div className="p-10 text-center text-red-500">
+          Failed to load risks.
+        </div>
+      </AppLayout>
+    );
+  }
+
   return (
     <AppLayout>
 
       <div className="space-y-6">
-
-        {/* Header */}
 
         <div className="flex items-center justify-between">
 
@@ -124,8 +124,6 @@ export default function Risks() {
 
         </div>
 
-        {/* Filters */}
-
         <RiskFilters
           search={search}
           onSearchChange={setSearch}
@@ -134,8 +132,6 @@ export default function Risks() {
           sort={sort}
           onSortChange={setSort}
         />
-
-        {/* Risk Table */}
 
         <RiskTable risks={filteredRisks} />
 

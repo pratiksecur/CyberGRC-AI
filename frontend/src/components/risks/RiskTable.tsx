@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { useDeleteRisk } from "@/hooks/useDeleteRisk";
 
 import type { Risk } from "@/api/risks";
 
@@ -14,7 +15,22 @@ export default function RiskTable({ risks }: Props) {
 
   const navigate = useNavigate();
 
+  const deleteMutation = useDeleteRisk();
+
+  function handleDelete(id: number) {
+
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this risk?"
+    );
+
+    if (!confirmed) return;
+
+    deleteMutation.mutate(id);
+
+  }
+
   return (
+
     <div className="overflow-hidden rounded-xl border bg-white shadow-sm">
 
       <table className="min-w-full">
@@ -104,8 +120,8 @@ export default function RiskTable({ risks }: Props) {
 
                 <RiskActions
                   onView={() => navigate(`/risks/${risk.id}`)}
-                  onEdit={() => {}}
-                  onDelete={() => {}}
+                  onEdit={() => navigate(`/risks/${risk.id}/edit`)}
+                  onDelete={() => handleDelete(risk.id)}
                 />
 
               </td>
@@ -119,5 +135,7 @@ export default function RiskTable({ risks }: Props) {
       </table>
 
     </div>
+
   );
+
 }
