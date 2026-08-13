@@ -41,6 +41,13 @@ class Control(Base):
         default="Active"
     )
 
+    # Control effectiveness (0–100%)
+    effectiveness = Column(
+        Integer,
+        default=0,
+        nullable=False
+    )
+
     owner_id = Column(
         Integer,
         ForeignKey("users.id"),
@@ -58,25 +65,27 @@ class Control(Base):
         onupdate=func.now()
     )
 
+    # Relationships
+
     owner = relationship(
         "User",
         back_populates="controls"
     )
 
     risk_controls = relationship(
-    "RiskControl",
-    back_populates="control",
-    cascade="all, delete-orphan"
+        "RiskControl",
+        back_populates="control",
+        cascade="all, delete-orphan"
     )
 
     framework_control_mappings = relationship(
-    "ControlFrameworkControl",
-    back_populates="control",
-    cascade="all, delete-orphan"
+        "ControlFrameworkControl",
+        back_populates="control",
+        cascade="all, delete-orphan"
     )
 
     evidence = relationship(
-    "Evidence",
-    back_populates="control",
-    cascade="all, delete-orphan"
+        "Evidence",
+        back_populates="control",
+        cascade="all, delete-orphan"
     )

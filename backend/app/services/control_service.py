@@ -29,6 +29,8 @@ def create_control(
         title=control_data.title,
         description=control_data.description,
         control_type=control_data.control_type,
+        status=control_data.status,
+        effectiveness=control_data.effectiveness,
         owner_id=control_data.owner_id,
     )
 
@@ -110,6 +112,9 @@ def update_control(
     if control_data.status is not None:
         control.status = control_data.status
 
+    if control_data.effectiveness is not None:
+        control.effectiveness = control_data.effectiveness
+
     db.commit()
 
     db.refresh(control)
@@ -140,6 +145,7 @@ def delete_control(
 
     return True
 
+
 def get_total_controls(db: Session):
     """
     Get the total number of controls.
@@ -149,3 +155,30 @@ def get_total_controls(db: Session):
         db.query(Control)
         .count()
     )
+
+
+def get_active_controls(db: Session):
+    """
+    Get the number of active controls.
+    """
+
+    return (
+        db.query(Control)
+        .filter(Control.status == "Active")
+        .count()
+    )
+
+
+def get_average_effectiveness(db: Session):
+    """
+    Get the average effectiveness score.
+    """
+
+    controls = db.query(Control).all()
+
+    if not controls:
+        return 0
+
+    total = sum(control.effectiveness for control in controls)
+
+    return round(total / len(controls), 1)
