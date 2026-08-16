@@ -15,6 +15,10 @@ import ProtectedRoute from "./ProtectedRoute";
 import ViewRisk from "@/pages/risks/ViewRisk";
 import EditRisk from "@/pages/risks/EditRisk";
 
+import CreateControl from "@/pages/controls/CreateControl";
+import ViewControl from "@/pages/controls/ViewControl";
+import EditControl from "@/pages/controls/EditControl";
+
 export default function AppRouter() {
   return (
     <BrowserRouter>
@@ -89,6 +93,35 @@ export default function AppRouter() {
             </ProtectedRoute>
           }
         />
+
+        <Route
+          path="/controls/new"
+          element={
+            <ProtectedRoute>
+              <CreateControl />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/controls/:id"
+          element={
+            <ProtectedRoute>
+              <ViewControl />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/controls/:id/edit"
+          element={
+            <ProtectedRoute>
+              <EditControl />
+            </ProtectedRoute>
+          }
+        />
+        
+         
 
         <Route
           path="/frameworks"

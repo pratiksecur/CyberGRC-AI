@@ -1,14 +1,12 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { createControl } from "@/api/controls";
-import type { CreateControlRequest } from "@/api/controls";
+import { deleteControl } from "@/api/controls";
 
-export function useCreateControl() {
+export function useDeleteControl() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: CreateControlRequest) =>
-      createControl(data),
+    mutationFn: (id: number) => deleteControl(id),
 
     onSuccess: () => {
       queryClient.invalidateQueries({

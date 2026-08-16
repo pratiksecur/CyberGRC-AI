@@ -4,7 +4,7 @@ import { getControl } from "@/api/controls";
 
 export function useControl(id: number) {
   return useQuery({
-    queryKey: ["control", id],
+    queryKey: ["controls", id],
     queryFn: () => getControl(id),
     enabled: !!id,
   });

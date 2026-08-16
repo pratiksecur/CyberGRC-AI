@@ -22,7 +22,10 @@ export default function ControlFilters({
   return (
     <div className="flex flex-col gap-4 rounded-xl border bg-white p-4 lg:flex-row lg:items-center lg:justify-between">
 
+      {/* Search */}
+
       <div className="relative w-full lg:max-w-sm">
+
         <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
 
         <input
@@ -32,7 +35,10 @@ export default function ControlFilters({
           onChange={(e) => onSearchChange(e.target.value)}
           className="w-full rounded-lg border border-slate-200 py-2 pl-10 pr-4 focus:border-blue-500 focus:outline-none"
         />
+
       </div>
+
+      {/* Filters */}
 
       <div className="flex flex-wrap items-center gap-3">
 
@@ -41,9 +47,18 @@ export default function ControlFilters({
           onChange={(e) => onStatusChange(e.target.value)}
           className="rounded-lg border border-slate-200 px-3 py-2"
         >
-          <option value="">All Status</option>
-          <option value="Active">Active</option>
-          <option value="Inactive">Inactive</option>
+          <option value="">
+            All Status
+          </option>
+
+          <option value="Active">
+            Active
+          </option>
+
+          <option value="Inactive">
+            Inactive
+          </option>
+
         </select>
 
         <select
@@ -51,21 +66,48 @@ export default function ControlFilters({
           onChange={(e) => onFrameworkChange(e.target.value)}
           className="rounded-lg border border-slate-200 px-3 py-2"
         >
-          <option value="">All Frameworks</option>
-          <option value="ISO27001">ISO 27001</option>
-          <option value="NIST">NIST</option>
-          <option value="CIS">CIS</option>
+          <option value="">
+            All Types
+          </option>
+
+          <option value="Technical">
+            Technical
+          </option>
+
+          <option value="Administrative">
+            Administrative
+          </option>
+
+          <option value="Physical">
+            Physical
+          </option>
+
+          <option value="Preventive">
+            Preventive
+          </option>
+
+          <option value="Detective">
+            Detective
+          </option>
+
+          <option value="Corrective">
+            Corrective
+          </option>
+
         </select>
 
         <button
           onClick={onCreate}
-          className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+          className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white transition hover:bg-blue-700"
         >
           <Plus size={18} />
+
           New Control
+
         </button>
 
       </div>
+
     </div>
   );
 }

@@ -1,6 +1,10 @@
+import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+
 import AppLayout from "@/layouts/AppLayout";
 
 import { useControls } from "@/hooks/useControls";
+import { useDeleteControl } from "@/hooks/useDeleteControl";
 
 import ControlFilters from "@/components/controls/ControlFilters";
 import ControlStats from "@/components/controls/ControlStats";
@@ -11,11 +15,50 @@ import HighestFramework from "@/components/controls/HighestFramework";
 import ControlsTable from "@/components/controls/ControlsTable";
 
 export default function Controls() {
+  const navigate = useNavigate();
+
+  const deleteMutation = useDeleteControl();
+
   const {
     data,
     isLoading,
     error,
   } = useControls();
+
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("");
+  const [type, setType] = useState("");
+
+  const filteredControls = useMemo(() => {
+    if (!data) return [];
+
+    return data.filter((control) => {
+      const matchesSearch =
+        control.title
+          .toLowerCase()
+          .includes(search.toLowerCase()) ||
+        control.description
+          .toLowerCase()
+          .includes(search.toLowerCase()) ||
+        control.control_type
+          .toLowerCase()
+          .includes(search.toLowerCase());
+
+      const matchesStatus =
+        status === "" ||
+        control.status === status;
+
+      const matchesType =
+        type === "" ||
+        control.control_type === type;
+
+      return (
+        matchesSearch &&
+        matchesStatus &&
+        matchesType
+      );
+    });
+  }, [data, search, status, type]);
 
   if (isLoading) {
     return (
@@ -37,21 +80,21 @@ export default function Controls() {
     );
   }
 
-  const activeControls = data.filter(
+  const activeControls = filteredControls.filter(
     (c) => c.status === "Active"
   ).length;
 
-  const inactiveControls = data.filter(
+  const inactiveControls = filteredControls.filter(
     (c) => c.status !== "Active"
   ).length;
 
   const frameworkData = [
     ...new Map(
-      data.map((control) => [
+      filteredControls.map((control) => [
         control.control_type,
         {
           framework: control.control_type,
-          count: data.filter(
+          count: filteredControls.filter(
             (c) =>
               c.control_type === control.control_type
           ).length,
@@ -79,19 +122,19 @@ export default function Controls() {
         {/* Filters */}
 
         <ControlFilters
-          search=""
-          onSearchChange={() => {}}
-          status=""
-          onStatusChange={() => {}}
-          framework=""
-          onFrameworkChange={() => {}}
-          onCreate={() => {}}
+          search={search}
+          onSearchChange={setSearch}
+          status={status}
+          onStatusChange={setStatus}
+          framework={type}
+          onFrameworkChange={setType}
+          onCreate={() => navigate("/controls/new")}
         />
 
         {/* Statistics */}
 
         <ControlStats
-          totalControls={data.length}
+          totalControls={filteredControls.length}
           activeControls={activeControls}
           inactiveControls={inactiveControls}
           frameworks={frameworkData.length}
@@ -116,19 +159,36 @@ export default function Controls() {
 
         <div className="grid gap-6 lg:grid-cols-2">
 
-          <RecentControls controls={data} />
+          <RecentControls
+            controls={filteredControls}
+          />
 
-          <HighestFramework controls={data} />
+          <HighestFramework
+            controls={filteredControls}
+          />
 
         </div>
 
         {/* Controls Table */}
-        
+
         <ControlsTable
-          controls={data}
-          onView={(id) => console.log("View", id)}
-          onEdit={(id) => console.log("Edit", id)}
-          onDelete={(id) => console.log("Delete", id)}
+          controls={filteredControls}
+          onView={(id) => navigate(`/controls/${id}`)}
+          onEdit={(id) => navigate(`/controls/${id}/edit`)}
+          onDelete={async (id) => {
+            const confirmed = window.confirm(
+              "Are you sure you want to delete this control?"
+            );
+
+            if (!confirmed) return;
+
+            try {
+              await deleteMutation.mutateAsync(id);
+            } catch (error) {
+              console.error(error);
+              alert("Failed to delete control.");
+            }
+          }}
         />
 
       </div>
