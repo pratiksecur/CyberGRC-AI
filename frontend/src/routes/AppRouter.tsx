@@ -19,6 +19,10 @@ import CreateControl from "@/pages/controls/CreateControl";
 import ViewControl from "@/pages/controls/ViewControl";
 import EditControl from "@/pages/controls/EditControl";
 
+import CreateFramework from "@/pages/frameworks/CreateFramework";
+import ViewFramework from "@/pages/frameworks/ViewFramework";
+import EditFramework from "@/pages/frameworks/EditFramework";
+
 export default function AppRouter() {
   return (
     <BrowserRouter>
@@ -121,13 +125,38 @@ export default function AppRouter() {
           }
         />
         
-         
-
         <Route
           path="/frameworks"
           element={
             <ProtectedRoute>
               <Frameworks />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/frameworks/new"
+          element={
+            <ProtectedRoute>
+              <CreateFramework />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/frameworks/:id"
+          element={
+            <ProtectedRoute>
+              <ViewFramework />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/frameworks/:id/edit"
+          element={
+            <ProtectedRoute>
+              <EditFramework />
             </ProtectedRoute>
           }
         />
