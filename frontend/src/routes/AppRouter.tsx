@@ -23,6 +23,10 @@ import CreateFramework from "@/pages/frameworks/CreateFramework";
 import ViewFramework from "@/pages/frameworks/ViewFramework";
 import EditFramework from "@/pages/frameworks/EditFramework";
 
+import CreateEvidence from "@/pages/evidence/CreateEvidence";
+import ViewEvidence from "@/pages/evidence/ViewEvidence";
+import EditEvidence from "@/pages/evidence/EditEvidence";
+
 export default function AppRouter() {
   return (
     <BrowserRouter>
@@ -166,6 +170,33 @@ export default function AppRouter() {
           element={
             <ProtectedRoute>
               <Evidence />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/evidence/new"
+          element={
+            <ProtectedRoute>
+              <CreateEvidence />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/evidence/:id"
+          element={
+            <ProtectedRoute>
+              <ViewEvidence />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/evidence/:id/edit"
+          element={
+            <ProtectedRoute>
+              <EditEvidence />
             </ProtectedRoute>
           }
         />
