@@ -27,6 +27,10 @@ import CreateEvidence from "@/pages/evidence/CreateEvidence";
 import ViewEvidence from "@/pages/evidence/ViewEvidence";
 import EditEvidence from "@/pages/evidence/EditEvidence";
 
+import CreateAudit from "@/pages/audits/CreateAudit";
+import ViewAudit from "@/pages/audits/ViewAudit";
+import EditAudit from "@/pages/audits/EditAudit";
+
 export default function AppRouter() {
   return (
     <BrowserRouter>
@@ -206,6 +210,33 @@ export default function AppRouter() {
           element={
             <ProtectedRoute>
               <Audits />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/audits/new"
+          element={
+            <ProtectedRoute>
+              <CreateAudit />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/audits/:id"
+          element={
+            <ProtectedRoute>
+              <ViewAudit />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/audits/:id/edit"
+          element={
+            <ProtectedRoute>
+              <EditAudit />
             </ProtectedRoute>
           }
         />
