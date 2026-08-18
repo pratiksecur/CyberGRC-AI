@@ -1,4 +1,14 @@
-from fastapi import APIRouter, Depends, HTTPException
+from pathlib import Path
+import shutil
+
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    UploadFile,
+    File,
+    Form,
+)
 from sqlalchemy.orm import Session
 
 from app.database.database import get_db
@@ -20,6 +30,9 @@ from app.services.evidence_service import (
     delete_evidence,
 )
 
+UPLOAD_DIR = Path("uploads")
+UPLOAD_DIR.mkdir(exist_ok=True)
+
 router = APIRouter(
     prefix="/evidence",
     tags=["Evidence Management"]
@@ -31,7 +44,11 @@ router = APIRouter(
     response_model=EvidenceResponse
 )
 def create_new_evidence(
-    evidence_data: EvidenceCreate,
+    control_id: int = Form(...),
+    title: str = Form(...),
+    description: str = Form(...),
+    uploaded_by: int = Form(...),
+    file: UploadFile = File(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(
         require_roles(
@@ -42,8 +59,25 @@ def create_new_evidence(
     )
 ):
     """
-    Upload evidence.
+    Upload evidence with a real file.
     """
+
+    file_path = UPLOAD_DIR / file.filename
+
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(
+            file.file,
+            buffer
+        )
+
+    evidence_data = EvidenceCreate(
+        control_id=control_id,
+        title=title,
+        description=description,
+        file_name=file.filename,
+        file_path=str(file_path),
+        uploaded_by=uploaded_by,
+    )
 
     evidence = create_evidence(
         db,
