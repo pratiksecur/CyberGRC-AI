@@ -23,18 +23,32 @@ class AuditFindingCreate(BaseModel):
 
     control_id: int
 
-    title: str = Field(..., min_length=5, max_length=255)
+    title: str = Field(
+        ...,
+        min_length=5,
+        max_length=255
+    )
 
-    description: str = Field(..., min_length=10)
+    description: str = Field(
+        ...,
+        min_length=10
+    )
 
     severity: SeverityLevel
 
-    recommendation: str = Field(..., min_length=10)
+    recommendation: str = Field(
+        ...,
+        min_length=10
+    )
 
     status: FindingStatus = FindingStatus.OPEN
 
 
 class AuditFindingUpdate(BaseModel):
+    audit_id: Optional[int] = None
+
+    control_id: Optional[int] = None
+
     title: Optional[str] = Field(
         None,
         min_length=5,
@@ -60,8 +74,10 @@ class AuditFindingResponse(BaseModel):
     id: int
 
     audit_id: int
+    audit_name: str
 
     control_id: int
+    control_name: str
 
     title: str
 

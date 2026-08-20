@@ -31,6 +31,12 @@ import CreateAudit from "@/pages/audits/CreateAudit";
 import ViewAudit from "@/pages/audits/ViewAudit";
 import EditAudit from "@/pages/audits/EditAudit";
 
+import AuditFindings from "@/pages/audit-findings/AuditFindings";
+
+import CreateAuditFinding from "@/pages/audit-findings/CreateAuditFinding";
+import ViewAuditFinding from "@/pages/audit-findings/ViewAuditFinding";
+import EditAuditFinding from "@/pages/audit-findings/EditAuditFinding";
+
 export default function AppRouter() {
   return (
     <BrowserRouter>
@@ -237,6 +243,42 @@ export default function AppRouter() {
           element={
             <ProtectedRoute>
               <EditAudit />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/audit-findings"
+          element={
+            <ProtectedRoute>
+              <AuditFindings />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/audit-findings/new"
+          element={
+            <ProtectedRoute>
+              <CreateAuditFinding />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/audit-findings/:id"
+          element={
+            <ProtectedRoute>
+              <ViewAuditFinding />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/audit-findings/:id/edit"
+          element={
+            <ProtectedRoute>
+              <EditAuditFinding />
             </ProtectedRoute>
           }
         />

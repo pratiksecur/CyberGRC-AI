@@ -5,6 +5,7 @@ import {
   BookOpen,
   FileText,
   ClipboardList,
+  ClipboardCheck,
   Bot,
   Settings,
 } from "lucide-react";
@@ -39,6 +40,11 @@ export const navigation = [
     label: "Audits",
     path: "/audits",
     icon: ClipboardList,
+  },
+  {
+    label: "Audit Findings",
+    path: "/audit-findings",
+    icon: ClipboardCheck,
   },
   {
     label: "AI Intelligence",
