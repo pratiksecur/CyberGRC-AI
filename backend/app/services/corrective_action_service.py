@@ -10,6 +10,39 @@ from app.schemas.corrective_action import (
 )
 
 
+def _serialize_corrective_action(
+    action: CorrectiveAction
+):
+    """
+    Convert a corrective action into the response structure
+    expected by the API.
+    """
+
+    return {
+        "id": action.id,
+
+        "finding_id": action.finding_id,
+        "finding_title": action.finding.title,
+
+        "assigned_to": action.assigned_to,
+        "assignee_name": action.assignee.full_name,
+
+        "title": action.title,
+        "description": action.description,
+
+        "priority": action.priority,
+        "status": action.status,
+
+        "due_date": action.due_date,
+        "completed_at": action.completed_at,
+
+        "comments": action.comments,
+
+        "created_at": action.created_at,
+        "updated_at": action.updated_at,
+    }
+
+
 def create_corrective_action(
     db: Session,
     action_data: CorrectiveActionCreate
@@ -62,15 +95,34 @@ def create_corrective_action(
     db.commit()
     db.refresh(action)
 
-    return action
+    return _serialize_corrective_action(action)
 
 
-def get_all_corrective_actions(db: Session):
+def get_all_corrective_actions(
+    db: Session
+):
     """
-    Get all corrective actions.
+    Get all corrective actions with
+    finding and assignee information.
     """
 
-    return db.query(CorrectiveAction).all()
+    actions = (
+        db.query(CorrectiveAction)
+        .join(
+            AuditFinding,
+            CorrectiveAction.finding_id == AuditFinding.id
+        )
+        .join(
+            User,
+            CorrectiveAction.assigned_to == User.id
+        )
+        .all()
+    )
+
+    return [
+        _serialize_corrective_action(action)
+        for action in actions
+    ]
 
 
 def get_corrective_action_by_id(
@@ -78,16 +130,23 @@ def get_corrective_action_by_id(
     action_id: int
 ):
     """
-    Get corrective action by ID.
+    Get a single corrective action with
+    finding and assignee information.
     """
 
-    return (
+    action = (
         db.query(CorrectiveAction)
         .filter(
             CorrectiveAction.id == action_id
         )
         .first()
     )
+
+    if action is None:
+        return None
+
+    return _serialize_corrective_action(action)
+
 
 def get_corrective_actions_for_finding(
     db: Session,
@@ -97,13 +156,19 @@ def get_corrective_actions_for_finding(
     Get all corrective actions for an audit finding.
     """
 
-    return (
+    actions = (
         db.query(CorrectiveAction)
         .filter(
             CorrectiveAction.finding_id == finding_id
         )
         .all()
     )
+
+    return [
+        _serialize_corrective_action(action)
+        for action in actions
+    ]
+
 
 def update_corrective_action(
     db: Session,
@@ -155,7 +220,7 @@ def update_corrective_action(
     db.commit()
     db.refresh(action)
 
-    return action
+    return _serialize_corrective_action(action)
 
 
 def delete_corrective_action(
@@ -181,3 +246,26 @@ def delete_corrective_action(
     db.commit()
 
     return True
+
+
+def get_corrective_action_assignees(
+    db: Session
+):
+    """
+    Get users available for assignment
+    to corrective actions.
+    """
+
+    users = (
+        db.query(User)
+        .order_by(User.full_name.asc())
+        .all()
+    )
+
+    return [
+        {
+            "id": user.id,
+            "name": user.full_name,
+        }
+        for user in users
+    ]
