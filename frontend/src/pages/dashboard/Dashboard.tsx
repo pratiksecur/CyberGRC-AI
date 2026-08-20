@@ -5,6 +5,8 @@ import AISummary from "@/components/dashboard/AISummary";
 import SecurityHealth from "@/components/dashboard/SecurityHealth";
 import RecentActivity from "@/components/dashboard/RecentActivity";
 import RiskTrend from "@/components/dashboard/RiskTrend";
+import FindingsActionsOverview from "@/components/dashboard/FindingsActionsOverview";
+import CriticalRemediation from "@/components/dashboard/CriticalRemediation";
 
 import { useDashboard } from "@/hooks/useDashboard";
 import { useExecutiveSummary } from "@/hooks/useExecutiveSummary";
@@ -140,6 +142,17 @@ export default function Dashboard() {
 
         </div>
 
+        {/* Findings & Remediation */}
+
+        <FindingsActionsOverview
+          totalFindings={data.totalFindings}
+          openFindings={data.openFindings}
+          criticalFindings={data.criticalFindings}
+          totalActions={data.totalActions}
+          pendingActions={data.pendingActions}
+          overdueActions={data.overdueActions}
+        />
+
         {/* Dashboard Widgets */}
 
         <div className="grid gap-6 lg:grid-cols-3">
@@ -194,6 +207,10 @@ export default function Dashboard() {
           <RiskTrend />
 
         </div>
+
+        <CriticalRemediation
+          data={data.criticalRemediation}
+        />
 
       </div>
     </AppLayout>
