@@ -16,6 +16,7 @@ class ActionStatus(str, Enum):
     OPEN = "Open"
     IN_PROGRESS = "In Progress"
     COMPLETED = "Completed"
+    CLOSED = "Closed"
 
 
 class CorrectiveActionCreate(BaseModel):
@@ -23,9 +24,16 @@ class CorrectiveActionCreate(BaseModel):
 
     assigned_to: int
 
-    title: str = Field(..., min_length=5, max_length=255)
+    title: str = Field(
+        ...,
+        min_length=5,
+        max_length=255
+    )
 
-    description: str = Field(..., min_length=10)
+    description: str = Field(
+        ...,
+        min_length=10
+    )
 
     priority: PriorityLevel
 
@@ -46,6 +54,7 @@ class CorrectiveActionCreate(BaseModel):
             raise ValueError(
                 "completed_at cannot be before due_date"
             )
+
         return self
 
 
@@ -81,6 +90,7 @@ class CorrectiveActionUpdate(BaseModel):
             raise ValueError(
                 "completed_at cannot be before due_date"
             )
+
         return self
 
 
@@ -88,11 +98,12 @@ class CorrectiveActionResponse(BaseModel):
     id: int
 
     finding_id: int
+    finding_title: str
 
     assigned_to: int
+    assignee_name: str
 
     title: str
-
     description: str
 
     priority: PriorityLevel
@@ -106,9 +117,13 @@ class CorrectiveActionResponse(BaseModel):
     comments: Optional[str]
 
     created_at: datetime
-
     updated_at: datetime
 
     model_config = {
         "from_attributes": True
     }
+
+
+class CorrectiveActionAssigneeResponse(BaseModel):
+    id: int
+    name: str

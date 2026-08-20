@@ -2,14 +2,17 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database.database import get_db
+
 from app.auth.permissions import require_roles
 from app.core.roles import UserRole
+
 from app.models.user import User
 
 from app.schemas.corrective_action import (
     CorrectiveActionCreate,
     CorrectiveActionUpdate,
     CorrectiveActionResponse,
+    CorrectiveActionAssigneeResponse,
 )
 
 from app.services.corrective_action_service import (
@@ -18,7 +21,9 @@ from app.services.corrective_action_service import (
     get_corrective_action_by_id,
     update_corrective_action,
     delete_corrective_action,
+    get_corrective_action_assignees,
 )
+
 
 router = APIRouter(
     prefix="/corrective-actions",
@@ -82,6 +87,28 @@ def list_actions(
     )
 ):
     return get_all_corrective_actions(db)
+
+
+@router.get(
+    "/assignees",
+    response_model=list[CorrectiveActionAssigneeResponse]
+)
+def list_assignees(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_roles(
+            UserRole.ADMIN,
+            UserRole.GRC_MANAGER,
+            UserRole.AUDITOR,
+        )
+    )
+):
+    """
+    Get users that can be selected when
+    assigning a corrective action.
+    """
+
+    return get_corrective_action_assignees(db)
 
 
 @router.get(

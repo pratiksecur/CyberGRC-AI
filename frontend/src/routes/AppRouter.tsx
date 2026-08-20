@@ -37,6 +37,11 @@ import CreateAuditFinding from "@/pages/audit-findings/CreateAuditFinding";
 import ViewAuditFinding from "@/pages/audit-findings/ViewAuditFinding";
 import EditAuditFinding from "@/pages/audit-findings/EditAuditFinding";
 
+import CorrectiveActions from "@/pages/corrective-actions/CorrectiveActions";
+import CreateCorrectiveAction from "@/pages/corrective-actions/CreateCorrectiveAction";
+import ViewCorrectiveAction from "@/pages/corrective-actions/ViewCorrectiveAction";
+import EditCorrectiveAction from "@/pages/corrective-actions/EditCorrectiveAction";
+
 export default function AppRouter() {
   return (
     <BrowserRouter>
@@ -279,6 +284,42 @@ export default function AppRouter() {
           element={
             <ProtectedRoute>
               <EditAuditFinding />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/corrective-actions"
+          element={
+            <ProtectedRoute>
+              <CorrectiveActions />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/corrective-actions/new"
+          element={
+            <ProtectedRoute>
+              <CreateCorrectiveAction />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/corrective-actions/:id"
+          element={
+            <ProtectedRoute>
+              <ViewCorrectiveAction />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/corrective-actions/:id/edit"
+          element={
+            <ProtectedRoute>
+              <EditCorrectiveAction />
             </ProtectedRoute>
           }
         />
