@@ -82,7 +82,7 @@ def generate_executive_dashboard(
     pending_actions = sum(
         1
         for action in corrective_actions
-        if action.status.lower() != "completed"
+        if action["status"].lower() != "completed"
     )
 
     # --------------------------------------------------

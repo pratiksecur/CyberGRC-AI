@@ -18,6 +18,7 @@ from app.services.ai.control_ai_service import recommend_controls
 from app.services.ai.executive_dashboard_ai_service import (
     generate_executive_dashboard,
 )
+from app.services.ai.audit_ai_service import summarize_audit
 
 
 router = APIRouter(
