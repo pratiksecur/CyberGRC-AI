@@ -20,11 +20,16 @@ from app.services.audit_finding_service import (
     delete_audit_finding,
 )
 
+
 router = APIRouter(
     prefix="/audit-findings",
     tags=["Audit Findings"]
 )
 
+
+# ============================================================
+# CREATE AUDIT FINDING
+# ============================================================
 
 @router.post(
     "/",
@@ -41,6 +46,7 @@ def create_finding(
         )
     )
 ):
+
     finding = create_audit_finding(
         db,
         finding_data
@@ -61,6 +67,10 @@ def create_finding(
     return finding
 
 
+# ============================================================
+# LIST ALL AUDIT FINDINGS
+# ============================================================
+
 @router.get(
     "/",
     response_model=list[AuditFindingResponse]
@@ -75,8 +85,13 @@ def list_findings(
         )
     )
 ):
+
     return get_all_audit_findings(db)
 
+
+# ============================================================
+# GET SINGLE AUDIT FINDING
+# ============================================================
 
 @router.get(
     "/{finding_id}",
@@ -93,6 +108,7 @@ def get_finding(
         )
     )
 ):
+
     finding = get_audit_finding_by_id(
         db,
         finding_id,
@@ -106,6 +122,10 @@ def get_finding(
 
     return finding
 
+
+# ============================================================
+# UPDATE AUDIT FINDING
+# ============================================================
 
 @router.patch(
     "/{finding_id}",
@@ -122,6 +142,7 @@ def update_finding(
         )
     )
 ):
+
     finding = update_audit_finding(
         db,
         finding_id,
@@ -134,8 +155,24 @@ def update_finding(
             detail="Finding not found."
         )
 
+    if finding == "AUDIT_NOT_FOUND":
+        raise HTTPException(
+            status_code=404,
+            detail="Audit not found."
+        )
+
+    if finding == "CONTROL_NOT_FOUND":
+        raise HTTPException(
+            status_code=404,
+            detail="Control not found."
+        )
+
     return finding
 
+
+# ============================================================
+# DELETE AUDIT FINDING
+# ============================================================
 
 @router.delete(
     "/{finding_id}"
@@ -150,6 +187,7 @@ def delete_finding(
         )
     )
 ):
+
     deleted = delete_audit_finding(
         db,
         finding_id,
