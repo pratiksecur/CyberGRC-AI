@@ -19,6 +19,14 @@ from app.api.v1.routes.ai import router as ai_router
 from app.api.v1.routes.dashboard import router as dashboard_router
 from app.api.v1.routes.activity import router as activity_router
 from app.api.v1.routes.risk_trend import router as risk_trend_router
+from app.api.v1.routes.reports import router as reports_router
+from app.api.v1.routes.corrective_action_report import (
+    router as corrective_action_report_router,
+)
+
+from app.api.v1.routes.notifications import (
+    router as notifications_router,
+)
 
 from app.exceptions.handlers import register_exception_handlers
 
@@ -132,7 +140,27 @@ app.include_router(
 )
 
 app.include_router(
+    notifications_router,
+    prefix="/api/v1",
+)
+
+app.include_router(
     risk_trend_router,
+    prefix="/api/v1"
+)
+
+app.include_router(
+    reports_router,
+    prefix="/api/v1"
+)
+
+app.include_router(
+    corrective_actions_router,
+    prefix="/api/v1"
+)
+
+app.include_router(
+    corrective_action_report_router,
     prefix="/api/v1"
 )
 
