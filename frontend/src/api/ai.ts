@@ -1,5 +1,9 @@
 import api from "./axios";
 
+// ==========================================================
+// Executive Summary
+// ==========================================================
+
 export interface ExecutiveSummary {
   organization_risk_level: string;
   executive_summary: string;
@@ -10,6 +14,92 @@ export interface ExecutiveSummary {
 export async function getExecutiveSummary(): Promise<ExecutiveSummary> {
   const response = await api.get(
     "/ai/dashboard/executive-summary"
+  );
+
+  return response.data;
+}
+
+// ==========================================================
+// Risk Analysis
+// ==========================================================
+
+export interface RiskAnalysis {
+  likelihood: string;
+  impact: string;
+  risk_score: number;
+  summary: string;
+  recommended_controls: string[];
+}
+
+export async function analyzeRisk(
+  riskId: number
+): Promise<RiskAnalysis> {
+  const response = await api.post(
+    `/ai/risk/${riskId}/analyze`
+  );
+
+  return response.data;
+}
+
+// ==========================================================
+// Control Recommendation
+// ==========================================================
+
+export interface AIControlRecommendation {
+  control_id: number | null;
+  control_name: string;
+  already_exists: boolean;
+  confidence: number;
+  priority: string;
+  reason: string;
+}
+
+export interface ControlRecommendation {
+  overall_assessment: string;
+  existing_controls_assessment: string;
+
+  recommended_existing_controls:
+    AIControlRecommendation[];
+
+  recommended_new_controls:
+    AIControlRecommendation[];
+}
+
+export async function recommendControls(
+  riskId: number
+): Promise<ControlRecommendation> {
+  const response = await api.post(
+    `/ai/risk/${riskId}/recommend-controls`
+  );
+
+  return response.data;
+}
+
+// ==========================================================
+// Audit Summary
+// ==========================================================
+
+export interface AuditSummary {
+  overall_assessment: string;
+
+  critical_findings: number;
+
+  open_findings: number;
+
+  completed_actions: number;
+
+  pending_actions: number;
+
+  executive_summary: string;
+
+  priority_recommendations: string[];
+}
+
+export async function summarizeAudit(
+  auditId: number
+): Promise<AuditSummary> {
+  const response = await api.post(
+    `/ai/audit/${auditId}/summarize`
   );
 
   return response.data;
