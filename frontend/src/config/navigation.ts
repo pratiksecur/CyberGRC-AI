@@ -8,6 +8,7 @@ import {
   ClipboardCheck,
   ListChecks,
   Bot,
+  FileBarChart,
   Settings,
 } from "lucide-react";
 
@@ -58,6 +59,12 @@ export const navigation = [
     label: "Corrective Actions",
     path: "/corrective-actions",
     icon: ListChecks,
+  },
+
+  {
+    label: "Reports",
+    path: "/reports",
+    icon: FileBarChart,
   },
 
   {

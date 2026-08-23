@@ -42,6 +42,12 @@ import CreateCorrectiveAction from "@/pages/corrective-actions/CreateCorrectiveA
 import ViewCorrectiveAction from "@/pages/corrective-actions/ViewCorrectiveAction";
 import EditCorrectiveAction from "@/pages/corrective-actions/EditCorrectiveAction";
 
+import Reports from "@/pages/reports/Reports";
+import RiskReport from "@/pages/reports/RiskReport";
+import AuditReport from "@/pages/reports/AuditReport";
+import ComplianceReport from "@/pages/reports/ComplianceReport";
+import CorrectiveActionsReport from "@/pages/reports/CorrectiveActionsReport";
+
 export default function AppRouter() {
   return (
     <BrowserRouter>
@@ -320,6 +326,51 @@ export default function AppRouter() {
           element={
             <ProtectedRoute>
               <EditCorrectiveAction />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/reports"
+          element={
+            <ProtectedRoute>
+              <Reports />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/reports/risks"
+          element={
+            <ProtectedRoute>
+              <RiskReport />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/reports/audits"
+          element={
+            <ProtectedRoute>
+              <AuditReport />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/reports/compliance"
+          element={
+            <ProtectedRoute>
+              <ComplianceReport />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/reports/corrective-actions"
+          element={
+            <ProtectedRoute>
+              <CorrectiveActionsReport />
             </ProtectedRoute>
           }
         />
