@@ -29,7 +29,7 @@ export default function CorrectiveActionForm({
   isSubmitting = false,
   submitLabel = "Create Action",
 }: Props) {
-  const isEdit = Boolean(initialData);
+  /* const isEdit = Boolean(initialData); */
 
   const {
     data: findings,

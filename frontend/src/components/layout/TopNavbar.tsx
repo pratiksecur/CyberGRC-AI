@@ -21,7 +21,10 @@ import {
 
 import { useNavigate } from "react-router-dom";
 
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  Avatar,
+  AvatarFallback,
+} from "@/components/ui/avatar";
 
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -56,16 +59,21 @@ type SearchResult = {
   path: string;
 };
 
-const API_BASE_URL = "http://localhost:8000/api/v1";
+const API_BASE_URL =
+  "http://localhost:8000/api/v1";
 
 export default function TopNavbar() {
   const navigate = useNavigate();
 
-  const { data: user, isLoading } =
-    useCurrentUser();
+  const {
+    data: user,
+    isLoading,
+  } = useCurrentUser();
 
-  const { theme, toggleTheme } =
-    useTheme();
+  const {
+    theme,
+    toggleTheme,
+  } = useTheme();
 
   const [search, setSearch] =
     useState("");
@@ -127,7 +135,9 @@ export default function TopNavbar() {
   /* ================================================== */
 
   useEffect(() => {
-    const query = search.trim().toLowerCase();
+    const query = search
+      .trim()
+      .toLowerCase();
 
     if (!query) {
       setSearchResults([]);
@@ -191,39 +201,47 @@ export default function TopNavbar() {
 
         const responses =
           await Promise.allSettled(
-            endpoints.map(async (endpoint) => {
-              const response = await fetch(
-                `${API_BASE_URL}${endpoint.path}`,
-                {
-                  headers,
+            endpoints.map(
+              async (endpoint) => {
+                const response =
+                  await fetch(
+                    `${API_BASE_URL}${endpoint.path}`,
+                    {
+                      headers,
+                    }
+                  );
+
+                if (!response.ok) {
+                  throw new Error(
+                    `Failed to search ${endpoint.type}`
+                  );
                 }
-              );
 
-              if (!response.ok) {
-                throw new Error(
-                  `Failed to search ${endpoint.type}`
-                );
+                const data =
+                  await response.json();
+
+                return {
+                  endpoint,
+                  data,
+                };
               }
-
-              const data =
-                await response.json();
-
-              return {
-                endpoint,
-                data,
-              };
-            })
+            )
           );
 
         const results: SearchResult[] = [];
 
         for (const result of responses) {
-          if (result.status !== "fulfilled") {
+          if (
+            result.status !==
+            "fulfilled"
+          ) {
             continue;
           }
 
-          const { endpoint, data } =
-            result.value;
+          const {
+            endpoint,
+            data,
+          } = result.value;
 
           if (!Array.isArray(data)) {
             continue;
@@ -259,7 +277,9 @@ export default function TopNavbar() {
               .toLowerCase();
 
             if (
-              searchableText.includes(query)
+              searchableText.includes(
+                query
+              )
             ) {
               results.push({
                 id: item.id,
@@ -287,10 +307,11 @@ export default function TopNavbar() {
       }
     };
 
-    const timeout = window.setTimeout(
-      runSearch,
-      250
-    );
+    const timeout =
+      window.setTimeout(
+        runSearch,
+        250
+      );
 
     return () => {
       window.clearTimeout(timeout);
@@ -306,12 +327,15 @@ export default function TopNavbar() {
       event: KeyboardEvent
     ) => {
       if (
-        (event.ctrlKey || event.metaKey) &&
-        event.key.toLowerCase() === "k"
+        (event.ctrlKey ||
+          event.metaKey) &&
+        event.key.toLowerCase() ===
+          "k"
       ) {
         event.preventDefault();
 
         searchInputRef.current?.focus();
+
         setSearchOpen(true);
       }
 
@@ -340,7 +364,7 @@ export default function TopNavbar() {
   }, []);
 
   /* ================================================== */
-  /* CLOSE SEARCH WHEN CLICKING OUTSIDE */
+  /* CLOSE SEARCH / NOTIFICATIONS OUTSIDE */
   /* ================================================== */
 
   useEffect(() => {
@@ -409,16 +433,18 @@ export default function TopNavbar() {
     try {
       setNotificationsError(false);
 
-      const response = await fetch(
-        `${API_BASE_URL}/notifications/`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      const response =
+        await fetch(
+          `${API_BASE_URL}/notifications/`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type":
+                "application/json",
+            },
+          }
+        );
 
       if (!response.ok) {
         throw new Error(
@@ -452,16 +478,18 @@ export default function TopNavbar() {
     }
 
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/notifications/unread-count`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      const response =
+        await fetch(
+          `${API_BASE_URL}/notifications/unread-count`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type":
+                "application/json",
+            },
+          }
+        );
 
       if (!response.ok) {
         throw new Error(
@@ -487,18 +515,21 @@ export default function TopNavbar() {
   /* LOAD NOTIFICATIONS */
   /* ================================================== */
 
-  const loadNotificationData = async () => {
-    setNotificationsLoading(true);
+  const loadNotificationData =
+    async () => {
+      setNotificationsLoading(true);
 
-    try {
-      await Promise.all([
-        fetchNotifications(),
-        fetchUnreadCount(),
-      ]);
-    } finally {
-      setNotificationsLoading(false);
-    }
-  };
+      try {
+        await Promise.all([
+          fetchNotifications(),
+          fetchUnreadCount(),
+        ]);
+      } finally {
+        setNotificationsLoading(
+          false
+        );
+      }
+    };
 
   /* ================================================== */
   /* NOTIFICATION AUTO REFRESH */
@@ -514,7 +545,9 @@ export default function TopNavbar() {
       }, 30000);
 
     return () => {
-      window.clearInterval(interval);
+      window.clearInterval(
+        interval
+      );
     };
   }, []);
 
@@ -522,54 +555,65 @@ export default function TopNavbar() {
   /* MARK ONE NOTIFICATION AS READ */
   /* ================================================== */
 
-  const markNotificationAsRead = async (
-    notificationId: number
-  ) => {
-    const token = getAccessToken();
+  const markNotificationAsRead =
+    async (
+      notificationId: number
+    ) => {
+      const token =
+        getAccessToken();
 
-    if (!token) {
-      return;
-    }
-
-    try {
-      const response = await fetch(
-        `${API_BASE_URL}/notifications/${notificationId}/read`,
-        {
-          method: "PATCH",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(
-          "Failed to mark notification as read"
-        );
+      if (!token) {
+        return;
       }
 
-      setNotifications((current) =>
-        current.map((notification) =>
-          notification.id === notificationId
-            ? {
-                ...notification,
-                is_read: true,
-              }
-            : notification
-        )
-      );
+      try {
+        const response =
+          await fetch(
+            `${API_BASE_URL}/notifications/${notificationId}/read`,
+            {
+              method: "PATCH",
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type":
+                  "application/json",
+              },
+            }
+          );
 
-      setUnreadCount((current) =>
-        Math.max(0, current - 1)
-      );
-    } catch (error) {
-      console.error(
-        "Failed to mark notification as read:",
-        error
-      );
-    }
-  };
+        if (!response.ok) {
+          throw new Error(
+            "Failed to mark notification as read"
+          );
+        }
+
+        setNotifications(
+          (current) =>
+            current.map(
+              (notification) =>
+                notification.id ===
+                notificationId
+                  ? {
+                      ...notification,
+                      is_read: true,
+                    }
+                  : notification
+            )
+        );
+
+        setUnreadCount(
+          (current) =>
+            Math.max(
+              0,
+              current - 1
+            )
+        );
+      } catch (error) {
+        console.error(
+          "Failed to mark notification as read:",
+          error
+        );
+      }
+    };
 
   /* ================================================== */
   /* MARK ALL NOTIFICATIONS AS READ */
@@ -577,23 +621,29 @@ export default function TopNavbar() {
 
   const markAllNotificationsAsRead =
     async () => {
-      const token = getAccessToken();
+      const token =
+        getAccessToken();
 
-      if (!token || unreadCount === 0) {
+      if (
+        !token ||
+        unreadCount === 0
+      ) {
         return;
       }
 
       try {
-        const response = await fetch(
-          `${API_BASE_URL}/notifications/read-all`,
-          {
-            method: "PATCH",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
+        const response =
+          await fetch(
+            `${API_BASE_URL}/notifications/read-all`,
+            {
+              method: "PATCH",
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type":
+                  "application/json",
+              },
+            }
+          );
 
         if (!response.ok) {
           throw new Error(
@@ -601,11 +651,14 @@ export default function TopNavbar() {
           );
         }
 
-        setNotifications((current) =>
-          current.map((notification) => ({
-            ...notification,
-            is_read: true,
-          }))
+        setNotifications(
+          (current) =>
+            current.map(
+              (notification) => ({
+                ...notification,
+                is_read: true,
+              })
+            )
         );
 
         setUnreadCount(0);
@@ -735,7 +788,9 @@ export default function TopNavbar() {
               }
             }}
             onChange={(event) =>
-              setSearch(event.target.value)
+              setSearch(
+                event.target.value
+              )
             }
             placeholder="Search risks, controls, audits..."
             className="
@@ -800,234 +855,238 @@ export default function TopNavbar() {
         {/* SEARCH RESULTS */}
         {/* ================================================== */}
 
-        {searchOpen && search.trim() && (
-          <div
-            className="
-              absolute
-              left-0
-              top-full
-              z-50
-              mt-2
-              w-[420px]
-              overflow-hidden
-              rounded-xl
-              border
-              border-slate-200
-              bg-white
-              shadow-xl
-              dark:border-slate-700
-              dark:bg-slate-900
-            "
-          >
-            {searchLoading ? (
-              <div
-                className="
-                  px-4
-                  py-5
-                  text-center
-                  text-sm
-                  text-slate-500
-                  dark:text-slate-400
-                "
-              >
-                Searching...
-              </div>
-            ) : searchResults.length === 0 ? (
-              <div
-                className="
-                  px-4
-                  py-6
-                  text-center
-                "
-              >
-                <Search
-                  size={22}
-                  className="
-                    mx-auto
-                    mb-2
-                    text-slate-400
-                  "
-                />
-
-                <p
-                  className="
-                    text-sm
-                    font-medium
-                    text-slate-700
-                    dark:text-slate-200
-                  "
-                >
-                  No results found
-                </p>
-
-                <p
-                  className="
-                    mt-1
-                    text-xs
-                    text-slate-400
-                  "
-                >
-                  Try another search term.
-                </p>
-              </div>
-            ) : (
-              <>
+        {searchOpen &&
+          search.trim() && (
+            <div
+              className="
+                absolute
+                left-0
+                top-full
+                z-50
+                mt-2
+                w-[420px]
+                overflow-hidden
+                rounded-xl
+                border
+                border-slate-200
+                bg-white
+                shadow-xl
+                dark:border-slate-700
+                dark:bg-slate-900
+              "
+            >
+              {searchLoading ? (
                 <div
                   className="
-                    border-b
-                    border-slate-100
                     px-4
-                    py-2
-                    text-xs
-                    font-semibold
-                    uppercase
-                    tracking-wide
-                    text-slate-400
-                    dark:border-slate-800
+                    py-5
+                    text-center
+                    text-sm
+                    text-slate-500
+                    dark:text-slate-400
                   "
                 >
-                  Search Results
+                  Searching...
                 </div>
+              ) : searchResults.length ===
+                0 ? (
+                <div
+                  className="
+                    px-4
+                    py-6
+                    text-center
+                  "
+                >
+                  <Search
+                    size={22}
+                    className="
+                      mx-auto
+                      mb-2
+                      text-slate-400
+                    "
+                  />
 
-                {searchResults.map(
-                  (result) => (
-                    <button
-                      key={`${result.type}-${result.id}`}
-                      type="button"
-                      onClick={() =>
-                        handleSearchResultClick(
-                          result
-                        )
-                      }
-                      className="
-                        flex
-                        w-full
-                        items-start
-                        gap-3
-                        border-b
-                        border-slate-100
-                        px-4
-                        py-3
-                        text-left
-                        transition
-                        last:border-b-0
-                        hover:bg-slate-50
-                        dark:border-slate-800
-                        dark:hover:bg-slate-800
-                      "
-                    >
-                      <div
+                  <p
+                    className="
+                      text-sm
+                      font-medium
+                      text-slate-700
+                      dark:text-slate-200
+                    "
+                  >
+                    No results found
+                  </p>
+
+                  <p
+                    className="
+                      mt-1
+                      text-xs
+                      text-slate-400
+                    "
+                  >
+                    Try another search term.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div
+                    className="
+                      border-b
+                      border-slate-100
+                      px-4
+                      py-2
+                      text-xs
+                      font-semibold
+                      uppercase
+                      tracking-wide
+                      text-slate-400
+                      dark:border-slate-800
+                    "
+                  >
+                    Search Results
+                  </div>
+
+                  {searchResults.map(
+                    (result) => (
+                      <button
+                        key={`${result.type}-${result.id}`}
+                        type="button"
+                        onClick={() =>
+                          handleSearchResultClick(
+                            result
+                          )
+                        }
                         className="
-                          mt-0.5
                           flex
-                          h-8
-                          w-8
-                          shrink-0
-                          items-center
-                          justify-center
-                          rounded-lg
-                          bg-blue-50
-                          text-blue-600
-                          dark:bg-blue-950
-                          dark:text-blue-400
+                          w-full
+                          items-start
+                          gap-3
+                          border-b
+                          border-slate-100
+                          px-4
+                          py-3
+                          text-left
+                          transition
+                          last:border-b-0
+                          hover:bg-slate-50
+                          dark:border-slate-800
+                          dark:hover:bg-slate-800
                         "
                       >
-                        {result.type ===
-                          "Risk" && (
-                          <ShieldAlert
-                            size={16}
-                          />
-                        )}
-
-                        {result.type ===
-                          "Control" && (
-                          <Wrench
-                            size={16}
-                          />
-                        )}
-
-                        {result.type ===
-                          "Audit" && (
-                          <ClipboardCheck
-                            size={16}
-                          />
-                        )}
-
-                        {result.type ===
-                          "Finding" && (
-                          <FileWarning
-                            size={16}
-                          />
-                        )}
-
-                        {result.type ===
-                          "Corrective Action" && (
-                          <CheckCheck
-                            size={16}
-                          />
-                        )}
-
-                        {result.type ===
-                          "Framework" && (
-                          <BookOpen
-                            size={16}
-                          />
-                        )}
-
-                        {result.type ===
-                          "Evidence" && (
-                          <FileText
-                            size={16}
-                          />
-                        )}
-                      </div>
-
-                      <div className="min-w-0">
-                        <p
-                          className="
-                            truncate
-                            text-sm
-                            font-semibold
-                            text-slate-800
-                            dark:text-slate-100
-                          "
-                        >
-                          {result.title}
-                        </p>
-
-                        <p
+                        <div
                           className="
                             mt-0.5
-                            text-xs
-                            font-medium
+                            flex
+                            h-8
+                            w-8
+                            shrink-0
+                            items-center
+                            justify-center
+                            rounded-lg
+                            bg-blue-50
                             text-blue-600
+                            dark:bg-blue-950
                             dark:text-blue-400
                           "
                         >
-                          {result.type}
-                        </p>
+                          {result.type ===
+                            "Risk" && (
+                            <ShieldAlert
+                              size={16}
+                            />
+                          )}
 
-                        {result.description && (
+                          {result.type ===
+                            "Control" && (
+                            <Wrench
+                              size={16}
+                            />
+                          )}
+
+                          {result.type ===
+                            "Audit" && (
+                            <ClipboardCheck
+                              size={16}
+                            />
+                          )}
+
+                          {result.type ===
+                            "Finding" && (
+                            <FileWarning
+                              size={16}
+                            />
+                          )}
+
+                          {result.type ===
+                            "Corrective Action" && (
+                            <CheckCheck
+                              size={16}
+                            />
+                          )}
+
+                          {result.type ===
+                            "Framework" && (
+                            <BookOpen
+                              size={16}
+                            />
+                          )}
+
+                          {result.type ===
+                            "Evidence" && (
+                            <FileText
+                              size={16}
+                            />
+                          )}
+                        </div>
+
+                        <div className="min-w-0">
                           <p
                             className="
-                              mt-1
-                              line-clamp-1
-                              text-xs
-                              text-slate-500
-                              dark:text-slate-400
+                              truncate
+                              text-sm
+                              font-semibold
+                              text-slate-800
+                              dark:text-slate-100
                             "
                           >
-                            {result.description}
+                            {result.title}
                           </p>
-                        )}
-                      </div>
-                    </button>
-                  )
-                )}
-              </>
-            )}
-          </div>
-        )}
+
+                          <p
+                            className="
+                              mt-0.5
+                              text-xs
+                              font-medium
+                              text-blue-600
+                              dark:text-blue-400
+                            "
+                          >
+                            {result.type}
+                          </p>
+
+                          {result.description && (
+                            <p
+                              className="
+                                mt-1
+                                line-clamp-1
+                                text-xs
+                                text-slate-500
+                                dark:text-slate-400
+                              "
+                            >
+                              {
+                                result.description
+                              }
+                            </p>
+                          )}
+                        </div>
+                      </button>
+                    )
+                  )}
+                </>
+              )}
+            </div>
+          )}
       </div>
 
       {/* ================================================== */}
@@ -1078,7 +1137,9 @@ export default function TopNavbar() {
           )}
         </button>
 
+        {/* ================================================== */}
         {/* NOTIFICATIONS */}
+        {/* ================================================== */}
 
         <div
           ref={notificationRef}
@@ -1221,7 +1282,8 @@ export default function TopNavbar() {
                   >
                     Unable to load notifications.
                   </div>
-                ) : notifications.length === 0 ? (
+                ) : notifications.length ===
+                  0 ? (
                   <div className="px-4 py-8 text-center">
                     <Bell
                       size={20}
@@ -1304,7 +1366,9 @@ export default function TopNavbar() {
                               dark:text-slate-100
                             "
                           >
-                            {notification.title}
+                            {
+                              notification.title
+                            }
                           </p>
 
                           <p
@@ -1316,7 +1380,9 @@ export default function TopNavbar() {
                               dark:text-slate-400
                             "
                           >
-                            {notification.message}
+                            {
+                              notification.message
+                            }
                           </p>
                         </div>
                       </button>
@@ -1328,7 +1394,10 @@ export default function TopNavbar() {
           )}
         </div>
 
-        {/* USER */}
+        {/* ================================================== */}
+        {/* USER INFORMATION */}
+        {/* Static — no dropdown */}
+        {/* ================================================== */}
 
         <div
           className="
@@ -1389,12 +1458,16 @@ export default function TopNavbar() {
                     dark:text-slate-400
                   "
                 >
-                  {user?.role.replace("_", " ")}
+                  {user?.role.replace(
+                    "_",
+                    " "
+                  )}
                 </p>
               </>
             )}
           </div>
         </div>
+
       </div>
     </header>
   );
