@@ -155,11 +155,6 @@ app.include_router(
 )
 
 app.include_router(
-    corrective_actions_router,
-    prefix="/api/v1"
-)
-
-app.include_router(
     corrective_action_report_router,
     prefix="/api/v1"
 )

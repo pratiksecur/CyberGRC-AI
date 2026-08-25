@@ -1,1 +1,336 @@
 @import "tailwindcss";
+
+/* =========================================================
+   CyberGRC AI
+   Global Theme Configuration
+   ========================================================= */
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+
+/* =========================================================
+   BASE
+   ========================================================= */
+
+html,
+body,
+#root {
+  min-height: 100%;
+  width: 100%;
+}
+
+html {
+  background: #ffffff;
+}
+
+body {
+  margin: 0;
+  background: #f8fafc;
+  color: #0f172a;
+
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+
+/* =========================================================
+   DARK MODE - GLOBAL PAGE
+   ========================================================= */
+
+html.dark,
+html.dark body,
+html.dark #root {
+  background: #0f172a;
+  color: #e2e8f0;
+}
+
+
+/* =========================================================
+   WHITE / LIGHT BACKGROUNDS
+   ========================================================= */
+
+/* White */
+.dark .bg-white {
+  background-color: #111827 !important;
+}
+
+/* Slate */
+.dark .bg-slate-50 {
+  background-color: #0f172a !important;
+}
+
+.dark .bg-slate-100 {
+  background-color: #1e293b !important;
+}
+
+.dark .bg-slate-200 {
+  background-color: #334155 !important;
+}
+
+/* Gray */
+.dark .bg-gray-50 {
+  background-color: #0f172a !important;
+}
+
+.dark .bg-gray-100 {
+  background-color: #111827 !important;
+}
+
+.dark .bg-gray-200 {
+  background-color: #1e293b !important;
+}
+
+/* Zinc */
+.dark .bg-zinc-50 {
+  background-color: #0f172a !important;
+}
+
+.dark .bg-zinc-100 {
+  background-color: #111827 !important;
+}
+
+.dark .bg-zinc-200 {
+  background-color: #1e293b !important;
+}
+
+
+/* =========================================================
+   TEXT COLORS
+   ========================================================= */
+
+/* Slate */
+.dark .text-slate-950 {
+  color: #f8fafc !important;
+}
+
+.dark .text-slate-900 {
+  color: #f8fafc !important;
+}
+
+.dark .text-slate-800 {
+  color: #f1f5f9 !important;
+}
+
+.dark .text-slate-700 {
+  color: #e2e8f0 !important;
+}
+
+.dark .text-slate-600 {
+  color: #cbd5e1 !important;
+}
+
+.dark .text-slate-500 {
+  color: #94a3b8 !important;
+}
+
+.dark .text-slate-400 {
+  color: #94a3b8 !important;
+}
+
+.dark .text-slate-300 {
+  color: #cbd5e1 !important;
+}
+
+/* Gray */
+.dark .text-gray-950 {
+  color: #f8fafc !important;
+}
+
+.dark .text-gray-900 {
+  color: #f8fafc !important;
+}
+
+.dark .text-gray-800 {
+  color: #f1f5f9 !important;
+}
+
+.dark .text-gray-700 {
+  color: #e2e8f0 !important;
+}
+
+.dark .text-gray-600 {
+  color: #cbd5e1 !important;
+}
+
+.dark .text-gray-500 {
+  color: #94a3b8 !important;
+}
+
+.dark .text-gray-400 {
+  color: #94a3b8 !important;
+}
+
+
+/* =========================================================
+   BORDERS
+   ========================================================= */
+
+.dark .border {
+  border-color: #334155 !important;
+}
+
+.dark .border-slate-100 {
+  border-color: #1e293b !important;
+}
+
+.dark .border-slate-200 {
+  border-color: #334155 !important;
+}
+
+.dark .border-slate-300 {
+  border-color: #475569 !important;
+}
+
+.dark .border-slate-700 {
+  border-color: #334155 !important;
+}
+
+.dark .border-slate-800 {
+  border-color: #334155 !important;
+}
+
+.dark .border-gray-100 {
+  border-color: #1e293b !important;
+}
+
+.dark .border-gray-200 {
+  border-color: #334155 !important;
+}
+
+.dark .border-gray-300 {
+  border-color: #475569 !important;
+}
+
+
+/* =========================================================
+   HORIZONTAL / VERTICAL BORDERS
+   ========================================================= */
+
+.dark .border-b {
+  border-bottom-color: #334155 !important;
+}
+
+.dark .border-t {
+  border-top-color: #334155 !important;
+}
+
+.dark .border-l {
+  border-left-color: #334155 !important;
+}
+
+.dark .border-r {
+  border-right-color: #334155 !important;
+}
+
+
+/* =========================================================
+   HOVER BACKGROUNDS
+   ========================================================= */
+
+.dark .hover\:bg-slate-50:hover {
+  background-color: #1e293b !important;
+}
+
+.dark .hover\:bg-slate-100:hover {
+  background-color: #1e293b !important;
+}
+
+.dark .hover\:bg-slate-200:hover {
+  background-color: #334155 !important;
+}
+
+.dark .hover\:bg-gray-50:hover {
+  background-color: #1e293b !important;
+}
+
+.dark .hover\:bg-gray-100:hover {
+  background-color: #1e293b !important;
+}
+
+.dark .hover\:bg-gray-200:hover {
+  background-color: #334155 !important;
+}
+
+
+/* =========================================================
+   INPUTS / SELECTS / TEXTAREAS
+   ========================================================= */
+
+.dark input,
+.dark textarea,
+.dark select {
+  color: #f8fafc;
+  background-color: #111827;
+  border-color: #334155;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #64748b;
+}
+
+.dark input:focus,
+.dark textarea:focus,
+.dark select:focus {
+  border-color: #3b82f6;
+}
+
+
+/* =========================================================
+   PLACEHOLDER
+   ========================================================= */
+
+.dark .placeholder\:text-slate-400::placeholder {
+  color: #64748b !important;
+}
+
+.dark .placeholder\:text-gray-400::placeholder {
+  color: #64748b !important;
+}
+
+
+/* =========================================================
+   CARDS / PANELS
+   ========================================================= */
+
+.dark .shadow,
+.dark .shadow-sm,
+.dark .shadow-md,
+.dark .shadow-lg,
+.dark .shadow-xl {
+  --tw-shadow-color: rgba(0, 0, 0, 0.35);
+}
+
+
+/* =========================================================
+   SELECTION
+   ========================================================= */
+
+.dark ::selection {
+  background: #2563eb;
+  color: white;
+}
+
+
+/* =========================================================
+   SCROLLBAR
+   ========================================================= */
+
+.dark ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 999px;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}

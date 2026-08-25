@@ -7,6 +7,7 @@ __pycache__/
 *.pyd
 *.egg-info/
 *.egg
+
 .pytest_cache/
 
 # ==========================
@@ -15,12 +16,16 @@ __pycache__/
 build/
 dist/
 
+# ==========================
 # Virtual Environment
+# ==========================
 venv/
 .venv/
 backend/venv/
 
+# ==========================
 # Environment Variables
+# ==========================
 .env
 backend/.env
 
@@ -45,6 +50,15 @@ htmlcov/
 # ==========================
 *.db
 
+# PostgreSQL backups
+*.dump
+*.sql
+
+# ==========================
+# Docker
+# ==========================
+docker-compose.override.yml
+
 # ==========================
 # macOS / Windows
 # ==========================
@@ -52,7 +66,13 @@ htmlcov/
 Thumbs.db
 
 # ==========================
-# Frontend (for later)
+# Frontend
 # ==========================
 frontend/node_modules/
 frontend/dist/
+
+# ==========================
+# Docker volumes / local data
+# ==========================
+postgres_data/
+uploads/
