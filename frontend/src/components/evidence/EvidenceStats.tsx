@@ -1,21 +1,15 @@
 import {
   FileText,
-  CheckCircle,
-  Clock,
   HardDrive,
 } from "lucide-react";
 
 interface Props {
   totalEvidence: number;
-  approvedEvidence: number;
-  pendingEvidence: number;
   totalFiles: number;
 }
 
 export default function EvidenceStats({
   totalEvidence,
-  approvedEvidence,
-  pendingEvidence,
   totalFiles,
 }: Props) {
   const stats = [
@@ -27,20 +21,6 @@ export default function EvidenceStats({
       bg: "bg-blue-100",
     },
     {
-      title: "Approved",
-      value: approvedEvidence,
-      icon: CheckCircle,
-      color: "text-green-600",
-      bg: "bg-green-100",
-    },
-    {
-      title: "Pending",
-      value: pendingEvidence,
-      icon: Clock,
-      color: "text-yellow-600",
-      bg: "bg-yellow-100",
-    },
-    {
       title: "Files",
       value: totalFiles,
       icon: HardDrive,
@@ -50,7 +30,7 @@ export default function EvidenceStats({
   ];
 
   return (
-    <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+    <div className="grid gap-6 md:grid-cols-2">
       {stats.map((stat) => (
         <div
           key={stat.title}
@@ -67,7 +47,9 @@ export default function EvidenceStats({
               </h2>
             </div>
 
-            <div className={`${stat.bg} rounded-xl p-3`}>
+            <div
+              className={`${stat.bg} rounded-xl p-3`}
+            >
               <stat.icon
                 className={`h-6 w-6 ${stat.color}`}
               />

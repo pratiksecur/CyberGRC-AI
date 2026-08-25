@@ -8,7 +8,6 @@ import { useDeleteEvidence } from "@/hooks/useDeleteEvidence";
 
 import EvidenceStats from "@/components/evidence/EvidenceStats";
 import EvidenceFilters from "@/components/evidence/EvidenceFilters";
-import EvidenceStatusChart from "@/components/evidence/EvidenceStatusChart";
 import EvidenceCards from "@/components/evidence/EvidenceCards";
 import RecentEvidence from "@/components/evidence/RecentEvidence";
 import EvidenceTable from "@/components/evidence/EvidenceTable";
@@ -95,24 +94,11 @@ export default function Evidence() {
         <EvidenceStats
           totalEvidence={filteredEvidence.length}
           totalFiles={filteredEvidence.length}
-          uploadedToday={filteredEvidence.length}
-          totalControls={
-            new Set(
-              filteredEvidence.map(
-                (e) => e.control_id
-              )
-            ).size
-          }
         />
 
-        {/* Charts */}
+        {/* Evidence Overview */}
 
         <div className="grid gap-6 lg:grid-cols-2">
-
-          <EvidenceStatusChart
-            uploaded={filteredEvidence.length}
-            pending={0}
-          />
 
           <EvidenceCards
             evidence={filteredEvidence}
@@ -138,8 +124,9 @@ export default function Evidence() {
               !confirm(
                 "Delete this evidence?"
               )
-            )
+            ) {
               return;
+            }
 
             try {
               await deleteMutation.mutateAsync(id);
