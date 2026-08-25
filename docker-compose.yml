@@ -1,0 +1,140 @@
+services:
+
+  # ========================================================
+  # PostgreSQL
+  # ========================================================
+
+  postgres:
+    image: postgres:17-alpine
+
+    container_name: cybergrc-postgres
+
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: cybergrc
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    ports:
+      - "5432:5432"
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U postgres -d cybergrc"
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+
+  # ========================================================
+  # Backend
+  # ========================================================
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+
+    container_name: cybergrc-backend
+
+    restart: unless-stopped
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    environment:
+
+      # ----------------------------------------------------
+      # Database
+      # ----------------------------------------------------
+
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/cybergrc
+
+      # ----------------------------------------------------
+      # Authentication
+      # ----------------------------------------------------
+
+      SECRET_KEY: ${SECRET_KEY}
+      ALGORITHM: ${ALGORITHM}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES}
+
+      # ----------------------------------------------------
+      # Project
+      # ----------------------------------------------------
+
+      PROJECT_NAME: ${PROJECT_NAME}
+      PROJECT_VERSION: ${PROJECT_VERSION}
+
+      # ----------------------------------------------------
+      # AI
+      # ----------------------------------------------------
+
+      AI_PROVIDER: ${AI_PROVIDER}
+
+      # Ollama remains on Windows host
+      OLLAMA_BASE_URL: http://host.docker.internal:11434/api/generate
+      OLLAMA_MODEL: ${OLLAMA_MODEL}
+
+    volumes:
+      - uploads_data:/app/uploads
+
+    ports:
+      - "8000:8000"
+
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/')\""
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+
+  # ========================================================
+  # Frontend
+  # ========================================================
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+
+      args:
+        VITE_API_URL: http://localhost:8000/api/v1
+
+    container_name: cybergrc-frontend
+
+    restart: unless-stopped
+
+    depends_on:
+      backend:
+        condition: service_healthy
+
+    ports:
+      - "5173:80"
+
+
+# ==========================================================
+# Persistent Volumes
+# ==========================================================
+
+volumes:
+
+  postgres_data:
+
+  uploads_data:
