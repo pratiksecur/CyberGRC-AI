@@ -154,6 +154,19 @@ export default function Login() {
 
         </form>
 
+        <div className="mt-6 text-center text-sm text-slate-500">
+          Don't have an account?{" "}
+          <button
+            type="button"
+            onClick={() => {
+              window.location.href = "/register";
+            }}
+            className="font-semibold text-blue-600 hover:text-blue-700"
+          >
+            Create one
+          </button>
+        </div>
+
         <div className="mt-8 text-center text-sm text-slate-500">
 
           Secure JWT Authentication

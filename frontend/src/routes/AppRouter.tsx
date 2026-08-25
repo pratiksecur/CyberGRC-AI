@@ -10,6 +10,7 @@ import Audits from "@/pages/audits/Audits";
 import AI from "@/pages/ai/AI";
 import Settings from "@/pages/settings/Settings";
 import Login from "@/pages/auth/Login";
+import Register from "@/pages/auth/Register";
 
 import ProtectedRoute from "./ProtectedRoute";
 import ViewRisk from "@/pages/risks/ViewRisk";
@@ -58,6 +59,11 @@ export default function AppRouter() {
         <Route
           path="/login"
           element={<Login />}
+        />
+
+        <Route
+          path="/register"
+          element={<Register />}
         />
 
         {/* Redirect Root */}
