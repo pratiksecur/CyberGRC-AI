@@ -10,6 +10,7 @@ import CriticalRemediation from "@/components/dashboard/CriticalRemediation";
 
 import { useDashboard } from "@/hooks/useDashboard";
 import { useExecutiveSummary } from "@/hooks/useExecutiveSummary";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 import {
   ShieldAlert,
@@ -72,6 +73,32 @@ export default function Dashboard() {
     error: aiError,
   } = useExecutiveSummary();
 
+  const {
+    data: currentUser,
+  } = useCurrentUser();
+
+  /*
+   * Determine the greeting from the user's local time.
+   */
+  const hour = new Date().getHours();
+
+  let greeting = "Good Morning";
+
+  if (hour >= 12 && hour < 17) {
+    greeting = "Good Afternoon";
+  } else if (hour >= 17 && hour < 21) {
+    greeting = "Good Evening";
+  } else if (hour >= 21 || hour < 5) {
+    greeting = "Good Night";
+  }
+
+  /*
+   * Use the logged-in user's name.
+   * Fall back to "there" while the user information is loading.
+   */
+  const userName =
+    currentUser?.full_name || "there";
+
   if (isLoading) {
     return (
       <AppLayout>
@@ -107,7 +134,7 @@ export default function Dashboard() {
         <div>
 
           <h1 className="text-4xl font-bold text-slate-900">
-            Good Morning, Pratik 👋
+            {greeting}, {userName} 👋
           </h1>
 
           <p className="mt-2 text-slate-500">

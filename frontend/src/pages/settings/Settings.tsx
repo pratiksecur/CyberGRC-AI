@@ -7,24 +7,18 @@ import {
   CheckCircle2,
 } from "lucide-react";
 
-import { useNavigate } from "react-router-dom";
-
 import AppLayout from "@/layouts/AppLayout";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Settings() {
-  const navigate = useNavigate();
+  const { logout, isAuthenticated } = useAuth();
 
   const {
     data: user,
     isLoading,
     isError,
   } = useCurrentUser();
-
-  const handleLogout = () => {
-    localStorage.removeItem("access_token");
-    navigate("/login");
-  };
 
   return (
     <AppLayout>
@@ -78,6 +72,7 @@ export default function Settings() {
               </p>
 
               <div className="mt-2 rounded-lg border bg-slate-50 px-4 py-3">
+
                 {isLoading ? (
                   <span className="text-sm text-slate-400">
                     Loading...
@@ -88,9 +83,10 @@ export default function Settings() {
                   </span>
                 ) : (
                   <span className="font-medium text-slate-900">
-                    {user?.full_name}
+                    {user?.full_name || "—"}
                   </span>
                 )}
+
               </div>
             </div>
 
@@ -102,15 +98,21 @@ export default function Settings() {
               </p>
 
               <div className="mt-2 rounded-lg border bg-slate-50 px-4 py-3">
+
                 {isLoading ? (
                   <span className="text-sm text-slate-400">
                     Loading...
                   </span>
+                ) : isError ? (
+                  <span className="text-sm text-red-500">
+                    Unable to load account information.
+                  </span>
                 ) : (
                   <span className="font-medium text-slate-900">
-                    {user?.email}
+                    {user?.email || "—"}
                   </span>
                 )}
+
               </div>
             </div>
 
@@ -123,11 +125,21 @@ export default function Settings() {
 
               <div className="mt-2 flex items-center gap-2 rounded-lg border bg-slate-50 px-4 py-3">
 
-                <span className="font-medium capitalize text-slate-900">
-                  {user?.role
-                    ? user.role.replace("_", " ")
-                    : "—"}
-                </span>
+                {isLoading ? (
+                  <span className="text-sm text-slate-400">
+                    Loading...
+                  </span>
+                ) : isError ? (
+                  <span className="text-sm text-red-500">
+                    Unable to load account information.
+                  </span>
+                ) : (
+                  <span className="font-medium capitalize text-slate-900">
+                    {user?.role
+                      ? user.role.replaceAll("_", " ")
+                      : "—"}
+                  </span>
+                )}
 
               </div>
             </div>
@@ -144,10 +156,11 @@ export default function Settings() {
                 <CheckCircle2 className="h-4 w-4 text-green-600" />
 
                 <span className="font-medium text-green-700">
-                  Active
+                  {isAuthenticated ? "Active" : "Signed Out"}
                 </span>
 
               </div>
+
             </div>
 
           </div>
@@ -339,7 +352,7 @@ export default function Settings() {
 
             <button
               type="button"
-              onClick={handleLogout}
+              onClick={logout}
               className="flex items-center gap-2 rounded-lg border border-red-200 px-4 py-2.5 text-sm font-medium text-red-600 transition hover:bg-red-50"
             >
 
