@@ -16,21 +16,23 @@ from app.models.control_framework_control import (
     ControlFrameworkControl,
 )
 
+
 def get_risk_report(
     db: Session,
+    visible_user_ids: list[int],
 ):
     """
-    Generate a live risk report from the database.
+    Generate a live risk report limited to
+    risks within the authenticated user's scope.
     """
 
     risks = (
         db.query(Risk)
+        .filter(
+            Risk.owner_id.in_(visible_user_ids)
+        )
         .all()
     )
-
-    # ==================================================
-    # SUMMARY
-    # ==================================================
 
     total_risks = len(risks)
 
@@ -71,7 +73,6 @@ def get_risk_report(
     )
 
     if total_risks > 0:
-
         average_risk_score = round(
             sum(
                 risk.risk_score
@@ -80,19 +81,12 @@ def get_risk_report(
             / total_risks,
             2,
         )
-
     else:
-
         average_risk_score = 0.0
-
-    # ==================================================
-    # RISK DETAILS
-    # ==================================================
 
     risk_items = []
 
     for risk in risks:
-
         owner = (
             db.query(User)
             .filter(
@@ -104,27 +98,18 @@ def get_risk_report(
         risk_items.append(
             {
                 "id": risk.id,
-
                 "title": risk.title,
-
                 "description": risk.description,
-
                 "likelihood": risk.likelihood,
-
                 "impact": risk.impact,
-
                 "risk_score": risk.risk_score,
-
                 "status": risk.status,
-
                 "owner_id": risk.owner_id,
-
                 "owner_name": (
                     owner.full_name
                     if owner
                     else "Unknown"
                 ),
-
                 "created_at": (
                     risk.created_at.isoformat()
                     if risk.created_at
@@ -133,61 +118,56 @@ def get_risk_report(
             }
         )
 
-    # Highest risks first
     risk_items.sort(
         key=lambda risk: risk["risk_score"],
         reverse=True,
     )
 
-    # ==================================================
-    # RESPONSE
-    # ==================================================
-
     return {
         "summary": {
             "total_risks": total_risks,
-
             "critical_risks": critical_risks,
-
             "high_risks": high_risks,
-
             "medium_risks": medium_risks,
-
             "low_risks": low_risks,
-
             "open_risks": open_risks,
-
             "closed_risks": closed_risks,
-
-            "average_risk_score": (
-                average_risk_score
-            ),
+            "average_risk_score": average_risk_score,
         },
-
         "risks": risk_items,
     }
 
+
 def get_audit_report(
     db: Session,
+    visible_user_ids: list[int],
 ):
     """
     Generate a live audit and findings report
-    from the database.
+    limited to audits within the authenticated
+    user's visibility scope.
     """
 
     audits = (
         db.query(Audit)
+        .filter(
+            Audit.auditor_id.in_(visible_user_ids)
+        )
         .all()
     )
+
+    audit_ids = {
+        audit.id
+        for audit in audits
+    }
 
     findings = (
         db.query(AuditFinding)
+        .filter(
+            AuditFinding.audit_id.in_(audit_ids)
+        )
         .all()
-    )
-
-    # ==================================================
-    # AUDIT SUMMARY
-    # ==================================================
+    ) if audit_ids else []
 
     total_audits = len(audits)
 
@@ -208,10 +188,6 @@ def get_audit_report(
         for audit in audits
         if audit.status == "Completed"
     )
-
-    # ==================================================
-    # FINDING SUMMARY
-    # ==================================================
 
     total_findings = len(findings)
 
@@ -250,10 +226,6 @@ def get_audit_report(
         for finding in findings
         if finding.status == "Closed"
     )
-
-    # ==================================================
-    # AUDIT DETAILS
-    # ==================================================
 
     audit_items = []
 
@@ -300,51 +272,38 @@ def get_audit_report(
         audit_items.append(
             {
                 "id": audit.id,
-
                 "name": audit.name,
-
                 "framework_id": audit.framework_id,
-
                 "framework_name": (
                     framework.name
                     if framework
                     else "Unknown"
                 ),
-
                 "auditor_id": audit.auditor_id,
-
                 "auditor_name": (
                     auditor.full_name
                     if auditor
                     else "Unknown"
                 ),
-
                 "scope": audit.scope,
-
                 "status": audit.status,
-
                 "start_date": (
                     audit.start_date.isoformat()
                     if audit.start_date
                     else ""
                 ),
-
                 "end_date": (
                     audit.end_date.isoformat()
                     if audit.end_date
                     else ""
                 ),
-
                 "finding_count": finding_count,
-
                 "critical_finding_count": (
                     critical_finding_count
                 ),
-
                 "open_finding_count": (
                     open_finding_count
                 ),
-
                 "created_at": (
                     audit.created_at.isoformat()
                     if audit.created_at
@@ -353,78 +312,40 @@ def get_audit_report(
             }
         )
 
-    # ==================================================
-    # SORT AUDITS
-    # ==================================================
-
     audit_items.sort(
         key=lambda audit: audit["created_at"],
         reverse=True,
     )
 
-    # ==================================================
-    # RESPONSE
-    # ==================================================
-
     return {
         "summary": {
             "total_audits": total_audits,
-
             "planned_audits": planned_audits,
-
-            "in_progress_audits": (
-                in_progress_audits
-            ),
-
-            "completed_audits": (
-                completed_audits
-            ),
-
+            "in_progress_audits": in_progress_audits,
+            "completed_audits": completed_audits,
             "total_findings": total_findings,
-
-            "critical_findings": (
-                critical_findings
-            ),
-
+            "critical_findings": critical_findings,
             "high_findings": high_findings,
-
-            "medium_findings": (
-                medium_findings
-            ),
-
+            "medium_findings": medium_findings,
             "low_findings": low_findings,
-
             "open_findings": open_findings,
-
-            "closed_findings": (
-                closed_findings
-            ),
+            "closed_findings": closed_findings,
         },
-
         "audits": audit_items,
     }
 
+
 def get_compliance_report(
     db: Session,
+    visible_user_ids: list[int],
 ):
     """
-    Generate a live compliance report using:
+    Generate a live compliance report limited to
+    controls and related data within the user's scope.
 
-    Framework
-        ↓
-    FrameworkControl
-        ↓
-    ControlFrameworkControl
-        ↓
-    Control
-
-    Findings and evidence are then associated
-    with the mapped controls.
+    Frameworks themselves remain visible because
+    framework viewing is organization-level.
     """
-
-    # ==================================================
-    # FETCH DATA
-    # ==================================================
 
     frameworks = (
         db.query(Framework)
@@ -433,27 +354,53 @@ def get_compliance_report(
 
     controls = (
         db.query(Control)
+        .filter(
+            Control.owner_id.in_(visible_user_ids)
+        )
         .all()
     )
+
+    control_ids = {
+        control.id
+        for control in controls
+    }
 
     evidence = (
         db.query(Evidence)
+        .filter(
+            Evidence.control_id.in_(control_ids)
+        )
+        .all()
+    ) if control_ids else []
+
+    audits = (
+        db.query(Audit)
+        .filter(
+            Audit.auditor_id.in_(visible_user_ids)
+        )
         .all()
     )
 
+    audit_ids = {
+        audit.id
+        for audit in audits
+    }
+
     findings = (
         db.query(AuditFinding)
+        .filter(
+            AuditFinding.audit_id.in_(audit_ids)
+        )
+        .filter(
+            AuditFinding.control_id.in_(control_ids)
+        )
         .all()
-    )
+    ) if audit_ids and control_ids else []
 
     mappings = (
         db.query(ControlFrameworkControl)
         .all()
     )
-
-    # ==================================================
-    # GLOBAL SUMMARY
-    # ==================================================
 
     total_frameworks = len(
         frameworks
@@ -470,7 +417,6 @@ def get_compliance_report(
     )
 
     if total_controls > 0:
-
         average_control_effectiveness = round(
             sum(
                 control.effectiveness
@@ -479,9 +425,7 @@ def get_compliance_report(
             / total_controls,
             2,
         )
-
     else:
-
         average_control_effectiveness = 0.0
 
     total_evidence = len(
@@ -504,17 +448,9 @@ def get_compliance_report(
         if finding.severity == "Critical"
     )
 
-    # ==================================================
-    # FRAMEWORK DETAILS
-    # ==================================================
-
     framework_items = []
 
     for framework in frameworks:
-
-        # --------------------------------------------------
-        # Framework Controls
-        # --------------------------------------------------
 
         framework_control_ids = {
             framework_control.id
@@ -527,10 +463,6 @@ def get_compliance_report(
                 .all()
             )
         }
-
-        # --------------------------------------------------
-        # Controls mapped to this framework
-        # --------------------------------------------------
 
         framework_control_mappings = [
             mapping
@@ -564,7 +496,6 @@ def get_compliance_report(
         )
 
         if control_count > 0:
-
             average_effectiveness = round(
                 sum(
                     control.effectiveness
@@ -574,43 +505,30 @@ def get_compliance_report(
                 / control_count,
                 2,
             )
-
         else:
-
             average_effectiveness = 0.0
 
-        # --------------------------------------------------
-        # Evidence
-        # --------------------------------------------------
-
-        framework_control_ids_set = {
+        visible_framework_control_ids = {
             control.id
-            for control
-            in framework_controls
+            for control in framework_controls
         }
 
         framework_evidence = [
             item
-            for item
-            in evidence
+            for item in evidence
             if item.control_id
-            in framework_control_ids_set
+            in visible_framework_control_ids
         ]
 
         evidence_count = len(
             framework_evidence
         )
 
-        # --------------------------------------------------
-        # Findings
-        # --------------------------------------------------
-
         framework_findings = [
             finding
-            for finding
-            in findings
+            for finding in findings
             if finding.control_id
-            in framework_control_ids_set
+            in visible_framework_control_ids
         ]
 
         finding_count = len(
@@ -619,112 +537,56 @@ def get_compliance_report(
 
         critical_finding_count = sum(
             1
-            for finding
-            in framework_findings
+            for finding in framework_findings
             if finding.severity == "Critical"
         )
 
         open_finding_count = sum(
             1
-            for finding
-            in framework_findings
+            for finding in framework_findings
             if finding.status == "Open"
         )
-
-        # --------------------------------------------------
-        # Add Framework
-        # --------------------------------------------------
 
         framework_items.append(
             {
                 "id": framework.id,
-
                 "name": framework.name,
-
                 "version": framework.version,
-
-                "control_count": (
-                    control_count
-                ),
-
-                "active_control_count": (
-                    active_control_count
-                ),
-
+                "control_count": control_count,
+                "active_control_count": active_control_count,
                 "average_effectiveness": (
                     average_effectiveness
                 ),
-
-                "evidence_count": (
-                    evidence_count
-                ),
-
-                "finding_count": (
-                    finding_count
-                ),
-
+                "evidence_count": evidence_count,
+                "finding_count": finding_count,
                 "critical_finding_count": (
                     critical_finding_count
                 ),
-
                 "open_finding_count": (
                     open_finding_count
                 ),
             }
         )
 
-    # ==================================================
-    # SORT
-    # ==================================================
-
     framework_items.sort(
         key=lambda framework: (
-            framework[
-                "average_effectiveness"
-            ]
+            framework["average_effectiveness"]
         ),
         reverse=True,
     )
 
-    # ==================================================
-    # RESPONSE
-    # ==================================================
-
     return {
         "summary": {
-
-            "total_frameworks": (
-                total_frameworks
-            ),
-
-            "total_controls": (
-                total_controls
-            ),
-
-            "active_controls": (
-                active_controls
-            ),
-
+            "total_frameworks": total_frameworks,
+            "total_controls": total_controls,
+            "active_controls": active_controls,
             "average_control_effectiveness": (
                 average_control_effectiveness
             ),
-
-            "total_evidence": (
-                total_evidence
-            ),
-
-            "total_findings": (
-                total_findings
-            ),
-
-            "open_findings": (
-                open_findings
-            ),
-
-            "critical_findings": (
-                critical_findings
-            ),
+            "total_evidence": total_evidence,
+            "total_findings": total_findings,
+            "open_findings": open_findings,
+            "critical_findings": critical_findings,
         },
-
         "frameworks": framework_items,
     }

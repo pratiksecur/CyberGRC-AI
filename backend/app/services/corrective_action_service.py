@@ -102,8 +102,7 @@ def get_all_corrective_actions(
     db: Session
 ):
     """
-    Get all corrective actions with
-    finding and assignee information.
+    Get all corrective actions.
     """
 
     actions = (
@@ -130,8 +129,7 @@ def get_corrective_action_by_id(
     action_id: int
 ):
     """
-    Get a single corrective action with
-    finding and assignee information.
+    Get a single corrective action.
     """
 
     action = (
@@ -252,13 +250,16 @@ def get_corrective_action_assignees(
     db: Session
 ):
     """
-    Get users available for assignment
-    to corrective actions.
+    Get all users.
+
+    Organizational filtering is handled by the route.
     """
 
     users = (
         db.query(User)
-        .order_by(User.full_name.asc())
+        .order_by(
+            User.full_name.asc()
+        )
         .all()
     )
 

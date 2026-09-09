@@ -15,8 +15,6 @@ class EvidenceCreate(BaseModel):
 
     file_path: str
 
-    uploaded_by: int
-
 
 class EvidenceUpdate(BaseModel):
     title: Optional[str] = None

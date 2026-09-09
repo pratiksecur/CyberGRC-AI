@@ -47,6 +47,7 @@ class Evidence(Base):
         nullable=False
     )
 
+    # User who uploaded the evidence
     uploaded_by = Column(
         Integer,
         ForeignKey("users.id"),
@@ -58,11 +59,17 @@ class Evidence(Base):
         server_default=func.now()
     )
 
+    # ======================================================
+    # Relationships
+    # ======================================================
+
     control = relationship(
         "Control",
         back_populates="evidence"
     )
 
     uploader = relationship(
-        "User"
+        "User",
+        foreign_keys=[uploaded_by],
+        back_populates="uploaded_evidence"
     )

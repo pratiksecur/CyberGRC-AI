@@ -76,3 +76,9 @@ frontend/dist/
 # ==========================
 postgres_data/
 uploads/
+
+# ==========================
+# Local project backups / archives
+# ==========================
+*.zip
+*.docx

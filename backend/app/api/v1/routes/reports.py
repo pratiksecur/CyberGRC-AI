@@ -3,18 +3,10 @@ from sqlalchemy.orm import Session
 
 from app.database.database import get_db
 
-from app.auth.permissions import require_roles
-from app.core.roles import UserRole
+from app.auth.permissions import require_permission
+from app.auth.visibility import get_visible_user_ids
 
 from app.models.user import User
-
-from app.schemas.reports import (
-    RiskReportResponse,
-)
-
-from app.services.reports_service import (
-    get_risk_report,
-)
 
 from app.schemas.reports import (
     RiskReportResponse,
@@ -42,18 +34,24 @@ router = APIRouter(
 def risk_report(
     db: Session = Depends(get_db),
     current_user: User = Depends(
-        require_roles(
-            UserRole.ADMIN,
-            UserRole.GRC_MANAGER,
-            UserRole.AUDITOR,
-        )
+        require_permission("reports", "view")
     ),
 ):
     """
-    Generate a live risk report.
+    Generate a live risk report limited to
+    risks within the authenticated user's scope.
     """
 
-    return get_risk_report(db)
+    visible_user_ids = get_visible_user_ids(
+        db,
+        current_user,
+    )
+
+    return get_risk_report(
+        db,
+        visible_user_ids,
+    )
+
 
 @router.get(
     "/audits",
@@ -62,18 +60,25 @@ def risk_report(
 def audit_report(
     db: Session = Depends(get_db),
     current_user: User = Depends(
-        require_roles(
-            UserRole.ADMIN,
-            UserRole.GRC_MANAGER,
-            UserRole.AUDITOR,
-        )
+        require_permission("reports", "view")
     ),
 ):
     """
-    Generate a live audit and findings report.
+    Generate a live audit and findings report
+    limited to audits within the authenticated
+    user's scope.
     """
 
-    return get_audit_report(db)
+    visible_user_ids = get_visible_user_ids(
+        db,
+        current_user,
+    )
+
+    return get_audit_report(
+        db,
+        visible_user_ids,
+    )
+
 
 @router.get(
     "/compliance",
@@ -82,15 +87,20 @@ def audit_report(
 def compliance_report(
     db: Session = Depends(get_db),
     current_user: User = Depends(
-        require_roles(
-            UserRole.ADMIN,
-            UserRole.GRC_MANAGER,
-            UserRole.AUDITOR,
-        )
+        require_permission("reports", "view")
     ),
 ):
     """
-    Generate a live compliance report.
+    Generate a live compliance report limited
+    to controls and related data within scope.
     """
 
-    return get_compliance_report(db)
+    visible_user_ids = get_visible_user_ids(
+        db,
+        current_user,
+    )
+
+    return get_compliance_report(
+        db,
+        visible_user_ids,
+    )

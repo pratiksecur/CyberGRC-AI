@@ -2,8 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.database.database import get_db
-from app.auth.permissions import require_roles
-from app.core.roles import UserRole
+from app.auth.permissions import require_permission
 from app.models.user import User
 
 from app.schemas.framework import (
@@ -34,9 +33,9 @@ def create_new_framework(
     framework_data: FrameworkCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(
-        require_roles(
-            UserRole.ADMIN,
-            UserRole.GRC_MANAGER,
+        require_permission(
+            "frameworks",
+            "create"
         )
     )
 ):
@@ -44,12 +43,10 @@ def create_new_framework(
     Create a new compliance framework.
     """
 
-    framework = create_framework(
+    return create_framework(
         db,
         framework_data
     )
-
-    return framework
 
 
 @router.get(
@@ -59,15 +56,16 @@ def create_new_framework(
 def list_all_frameworks(
     db: Session = Depends(get_db),
     current_user: User = Depends(
-        require_roles(
-            UserRole.ADMIN,
-            UserRole.GRC_MANAGER,
-            UserRole.AUDITOR,
+        require_permission(
+            "frameworks",
+            "view"
         )
     )
 ):
     """
     Get all compliance frameworks.
+
+    Frameworks are organization-wide resources.
     """
 
     return get_all_frameworks(db)
@@ -81,10 +79,9 @@ def get_framework(
     framework_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(
-        require_roles(
-            UserRole.ADMIN,
-            UserRole.GRC_MANAGER,
-            UserRole.AUDITOR,
+        require_permission(
+            "frameworks",
+            "view"
         )
     )
 ):
@@ -92,12 +89,10 @@ def get_framework(
     Get a framework by ID.
     """
 
-    framework = get_framework_by_id(
+    return get_framework_by_id(
         db,
         framework_id
     )
-
-    return framework
 
 
 @router.patch(
@@ -109,9 +104,9 @@ def update_existing_framework(
     framework_data: FrameworkUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(
-        require_roles(
-            UserRole.ADMIN,
-            UserRole.GRC_MANAGER,
+        require_permission(
+            "frameworks",
+            "update"
         )
     )
 ):
@@ -119,13 +114,11 @@ def update_existing_framework(
     Update a compliance framework.
     """
 
-    framework = update_framework(
+    return update_framework(
         db,
         framework_id,
         framework_data
     )
-
-    return framework
 
 
 @router.delete(
@@ -135,9 +128,9 @@ def delete_existing_framework(
     framework_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(
-        require_roles(
-            UserRole.ADMIN,
-            UserRole.GRC_MANAGER,
+        require_permission(
+            "frameworks",
+            "delete"
         )
     )
 ):

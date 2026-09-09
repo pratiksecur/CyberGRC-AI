@@ -7,11 +7,19 @@ import {
 
 import type { ReactNode } from "react";
 
-import { login as loginRequest } from "@/api/auth";
+import {
+  login as loginRequest,
+  getCurrentUser,
+} from "@/api/auth";
+
+import type { CurrentUser } from "@/api/auth";
 
 interface AuthContextType {
   token: string | null;
+  user: CurrentUser | null;
+
   isAuthenticated: boolean;
+  isLoading: boolean;
 
   login: (
     email: string,
@@ -31,51 +39,106 @@ interface Props {
 export function AuthProvider({
   children,
 }: Props) {
-
   const [token, setToken] =
     useState<string | null>(null);
 
+  const [user, setUser] =
+    useState<CurrentUser | null>(null);
+
+  const [isLoading, setIsLoading] =
+    useState(true);
+
+  // ==================================================
+  // RESTORE SESSION
+  // ==================================================
+
   useEffect(() => {
+    async function restoreSession() {
+      const savedToken =
+        localStorage.getItem("access_token");
 
-    const savedToken =
-      localStorage.getItem("access_token");
+      if (!savedToken) {
+        setIsLoading(false);
+        return;
+      }
 
-    if (savedToken) {
       setToken(savedToken);
+
+      try {
+        const currentUser =
+          await getCurrentUser();
+
+        setUser(currentUser);
+      } catch {
+        localStorage.removeItem(
+          "access_token"
+        );
+
+        setToken(null);
+        setUser(null);
+      } finally {
+        setIsLoading(false);
+      }
     }
 
+    restoreSession();
   }, []);
+
+  // ==================================================
+  // LOGIN
+  // ==================================================
 
   async function login(
     email: string,
     password: string
   ) {
-
     const response =
-      await loginRequest(email, password);
+      await loginRequest(
+        email,
+        password
+      );
 
     localStorage.setItem(
       "access_token",
       response.access_token
     );
 
-    setToken(response.access_token);
+    setToken(
+      response.access_token
+    );
+
+    const currentUser =
+      await getCurrentUser();
+
+    setUser(currentUser);
   }
 
-  function logout() {
+  // ==================================================
+  // LOGOUT
+  // ==================================================
 
-    localStorage.removeItem("access_token");
+  function logout() {
+    localStorage.removeItem(
+      "access_token"
+    );
 
     setToken(null);
+    setUser(null);
 
     window.location.href = "/login";
-    }
+  }
+
+  // ==================================================
+  // PROVIDER
+  // ==================================================
 
   return (
     <AuthContext.Provider
       value={{
         token,
-        isAuthenticated: !!token,
+        user,
+        isAuthenticated: !!token && !!user,
+        isLoading,
         login,
         logout,
       }}
@@ -86,7 +149,6 @@ export function AuthProvider({
 }
 
 export function useAuth() {
-
   const context =
     useContext(AuthContext);
 

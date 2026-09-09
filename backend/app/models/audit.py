@@ -39,6 +39,12 @@ class Audit(Base):
         nullable=False
     )
 
+    created_by_id = Column(
+        Integer,
+        ForeignKey("users.id"),
+        nullable=False
+    )
+
     scope = Column(
         Text,
         nullable=False
@@ -75,5 +81,11 @@ class Audit(Base):
     )
 
     auditor = relationship(
-        "User"
+        "User",
+        foreign_keys=[auditor_id]
+    )
+
+    created_by = relationship(
+        "User",
+        foreign_keys=[created_by_id]
     )

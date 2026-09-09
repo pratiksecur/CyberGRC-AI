@@ -79,6 +79,8 @@ class ControlResponse(BaseModel):
 
     owner_id: int
 
+    created_by_id: int
+
     created_at: datetime
 
     updated_at: datetime

@@ -41,6 +41,12 @@ class UserListResponse(BaseModel):
 class UserRoleUpdate(BaseModel):
     role: UserRole
 
+class UserOrganizationUpdate(BaseModel):
+    manager_id: int | None = None
+    department: str | None = Field(
+        default=None,
+        max_length=100
+    )
 
 class Token(BaseModel):
     access_token: str

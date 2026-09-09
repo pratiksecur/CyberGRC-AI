@@ -12,10 +12,13 @@ from app.schemas.audit import (
 
 def create_audit(
     db: Session,
-    audit_data: AuditCreate
+    audit_data: AuditCreate,
+    created_by_id: int,
 ):
     """
     Create a new audit.
+
+    The creator is always derived from the authenticated user.
     """
 
     framework = (
@@ -40,6 +43,17 @@ def create_audit(
     if auditor is None:
         return "AUDITOR_NOT_FOUND"
 
+    creator = (
+        db.query(User)
+        .filter(
+            User.id == created_by_id
+        )
+        .first()
+    )
+
+    if creator is None:
+        return "CREATOR_NOT_FOUND"
+
     # Business validation
     if audit_data.end_date < audit_data.start_date:
         return "INVALID_DATES"
@@ -48,6 +62,7 @@ def create_audit(
         name=audit_data.name,
         framework_id=audit_data.framework_id,
         auditor_id=audit_data.auditor_id,
+        created_by_id=created_by_id,
         scope=audit_data.scope,
         status=audit_data.status,
         start_date=audit_data.start_date,
@@ -124,6 +139,9 @@ def update_audit(
     if audit_data.end_date is not None:
         audit.end_date = audit_data.end_date
 
+    if audit_data.auditor_id is not None:
+        audit.auditor_id = audit_data.auditor_id
+
     # Validate dates if both are available
     if audit.end_date < audit.start_date:
         return "INVALID_DATES"
@@ -157,6 +175,7 @@ def delete_audit(
     db.commit()
 
     return True
+
 
 def get_total_audits(db: Session):
     """

@@ -12,11 +12,16 @@ def assign_framework_control(
 ):
     """
     Assign a framework control to a control.
+
+    Authorization and scope validation are handled by
+    the API route before this service is called.
     """
 
     control = (
         db.query(Control)
-        .filter(Control.id == control_id)
+        .filter(
+            Control.id == control_id
+        )
         .first()
     )
 
@@ -60,11 +65,27 @@ def assign_framework_control(
 
 def get_framework_controls_for_control(
     db: Session,
-    control_id: int
+    control_id: int,
+    visible_user_ids: list[int],
 ):
     """
     Get all framework controls linked to a control.
+
+    The control must belong to a user inside the
+    current user's visibility scope.
     """
+
+    control = (
+        db.query(Control)
+        .filter(
+            Control.id == control_id,
+            Control.owner_id.in_(visible_user_ids),
+        )
+        .first()
+    )
+
+    if control is None:
+        return []
 
     return [
         mapping.framework_control
@@ -80,18 +101,27 @@ def get_framework_controls_for_control(
 
 def get_controls_for_framework_control(
     db: Session,
-    framework_control_id: int
+    framework_control_id: int,
+    visible_user_ids: list[int],
 ):
     """
-    Get all controls linked to a framework control.
+    Get all Controls linked to a framework control.
+
+    Only Controls whose owners are inside the current
+    user's visibility scope are returned.
     """
 
     return [
         mapping.control
         for mapping in (
             db.query(ControlFrameworkControl)
+            .join(
+                Control,
+                Control.id == ControlFrameworkControl.control_id
+            )
             .filter(
-                ControlFrameworkControl.framework_control_id == framework_control_id
+                ControlFrameworkControl.framework_control_id == framework_control_id,
+                Control.owner_id.in_(visible_user_ids),
             )
             .all()
         )
@@ -100,10 +130,14 @@ def get_controls_for_framework_control(
 
 def remove_framework_control_mapping(
     db: Session,
-    mapping_id: int
+    mapping_id: int,
+    visible_user_ids: list[int],
 ):
     """
-    Remove framework control mapping.
+    Remove a framework control mapping.
+
+    The mapping can only be deleted when its Control
+    owner is inside the current user's visibility scope.
     """
 
     mapping = (
@@ -115,7 +149,21 @@ def remove_framework_control_mapping(
     )
 
     if mapping is None:
-        return None
+        return "MAPPING_NOT_FOUND"
+
+    control = (
+        db.query(Control)
+        .filter(
+            Control.id == mapping.control_id
+        )
+        .first()
+    )
+
+    if control is None:
+        return "MAPPING_NOT_FOUND"
+
+    if control.owner_id not in visible_user_ids:
+        return "MAPPING_OUT_OF_SCOPE"
 
     db.delete(mapping)
     db.commit()
