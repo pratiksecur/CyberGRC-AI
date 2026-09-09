@@ -6,29 +6,31 @@ from sqlalchemy.orm import Session
 
 from app.ai.provider_factory import get_ai_provider
 from app.ai.prompts import RISK_ANALYSIS_PROMPT
-
+from app.auth.ai_access import get_authorized_risk
+from app.models.user import User
 from app.schemas.ai import RiskAnalysisResponse
-
-from app.services.risk_service import get_risk_by_id
 
 
 def analyze_risk(
     db: Session,
     risk_id: int,
+    current_user: User,
 ) -> RiskAnalysisResponse:
     """
-    Analyze an existing cybersecurity risk using AI.
+    Analyze a risk using AI only after applying the same
+    resource-level visibility rules as the GRC API.
     """
 
-    risk = get_risk_by_id(
+    risk = get_authorized_risk(
         db,
+        current_user,
         risk_id,
     )
 
     if risk is None:
         raise HTTPException(
             status_code=404,
-            detail="Risk not found."
+            detail="Risk not found.",
         )
 
     provider = get_ai_provider()
@@ -40,17 +42,24 @@ def analyze_risk(
 
     for attempt in range(2):
 
-        response = provider.generate(prompt)
+        response = provider.generate(
+            prompt
+        )
 
         try:
 
-            response_json = json.loads(response)
+            response_json = json.loads(
+                response
+            )
 
             return RiskAnalysisResponse(
                 **response_json
             )
 
-        except (json.JSONDecodeError, ValidationError):
+        except (
+            json.JSONDecodeError,
+            ValidationError,
+        ):
 
             if attempt == 0:
 
@@ -73,12 +82,17 @@ Return only the JSON object.
 
             raise HTTPException(
                 status_code=500,
-                detail="AI returned invalid JSON after retry."
+                detail=(
+                    "AI returned invalid JSON "
+                    "after retry."
+                ),
             )
 
         except Exception as e:
 
             raise HTTPException(
                 status_code=500,
-                detail=f"AI analysis failed: {str(e)}"
+                detail=(
+                    f"AI analysis failed: {str(e)}"
+                ),
             )

@@ -7,20 +7,19 @@ from sqlalchemy.orm import Session
 from app.ai.provider_factory import get_ai_provider
 from app.ai.prompts import CONTROL_RECOMMENDATION_PROMPT
 
+from app.auth.ai_access import (
+    get_authorized_controls,
+    get_authorized_risk,
+)
+
+from app.models.user import User
+
 from app.schemas.ai import (
     ControlRecommendationResponse,
 )
 
-from app.services.risk_service import (
-    get_risk_by_id,
-)
-
 from app.services.risk_control_service import (
     get_controls_for_risk,
-)
-
-from app.services.control_service import (
-    get_all_controls,
 )
 
 from app.services.ai.control_matcher import (
@@ -31,102 +30,121 @@ from app.services.ai.control_matcher import (
 def recommend_controls(
     db: Session,
     risk_id: int,
+    current_user: User,
 ) -> ControlRecommendationResponse:
     """
-    Generate AI recommendations based on:
-    - Risk
-    - Existing assigned controls
-    - Complete control library
+    Generate control recommendations using only the risk and
+    control records visible to the authenticated user.
     """
 
-    # ---------------------------------------------------
-    # Fetch Risk
-    # ---------------------------------------------------
-
-    risk = get_risk_by_id(
+    risk = get_authorized_risk(
         db,
+        current_user,
         risk_id,
     )
 
     if risk is None:
+
         raise HTTPException(
             status_code=404,
-            detail="Risk not found."
+            detail="Risk not found.",
         )
 
-    # ---------------------------------------------------
-    # Fetch Existing Controls
-    # ---------------------------------------------------
+    # ------------------------------------------------------
+    # Authorized control library
+    # ------------------------------------------------------
 
-    controls = get_controls_for_risk(
+    visible_controls = get_authorized_controls(
         db,
-        risk_id,
+        current_user,
     )
 
-    if controls:
+    visible_control_ids = {
+        control.id
+        for control in visible_controls
+    }
 
-        existing_controls = "\n".join(
+    # ------------------------------------------------------
+    # Existing controls assigned to the risk
+    # ------------------------------------------------------
+
+    existing_controls = [
+        control
+        for control in get_controls_for_risk(
+            db,
+            risk_id,
+        )
+        if control.id in visible_control_ids
+    ]
+
+    if existing_controls:
+
+        existing_controls_text = "\n".join(
             [
                 f"- {control.title}: {control.description}"
-                for control in controls
+                for control in existing_controls
             ]
         )
 
     else:
 
-        existing_controls = (
-            "No controls have been implemented yet."
+        existing_controls_text = (
+            "No authorized controls have "
+            "been implemented yet."
         )
 
-    # ---------------------------------------------------
-    # Fetch All Available Controls
-    # ---------------------------------------------------
+    # ------------------------------------------------------
+    # Available authorized controls
+    # ------------------------------------------------------
 
-    all_controls = get_all_controls(db)
+    if visible_controls:
 
-    if all_controls:
-
-        available_controls = "\n".join(
+        available_controls_text = "\n".join(
             [
                 f"- {control.title}: {control.description}"
-                for control in all_controls
+                for control in visible_controls
             ]
         )
 
     else:
 
-        available_controls = (
-            "No controls exist in the CyberGRC platform."
+        available_controls_text = (
+            "No authorized controls exist "
+            "in the CyberGRC platform."
         )
 
-    # ---------------------------------------------------
-    # Build Prompt
-    # ---------------------------------------------------
+    # ------------------------------------------------------
+    # Build prompt
+    # ------------------------------------------------------
 
     prompt = CONTROL_RECOMMENDATION_PROMPT.format(
         title=risk.title,
         description=risk.description,
-        existing_controls=existing_controls,
-        available_controls=available_controls,
+        existing_controls=existing_controls_text,
+        available_controls=available_controls_text,
     )
 
     provider = get_ai_provider()
 
-    # ---------------------------------------------------
-    # Retry if AI returns invalid JSON
-    # ---------------------------------------------------
+    # ------------------------------------------------------
+    # Generate response
+    # ------------------------------------------------------
 
     for attempt in range(2):
 
-        response = provider.generate(prompt)
+        response = provider.generate(
+            prompt
+        )
 
         try:
 
-            response_json = json.loads(response)
+            response_json = json.loads(
+                response
+            )
 
-            # ---------------------------------------------------
-            # Match Recommended Existing Controls
-            # ---------------------------------------------------
+            # --------------------------------------------------
+            # Existing control recommendations
+            # --------------------------------------------------
 
             for recommendation in response_json.get(
                 "recommended_existing_controls",
@@ -135,7 +153,7 @@ def recommend_controls(
 
                 matched_control, confidence = match_control(
                     recommendation["control_name"],
-                    all_controls,
+                    visible_controls,
                 )
 
                 if (
@@ -165,9 +183,9 @@ def recommend_controls(
                         2,
                     )
 
-            # ---------------------------------------------------
-            # Match Recommended New Controls
-            # ---------------------------------------------------
+            # --------------------------------------------------
+            # New control recommendations
+            # --------------------------------------------------
 
             for recommendation in response_json.get(
                 "recommended_new_controls",
@@ -176,7 +194,7 @@ def recommend_controls(
 
                 matched_control, confidence = match_control(
                     recommendation["control_name"],
-                    all_controls,
+                    visible_controls,
                 )
 
                 if (
@@ -230,19 +248,23 @@ Return ONLY the required schema.
 Do not include markdown.
 
 Do not include explanations.
-
 """
 
                 continue
 
             raise HTTPException(
                 status_code=500,
-                detail="AI returned invalid JSON after retry."
+                detail=(
+                    "AI returned invalid JSON "
+                    "after retry."
+                ),
             )
 
         except Exception as e:
 
             raise HTTPException(
                 status_code=500,
-                detail=f"AI recommendation failed: {str(e)}"
+                detail=(
+                    f"AI recommendation failed: {str(e)}"
+                ),
             )

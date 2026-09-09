@@ -1,8 +1,11 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.auth.permissions import require_roles
-from app.core.roles import UserRole
+from app.auth.permissions import require_permission
+from app.auth.ai_access import (
+    get_authorized_audit,
+    get_authorized_risk,
+)
 from app.database.database import get_db
 from app.models.user import User
 
@@ -23,9 +26,13 @@ from app.services.ai.audit_ai_service import summarize_audit
 
 router = APIRouter(
     prefix="/ai",
-    tags=["AI"]
+    tags=["AI"],
 )
 
+
+# ==========================================================
+# RISK ANALYSIS
+# ==========================================================
 
 @router.post(
     "/risk/{risk_id}/analyze",
@@ -35,22 +42,38 @@ def analyze_existing_risk(
     risk_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(
-        require_roles(
-            UserRole.ADMIN,
-            UserRole.GRC_MANAGER,
-            UserRole.AUDITOR,
+        require_permission(
+            "ai",
+            "use",
         )
     ),
 ):
     """
-    Analyze an existing risk stored in the database using AI.
+    Analyze an authorized risk using AI.
     """
+
+    risk = get_authorized_risk(
+        db,
+        current_user,
+        risk_id,
+    )
+
+    if risk is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Risk not found.",
+        )
 
     return analyze_risk(
         db=db,
         risk_id=risk_id,
+        current_user=current_user,
     )
 
+
+# ==========================================================
+# CONTROL RECOMMENDATIONS
+# ==========================================================
 
 @router.post(
     "/risk/{risk_id}/recommend-controls",
@@ -60,22 +83,38 @@ def recommend_controls_for_risk(
     risk_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(
-        require_roles(
-            UserRole.ADMIN,
-            UserRole.GRC_MANAGER,
-            UserRole.AUDITOR,
+        require_permission(
+            "ai",
+            "use",
         )
     ),
 ):
     """
-    Recommend additional cybersecurity controls
-    for an existing risk.
+    Recommend controls using only authorized GRC context.
     """
+
+    risk = get_authorized_risk(
+        db,
+        current_user,
+        risk_id,
+    )
+
+    if risk is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Risk not found.",
+        )
 
     return recommend_controls(
         db=db,
         risk_id=risk_id,
+        current_user=current_user,
     )
+
+
+# ==========================================================
+# AUDIT SUMMARY
+# ==========================================================
 
 @router.post(
     "/audit/{audit_id}/summarize",
@@ -85,22 +124,38 @@ def summarize_existing_audit(
     audit_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(
-        require_roles(
-            UserRole.ADMIN,
-            UserRole.GRC_MANAGER,
-            UserRole.AUDITOR,
+        require_permission(
+            "ai",
+            "use",
         )
     ),
 ):
     """
-    Generate an AI executive summary
-    for an existing audit.
+    Summarize an audit only when it is within
+    the authenticated user's audit scope.
     """
+
+    audit = get_authorized_audit(
+        db,
+        current_user,
+        audit_id,
+    )
+
+    if audit is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Audit not found.",
+        )
 
     return summarize_audit(
         db=db,
         audit_id=audit_id,
     )
+
+
+# ==========================================================
+# EXECUTIVE AI SUMMARY
+# ==========================================================
 
 @router.get(
     "/dashboard/executive-summary",
@@ -109,17 +164,23 @@ def summarize_existing_audit(
 def executive_dashboard(
     db: Session = Depends(get_db),
     current_user: User = Depends(
-        require_roles(
-            UserRole.ADMIN,
-            UserRole.GRC_MANAGER,
-            UserRole.AUDITOR,
+        require_permission(
+            "ai_executive_summary",
+            "use",
         )
     ),
 ):
     """
-    Generate an AI-powered executive dashboard summary.
+    Generate the management-level AI Executive Summary.
+
+    This is intentionally a dedicated permission rather than
+    generic AI access.
+
+    According to the CyberGRC-AI RBAC architecture, this
+    capability belongs to the GRC Manager dashboard.
     """
 
     return generate_executive_dashboard(
         db=db,
+        current_user=current_user,
     )

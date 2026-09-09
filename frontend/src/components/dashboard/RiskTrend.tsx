@@ -1,7 +1,12 @@
 import DashboardCard from "./DashboardCard";
-import { TrendingUp } from "lucide-react";
 
-import { useRiskTrend } from "@/hooks/useRiskTrend";
+import {
+  TrendingUp,
+} from "lucide-react";
+
+import {
+  useRiskTrend,
+} from "@/hooks/useRiskTrend";
 
 import {
   ResponsiveContainer,
@@ -13,44 +18,74 @@ import {
   Tooltip,
 } from "recharts";
 
+
 export default function RiskTrend() {
 
-  const { data, isLoading, error } = useRiskTrend();
+  const {
+    data,
+    isLoading,
+    error,
+  } = useRiskTrend();
+
 
   if (isLoading) {
+
     return (
       <DashboardCard
         title="Risk Trend"
-        subtitle="Open risks over the last 6 months"
-        icon={<TrendingUp size={24} className="text-blue-600" />}
+        subtitle="Risks created over the last 6 months"
+        icon={
+          <TrendingUp
+            size={24}
+            className="text-blue-600"
+          />
+        }
       >
+
         <p className="text-slate-500">
           Loading chart...
         </p>
+
       </DashboardCard>
     );
   }
 
+
   if (error || !data) {
+
     return (
       <DashboardCard
         title="Risk Trend"
-        subtitle="Open risks over the last 6 months"
-        icon={<TrendingUp size={24} className="text-blue-600" />}
+        subtitle="Risks created over the last 6 months"
+        icon={
+          <TrendingUp
+            size={24}
+            className="text-blue-600"
+          />
+        }
       >
+
         <p className="text-red-500">
           Failed to load chart.
         </p>
+
       </DashboardCard>
     );
   }
+
 
   return (
     <DashboardCard
       title="Risk Trend"
-      subtitle="Open risks over the last 6 months"
-      icon={<TrendingUp size={24} className="text-blue-600" />}
+      subtitle="Risks created over the last 6 months"
+      icon={
+        <TrendingUp
+          size={24}
+          className="text-blue-600"
+        />
+      }
     >
+
       <div className="h-72">
 
         <ResponsiveContainer
@@ -58,15 +93,21 @@ export default function RiskTrend() {
           height="100%"
         >
 
-          <LineChart data={data}>
+          <LineChart
+            data={data}
+          >
 
             <CartesianGrid
               strokeDasharray="3 3"
             />
 
-            <XAxis dataKey="month" />
+            <XAxis
+              dataKey="month"
+            />
 
-            <YAxis allowDecimals={false} />
+            <YAxis
+              allowDecimals={false}
+            />
 
             <Tooltip />
 
@@ -85,6 +126,7 @@ export default function RiskTrend() {
         </ResponsiveContainer>
 
       </div>
+
     </DashboardCard>
   );
 }
