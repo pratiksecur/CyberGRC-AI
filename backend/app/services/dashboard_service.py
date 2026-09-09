@@ -2,26 +2,56 @@ from datetime import date
 
 from sqlalchemy.orm import Session
 
+from app.auth.visibility import get_visible_user_ids
 from app.models.risk import Risk
 from app.models.control import Control
+from app.models.evidence import Evidence
 from app.models.audit import Audit
 from app.models.audit_finding import AuditFinding
 from app.models.corrective_action import CorrectiveAction
 from app.models.user import User
 
 
-def get_dashboard_data(db: Session):
+def _visible_ids(
+    db: Session,
+    current_user: User,
+    resource: str,
+) -> list[int]:
+
+    return get_visible_user_ids(
+        db,
+        current_user,
+        resource,
+    )
+
+
+def get_dashboard_data(
+    db: Session,
+    current_user: User,
+):
     """
-    Get executive dashboard statistics using
-    live database data.
+    Get dashboard statistics using only resources that are
+    visible to the authenticated user.
+
+    The dashboard intentionally uses the same resource-level
+    scope rules as the main GRC API modules.
     """
 
     # ==================================================
     # RISKS
     # ==================================================
 
+    risk_visible_user_ids = _visible_ids(
+        db,
+        current_user,
+        "risks",
+    )
+
     risks = (
         db.query(Risk)
+        .filter(
+            Risk.owner_id.in_(risk_visible_user_ids)
+        )
         .all()
     )
 
@@ -43,7 +73,6 @@ def get_dashboard_data(db: Session):
             / total_risks
         )
 
-        # Maximum possible risk score is 25
         risk_health = (
             100
             - (
@@ -57,13 +86,23 @@ def get_dashboard_data(db: Session):
 
         risk_health = 100
 
-
     # ==================================================
     # CONTROLS
     # ==================================================
 
+    control_visible_user_ids = _visible_ids(
+        db,
+        current_user,
+        "controls",
+    )
+
     controls = (
         db.query(Control)
+        .filter(
+            Control.owner_id.in_(
+                control_visible_user_ids
+            )
+        )
         .all()
     )
 
@@ -89,23 +128,67 @@ def get_dashboard_data(db: Session):
 
         average_effectiveness = 0
 
+    # ==================================================
+    # EVIDENCE
+    # ==================================================
+
+    evidence_visible_user_ids = _visible_ids(
+        db,
+        current_user,
+        "evidence",
+    )
+
+    total_evidence = (
+        db.query(Evidence)
+        .filter(
+            Evidence.uploaded_by.in_(
+                evidence_visible_user_ids
+            )
+        )
+        .count()
+    )
 
     # ==================================================
     # AUDITS
     # ==================================================
 
-    total_audits = (
-        db.query(Audit)
-        .count()
+    audit_visible_user_ids = _visible_ids(
+        db,
+        current_user,
+        "audits",
     )
 
+    total_audits = (
+        db.query(Audit)
+        .filter(
+            Audit.auditor_id.in_(
+                audit_visible_user_ids
+            )
+        )
+        .count()
+    )
 
     # ==================================================
     # AUDIT FINDINGS
     # ==================================================
 
+    finding_visible_user_ids = _visible_ids(
+        db,
+        current_user,
+        "audit_findings",
+    )
+
     findings = (
         db.query(AuditFinding)
+        .join(
+            Audit,
+            AuditFinding.audit_id == Audit.id,
+        )
+        .filter(
+            Audit.auditor_id.in_(
+                finding_visible_user_ids
+            )
+        )
         .all()
     )
 
@@ -123,13 +206,31 @@ def get_dashboard_data(db: Session):
         if finding.severity == "Critical"
     )
 
-
     # ==================================================
     # CORRECTIVE ACTIONS
     # ==================================================
 
+    action_visible_user_ids = _visible_ids(
+        db,
+        current_user,
+        "corrective_actions",
+    )
+
     actions = (
         db.query(CorrectiveAction)
+        .join(
+            AuditFinding,
+            CorrectiveAction.finding_id == AuditFinding.id,
+        )
+        .join(
+            Audit,
+            AuditFinding.audit_id == Audit.id,
+        )
+        .filter(
+            Audit.auditor_id.in_(
+                action_visible_user_ids
+            )
+        )
         .all()
     )
 
@@ -159,7 +260,6 @@ def get_dashboard_data(db: Session):
         )
     )
 
-
     # ==================================================
     # CRITICAL REMEDIATION
     # ==================================================
@@ -168,8 +268,15 @@ def get_dashboard_data(db: Session):
 
     critical_finding = (
         db.query(AuditFinding)
+        .join(
+            Audit,
+            AuditFinding.audit_id == Audit.id,
+        )
         .filter(
-            AuditFinding.severity == "Critical"
+            AuditFinding.severity == "Critical",
+            Audit.auditor_id.in_(
+                finding_visible_user_ids
+            ),
         )
         .order_by(
             AuditFinding.created_at.desc()
@@ -181,9 +288,20 @@ def get_dashboard_data(db: Session):
 
         critical_action = (
             db.query(CorrectiveAction)
+            .join(
+                AuditFinding,
+                CorrectiveAction.finding_id == AuditFinding.id,
+            )
+            .join(
+                Audit,
+                AuditFinding.audit_id == Audit.id,
+            )
             .filter(
                 CorrectiveAction.finding_id
-                == critical_finding.id
+                == critical_finding.id,
+                Audit.auditor_id.in_(
+                    action_visible_user_ids
+                ),
             )
             .order_by(
                 CorrectiveAction.created_at.desc()
@@ -240,21 +358,20 @@ def get_dashboard_data(db: Session):
                 ),
             }
 
+    # ==================================================
+    # COMPLIANCE / CONTROL EFFECTIVENESS
+    # ==================================================
 
-    # ==================================================
-    # COMPLIANCE
-    # ==================================================
+    # This remains the existing control-effectiveness
+    # proxy until the GRC Intelligence Engine replaces it
+    # with a real framework/evidence-based calculation.
 
     compliance = round(
         average_effectiveness
     )
 
-
     # ==================================================
     # SECURITY HEALTH
-    #
-    # 50% Risk Health
-    # 50% Control Effectiveness
     # ==================================================
 
     security_health = round(
@@ -273,9 +390,8 @@ def get_dashboard_data(db: Session):
         )
     )
 
-
     # ==================================================
-    # DASHBOARD RESPONSE
+    # RESPONSE
     # ==================================================
 
     return {
@@ -287,6 +403,8 @@ def get_dashboard_data(db: Session):
         "controls": total_controls,
 
         "activeControls": active_controls,
+
+        "totalEvidence": total_evidence,
 
         "audits": total_audits,
 

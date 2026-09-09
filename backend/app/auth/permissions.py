@@ -40,6 +40,11 @@ ROLE_PERMISSIONS = {
         "corrective_actions": {"view", "create", "update"},
         "reports": {"view", "create"},
         "ai": {"view", "use"},
+
+        # Dedicated management-level AI capability.
+        # This is intentionally NOT granted to Admin,
+        # Risk Analyst, Auditor, or Employee.
+        "ai_executive_summary": {"view", "use"},
     },
 
     UserRole.RISK_ANALYST.value: {
@@ -117,6 +122,7 @@ ROLE_SCOPES = {
         "corrective_actions": AccessScope.SUBORDINATES,
         "reports": AccessScope.SUBORDINATES,
         "ai": AccessScope.SUBORDINATES,
+        "ai_executive_summary": AccessScope.SUBORDINATES,
     },
 
     UserRole.RISK_ANALYST.value: {
@@ -167,21 +173,17 @@ ROLE_SCOPES = {
 def has_permission(
     user: User,
     resource: str,
-    action: str
+    action: str,
 ) -> bool:
-    """
-    Check whether a user has permission to perform
-    an action on a resource.
-    """
 
     role_permissions = ROLE_PERMISSIONS.get(
         user.role,
-        {}
+        {},
     )
 
     resource_permissions = role_permissions.get(
         resource,
-        set()
+        set(),
     )
 
     return action in resource_permissions
@@ -189,16 +191,12 @@ def has_permission(
 
 def get_access_scope(
     user: User,
-    resource: str
+    resource: str,
 ) -> AccessScope | None:
-    """
-    Return the organizational access scope for a user
-    on a specific resource.
-    """
 
     role_scopes = ROLE_SCOPES.get(
         user.role,
-        {}
+        {},
     )
 
     return role_scopes.get(resource)
@@ -210,27 +208,24 @@ def get_access_scope(
 
 def require_permission(
     resource: str,
-    action: str
+    action: str,
 ):
-    """
-    FastAPI dependency that requires a specific
-    resource/action permission.
-    """
 
     def permission_checker(
-        current_user: User = Depends(get_current_user)
+        current_user: User = Depends(get_current_user),
     ):
+
         if not has_permission(
             current_user,
             resource,
-            action
+            action,
         ):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=(
                     "You do not have permission to "
                     f"{action} {resource}."
-                )
+                ),
             )
 
         return current_user
@@ -244,14 +239,11 @@ def require_permission(
 
 def require_roles(*allowed_roles):
     """
-    Existing role-based authorization.
-
-    Kept for backwards compatibility with the
-    current API routes.
+    Legacy role-based dependency kept for compatibility.
     """
 
     def role_checker(
-        current_user: User = Depends(get_current_user)
+        current_user: User = Depends(get_current_user),
     ):
 
         allowed_values = [
@@ -267,7 +259,7 @@ def require_roles(*allowed_roles):
                 detail=(
                     "You do not have permission "
                     "to perform this action."
-                )
+                ),
             )
 
         return current_user

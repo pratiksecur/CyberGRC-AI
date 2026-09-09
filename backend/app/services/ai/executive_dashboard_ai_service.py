@@ -7,61 +7,147 @@ from sqlalchemy.orm import Session
 from app.ai.provider_factory import get_ai_provider
 from app.ai.prompts import EXECUTIVE_DASHBOARD_PROMPT
 
+from app.auth.visibility import get_visible_user_ids
+
+from app.models.audit import Audit
+from app.models.audit_finding import AuditFinding
+from app.models.corrective_action import CorrectiveAction
+from app.models.control import Control
+from app.models.evidence import Evidence
+from app.models.framework import Framework
+from app.models.risk import Risk
+from app.models.user import User
+
 from app.schemas.ai import (
     ExecutiveDashboardResponse,
-)
-
-from app.services.risk_service import (
-    get_all_risks,
-)
-
-from app.services.control_service import (
-    get_all_controls,
-)
-
-from app.services.framework_service import (
-    get_all_frameworks,
-)
-
-from app.services.evidence_service import (
-    get_all_evidence,
-)
-
-from app.services.audit_service import (
-    get_all_audits,
-)
-
-from app.services.corrective_action_service import (
-    get_all_corrective_actions,
 )
 
 
 def generate_executive_dashboard(
     db: Session,
+    current_user: User,
 ) -> ExecutiveDashboardResponse:
     """
-    Generate an AI-powered executive cybersecurity dashboard.
+    Generate the GRC Manager's AI Executive Summary.
+
+    The AI context is built from authorized organizational
+    scope before any data is sent to the AI provider.
+
+    Framework definitions remain organization-wide because
+    they are reference requirements.
+
+    Operational records are filtered by ownership or
+    assignment scope.
     """
 
-    # --------------------------------------------------
-    # Fetch Data
-    # --------------------------------------------------
+    # ==================================================
+    # AUTHORIZED USER SCOPES
+    # ==================================================
 
-    risks = get_all_risks(db)
+    risk_visible_user_ids = get_visible_user_ids(
+        db,
+        current_user,
+        "risks",
+    )
 
-    controls = get_all_controls(db)
+    control_visible_user_ids = get_visible_user_ids(
+        db,
+        current_user,
+        "controls",
+    )
 
-    frameworks = get_all_frameworks(db)
+    evidence_visible_user_ids = get_visible_user_ids(
+        db,
+        current_user,
+        "evidence",
+    )
 
-    evidence = get_all_evidence(db)
+    audit_visible_user_ids = get_visible_user_ids(
+        db,
+        current_user,
+        "audits",
+    )
 
-    audits = get_all_audits(db)
+    action_visible_user_ids = get_visible_user_ids(
+        db,
+        current_user,
+        "corrective_actions",
+    )
 
-    corrective_actions = get_all_corrective_actions(db)
+    # ==================================================
+    # FETCH SCOPED DATA
+    # ==================================================
 
-    # --------------------------------------------------
-    # Calculate Metrics
-    # --------------------------------------------------
+    risks = (
+        db.query(Risk)
+        .filter(
+            Risk.owner_id.in_(
+                risk_visible_user_ids
+            )
+        )
+        .all()
+    )
+
+    controls = (
+        db.query(Control)
+        .filter(
+            Control.owner_id.in_(
+                control_visible_user_ids
+            )
+        )
+        .all()
+    )
+
+    # Frameworks are reference data and remain
+    # organization-wide.
+    frameworks = (
+        db.query(Framework)
+        .all()
+    )
+
+    evidence = (
+        db.query(Evidence)
+        .filter(
+            Evidence.uploaded_by.in_(
+                evidence_visible_user_ids
+            )
+        )
+        .all()
+    )
+
+    audits = (
+        db.query(Audit)
+        .filter(
+            Audit.auditor_id.in_(
+                audit_visible_user_ids
+            )
+        )
+        .all()
+    )
+
+    corrective_actions = (
+        db.query(CorrectiveAction)
+        .join(
+            AuditFinding,
+            CorrectiveAction.finding_id
+            == AuditFinding.id,
+        )
+        .join(
+            Audit,
+            AuditFinding.audit_id
+            == Audit.id,
+        )
+        .filter(
+            Audit.auditor_id.in_(
+                action_visible_user_ids
+            )
+        )
+        .all()
+    )
+
+    # ==================================================
+    # AUTHORITATIVE METRICS
+    # ==================================================
 
     total_risks = len(risks)
 
@@ -82,12 +168,16 @@ def generate_executive_dashboard(
     pending_actions = sum(
         1
         for action in corrective_actions
-        if action["status"].lower() != "completed"
+        if str(action.status).lower()
+        not in (
+            "completed",
+            "closed",
+        )
     )
 
-    # --------------------------------------------------
-    # Build Prompt
-    # --------------------------------------------------
+    # ==================================================
+    # BUILD AI PROMPT
+    # ==================================================
 
     prompt = EXECUTIVE_DASHBOARD_PROMPT.format(
         total_risks=total_risks,
@@ -99,20 +189,86 @@ def generate_executive_dashboard(
         pending_actions=pending_actions,
     )
 
-    provider = get_ai_provider()
+    # ==================================================
+    # AI PROVIDER
+    # ==================================================
 
-    # --------------------------------------------------
-    # Retry on Invalid JSON
-    # --------------------------------------------------
+    try:
+
+        provider = get_ai_provider()
+
+    except Exception as e:
+
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "AI provider initialization failed: "
+                f"{str(e)}"
+            ),
+        )
+
+    # ==================================================
+    # GENERATE RESPONSE
+    # ==================================================
 
     for attempt in range(2):
 
-        response = provider.generate(prompt)
-
         try:
 
+            response = provider.generate(
+                prompt
+            )
+
+            cleaned_response = (
+                response.strip()
+            )
+
+            # --------------------------------------------------
+            # Remove JSON markdown fences
+            # --------------------------------------------------
+
+            if cleaned_response.startswith(
+                "```json"
+            ):
+
+                cleaned_response = (
+                    cleaned_response[7:]
+                    .strip()
+                )
+
+                if cleaned_response.endswith(
+                    "```"
+                ):
+
+                    cleaned_response = (
+                        cleaned_response[:-3]
+                        .strip()
+                    )
+
+            elif cleaned_response.startswith(
+                "```"
+            ):
+
+                cleaned_response = (
+                    cleaned_response[3:]
+                    .strip()
+                )
+
+                if cleaned_response.endswith(
+                    "```"
+                ):
+
+                    cleaned_response = (
+                        cleaned_response[:-3]
+                        .strip()
+                    )
+
+            response_json = json.loads(
+                cleaned_response
+            )
+
             return ExecutiveDashboardResponse(
-                **json.loads(response)
+                **response_json
             )
 
         except (
@@ -128,11 +284,37 @@ IMPORTANT
 
 Return ONLY valid JSON.
 
+Do not use markdown.
+
+Do not include explanations outside
+the JSON object.
+
+Return ONLY the required JSON object.
 """
 
                 continue
 
             raise HTTPException(
                 status_code=500,
-                detail="AI returned invalid JSON."
+                detail=(
+                    "AI returned invalid JSON "
+                    "after retry."
+                ),
             )
+
+        except Exception as e:
+
+            raise HTTPException(
+                status_code=500,
+                detail=(
+                    "AI executive summary failed: "
+                    f"{str(e)}"
+                ),
+            )
+
+    raise HTTPException(
+        status_code=500,
+        detail=(
+            "Unable to generate executive summary."
+        ),
+    )

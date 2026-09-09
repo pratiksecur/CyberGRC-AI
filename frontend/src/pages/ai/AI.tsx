@@ -9,6 +9,13 @@ import { useAnalyzeRisk } from "@/hooks/useAnalyzeRisk";
 import { useRecommendControls } from "@/hooks/useRecommendControls";
 import { useAuditAISummary } from "@/hooks/useAuditAISummary";
 
+import { useAuth } from "@/contexts/AuthContext";
+
+import {
+  hasPermission,
+  type UserRole,
+} from "@/auth/permissions";
+
 import {
   Brain,
   ShieldAlert,
@@ -19,7 +26,27 @@ import {
   CheckCircle2,
 } from "lucide-react";
 
+
 export default function AI() {
+
+  const { user } = useAuth();
+
+  const role =
+    user?.role as UserRole | undefined;
+
+
+  // ==================================================
+  // PERMISSIONS
+  // ==================================================
+
+  const canViewExecutiveSummary =
+    hasPermission(
+      role,
+      "ai_executive_summary",
+      "view"
+    );
+
+
   // ==================================================
   // EXECUTIVE SUMMARY
   // ==================================================
@@ -28,7 +55,10 @@ export default function AI() {
     data: executiveSummary,
     isLoading: summaryLoading,
     error: summaryError,
-  } = useExecutiveSummary();
+  } = useExecutiveSummary(
+    canViewExecutiveSummary
+  );
+
 
   // ==================================================
   // RISKS
@@ -39,6 +69,7 @@ export default function AI() {
     isLoading: risksLoading,
   } = useRisks();
 
+
   // ==================================================
   // AUDITS
   // ==================================================
@@ -47,6 +78,7 @@ export default function AI() {
     data: audits,
     isLoading: auditsLoading,
   } = useAudits();
+
 
   // ==================================================
   // SELECTION STATE
@@ -57,6 +89,7 @@ export default function AI() {
 
   const [selectedAudit, setSelectedAudit] =
     useState("");
+
 
   // ==================================================
   // RISK AI ANALYSIS
@@ -70,6 +103,7 @@ export default function AI() {
     reset: resetRiskAnalysis,
   } = useAnalyzeRisk();
 
+
   // ==================================================
   // CONTROL AI RECOMMENDATIONS
   // ==================================================
@@ -81,6 +115,7 @@ export default function AI() {
     error: controlRecommendationsError,
     reset: resetControlRecommendations,
   } = useRecommendControls();
+
 
   // ==================================================
   // AUDIT AI SUMMARY
@@ -94,24 +129,29 @@ export default function AI() {
     reset: resetAuditSummary,
   } = useAuditAISummary();
 
+
   // ==================================================
   // RENDER
   // ==================================================
 
   return (
     <AppLayout>
+
       <div className="space-y-8">
 
-        {/* ================================================== */}
-        {/* HEADER */}
-        {/* ================================================== */}
+
+        {/* ==================================================
+            HEADER
+        ================================================== */}
 
         <div>
 
           <div className="flex items-center gap-3">
 
             <div className="rounded-xl bg-purple-100 p-3">
+
               <Brain className="h-7 w-7 text-purple-600" />
+
             </div>
 
             <div>
@@ -131,204 +171,217 @@ export default function AI() {
         </div>
 
 
-        {/* ================================================== */}
-        {/* EXECUTIVE INTELLIGENCE */}
-        {/* ================================================== */}
+        {/* ==================================================
+            EXECUTIVE INTELLIGENCE
 
-        <section className="rounded-2xl border bg-white shadow-sm">
+            ONLY GRC MANAGER / USERS WITH THE DEDICATED
+            PERMISSION SEE THIS SECTION.
+        ================================================== */}
 
-          <div className="border-b p-6">
+        {canViewExecutiveSummary && (
 
-            <div className="flex items-center gap-3">
+          <section className="rounded-2xl border bg-white shadow-sm">
 
-              <div className="rounded-lg bg-purple-50 p-2">
-                <Sparkles className="h-5 w-5 text-purple-600" />
-              </div>
+            <div className="border-b p-6">
 
-              <div>
+              <div className="flex items-center gap-3">
 
-                <h2 className="font-semibold text-slate-900">
-                  Executive Intelligence
-                </h2>
+                <div className="rounded-lg bg-purple-50 p-2">
 
-                <p className="text-sm text-slate-500">
-                  AI-generated assessment of the organization's current cybersecurity posture.
-                </p>
+                  <Sparkles className="h-5 w-5 text-purple-600" />
+
+                </div>
+
+                <div>
+
+                  <h2 className="font-semibold text-slate-900">
+                    Executive Intelligence
+                  </h2>
+
+                  <p className="text-sm text-slate-500">
+                    AI-generated assessment of the organization's current cybersecurity posture.
+                  </p>
+
+                </div>
 
               </div>
 
             </div>
 
-          </div>
 
+            <div className="p-6">
 
-          <div className="p-6">
+              {summaryLoading ? (
 
-            {summaryLoading ? (
+                <div className="space-y-4">
 
-              <div className="space-y-4">
+                  <div className="h-6 w-40 animate-pulse rounded bg-slate-200" />
 
-                <div className="h-6 w-40 animate-pulse rounded bg-slate-200" />
+                  <div className="h-20 animate-pulse rounded-lg bg-slate-100" />
 
-                <div className="h-20 animate-pulse rounded-lg bg-slate-100" />
+                  <div className="grid gap-4 md:grid-cols-2">
 
-                <div className="grid gap-4 md:grid-cols-2">
+                    <div className="h-24 animate-pulse rounded-lg bg-slate-100" />
 
-                  <div className="h-24 animate-pulse rounded-lg bg-slate-100" />
-
-                  <div className="h-24 animate-pulse rounded-lg bg-slate-100" />
-
-                </div>
-
-              </div>
-
-            ) : summaryError || !executiveSummary ? (
-
-              <div className="rounded-lg border border-red-200 bg-red-50 p-5">
-
-                <p className="font-medium text-red-700">
-                  Failed to generate executive intelligence.
-                </p>
-
-                <p className="mt-1 text-sm text-red-600">
-                  Please try again later.
-                </p>
-
-              </div>
-
-            ) : (
-
-              <div className="space-y-6">
-
-                {/* Risk Level */}
-
-                <div>
-
-                  <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                    Organization Risk Level
-                  </p>
-
-                  <span className="mt-2 inline-flex rounded-full bg-red-100 px-4 py-2 text-sm font-semibold text-red-700">
-                    {executiveSummary.organization_risk_level}
-                  </span>
-
-                </div>
-
-
-                {/* Executive Summary */}
-
-                <div className="rounded-xl bg-slate-50 p-5">
-
-                  <p className="mb-2 text-sm font-semibold text-slate-900">
-                    Executive Summary
-                  </p>
-
-                  <p className="leading-7 text-slate-600">
-                    {executiveSummary.executive_summary}
-                  </p>
-
-                </div>
-
-
-                {/* Priorities + Next Steps */}
-
-                <div className="grid gap-6 md:grid-cols-2">
-
-                  <div>
-
-                    <h3 className="mb-3 text-sm font-semibold text-slate-900">
-                      Top Priorities
-                    </h3>
-
-                    <ul className="space-y-2">
-
-                      {executiveSummary.top_priorities.map(
-                        (priority, index) => (
-
-                          <li
-                            key={index}
-                            className="flex gap-3 rounded-lg border p-3 text-sm text-slate-600"
-                          >
-
-                            <span className="font-semibold text-purple-600">
-                              {index + 1}.
-                            </span>
-
-                            <span>
-                              {priority}
-                            </span>
-
-                          </li>
-
-                        )
-                      )}
-
-                    </ul>
-
-                  </div>
-
-
-                  <div>
-
-                    <h3 className="mb-3 text-sm font-semibold text-slate-900">
-                      Recommended Next Steps
-                    </h3>
-
-                    <ul className="space-y-2">
-
-                      {executiveSummary.recommended_next_steps.map(
-                        (step, index) => (
-
-                          <li
-                            key={index}
-                            className="flex gap-3 rounded-lg border p-3 text-sm text-slate-600"
-                          >
-
-                            <span className="font-semibold text-blue-600">
-                              {index + 1}.
-                            </span>
-
-                            <span>
-                              {step}
-                            </span>
-
-                          </li>
-
-                        )
-                      )}
-
-                    </ul>
+                    <div className="h-24 animate-pulse rounded-lg bg-slate-100" />
 
                   </div>
 
                 </div>
 
-              </div>
+              ) : summaryError || !executiveSummary ? (
 
-            )}
+                <div className="rounded-lg border border-red-200 bg-red-50 p-5">
 
-          </div>
+                  <p className="font-medium text-red-700">
+                    Failed to generate executive intelligence.
+                  </p>
 
-        </section>
+                  <p className="mt-1 text-sm text-red-600">
+                    Please try again later.
+                  </p>
+
+                </div>
+
+              ) : (
+
+                <div className="space-y-6">
 
 
-        {/* ================================================== */}
-        {/* AI WORKSPACES */}
-        {/* ================================================== */}
+                  {/* Risk Level */}
+
+                  <div>
+
+                    <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                      Organization Risk Level
+                    </p>
+
+                    <span className="mt-2 inline-flex rounded-full bg-red-100 px-4 py-2 text-sm font-semibold text-red-700">
+                      {executiveSummary.organization_risk_level}
+                    </span>
+
+                  </div>
+
+
+                  {/* Executive Summary */}
+
+                  <div className="rounded-xl bg-slate-50 p-5">
+
+                    <p className="mb-2 text-sm font-semibold text-slate-900">
+                      Executive Summary
+                    </p>
+
+                    <p className="leading-7 text-slate-600">
+                      {executiveSummary.executive_summary}
+                    </p>
+
+                  </div>
+
+
+                  {/* Priorities + Next Steps */}
+
+                  <div className="grid gap-6 md:grid-cols-2">
+
+
+                    <div>
+
+                      <h3 className="mb-3 text-sm font-semibold text-slate-900">
+                        Top Priorities
+                      </h3>
+
+                      <ul className="space-y-2">
+
+                        {executiveSummary.top_priorities.map(
+                          (priority, index) => (
+
+                            <li
+                              key={index}
+                              className="flex gap-3 rounded-lg border p-3 text-sm text-slate-600"
+                            >
+
+                              <span className="font-semibold text-purple-600">
+                                {index + 1}.
+                              </span>
+
+                              <span>
+                                {priority}
+                              </span>
+
+                            </li>
+
+                          )
+                        )}
+
+                      </ul>
+
+                    </div>
+
+
+                    <div>
+
+                      <h3 className="mb-3 text-sm font-semibold text-slate-900">
+                        Recommended Next Steps
+                      </h3>
+
+                      <ul className="space-y-2">
+
+                        {executiveSummary.recommended_next_steps.map(
+                          (step, index) => (
+
+                            <li
+                              key={index}
+                              className="flex gap-3 rounded-lg border p-3 text-sm text-slate-600"
+                            >
+
+                              <span className="font-semibold text-blue-600">
+                                {index + 1}.
+                              </span>
+
+                              <span>
+                                {step}
+                              </span>
+
+                            </li>
+
+                          )
+                        )}
+
+                      </ul>
+
+                    </div>
+
+                  </div>
+
+                </div>
+
+              )}
+
+            </div>
+
+          </section>
+
+        )}
+
+
+        {/* ==================================================
+            AI WORKSPACES
+        ================================================== */}
 
         <div className="grid gap-6 lg:grid-cols-2">
 
 
-          {/* ================================================== */}
-          {/* RISK INTELLIGENCE */}
-          {/* ================================================== */}
+          {/* ==================================================
+              RISK INTELLIGENCE
+          ================================================== */}
 
           <section className="rounded-2xl border bg-white p-6 shadow-sm">
 
             <div className="flex items-center gap-3">
 
               <div className="rounded-lg bg-red-50 p-2">
+
                 <ShieldAlert className="h-5 w-5 text-red-600" />
+
               </div>
 
               <div>
@@ -352,6 +405,7 @@ export default function AI() {
                 Select Risk
               </label>
 
+
               <select
                 value={selectedRisk}
                 onChange={(e) => {
@@ -359,6 +413,7 @@ export default function AI() {
                   setSelectedRisk(e.target.value);
 
                   resetRiskAnalysis();
+
                   resetControlRecommendations();
 
                 }}
@@ -409,12 +464,16 @@ export default function AI() {
               >
 
                 {riskAnalysisLoading ? (
+
                   <Loader2
                     size={16}
                     className="animate-spin"
                   />
+
                 ) : (
+
                   <Sparkles size={16} />
+
                 )}
 
                 {riskAnalysisLoading
@@ -424,9 +483,7 @@ export default function AI() {
               </button>
 
 
-              {/* ================================================== */}
-              {/* RISK AI LOADING */}
-              {/* ================================================== */}
+              {/* Risk AI Loading */}
 
               {riskAnalysisLoading && (
 
@@ -455,9 +512,7 @@ export default function AI() {
               )}
 
 
-              {/* ================================================== */}
-              {/* RISK AI ERROR */}
-              {/* ================================================== */}
+              {/* Risk AI Error */}
 
               {riskAnalysisError &&
                 !riskAnalysisLoading && (
@@ -496,9 +551,7 @@ export default function AI() {
                 )}
 
 
-              {/* ================================================== */}
-              {/* RISK AI RESULT */}
-              {/* ================================================== */}
+              {/* Risk AI Result */}
 
               {riskAnalysis &&
                 !riskAnalysisLoading && (
@@ -638,16 +691,18 @@ export default function AI() {
           </section>
 
 
-          {/* ================================================== */}
-          {/* CONTROL INTELLIGENCE */}
-          {/* ================================================== */}
+          {/* ==================================================
+              CONTROL INTELLIGENCE
+          ================================================== */}
 
           <section className="rounded-2xl border bg-white p-6 shadow-sm">
 
             <div className="flex items-center gap-3">
 
               <div className="rounded-lg bg-emerald-50 p-2">
+
                 <ShieldCheck className="h-5 w-5 text-emerald-600" />
+
               </div>
 
               <div>
@@ -670,6 +725,7 @@ export default function AI() {
               <label className="mb-2 block text-sm font-medium text-slate-700">
                 Select Risk
               </label>
+
 
               <select
                 value={selectedRisk}
@@ -727,12 +783,16 @@ export default function AI() {
               >
 
                 {controlRecommendationsLoading ? (
+
                   <Loader2
                     size={16}
                     className="animate-spin"
                   />
+
                 ) : (
+
                   <ShieldCheck size={16} />
+
                 )}
 
                 {controlRecommendationsLoading
@@ -742,9 +802,7 @@ export default function AI() {
               </button>
 
 
-              {/* ================================================== */}
-              {/* CONTROL AI LOADING */}
-              {/* ================================================== */}
+              {/* Control AI Loading */}
 
               {controlRecommendationsLoading && (
 
@@ -773,9 +831,7 @@ export default function AI() {
               )}
 
 
-              {/* ================================================== */}
-              {/* CONTROL AI ERROR */}
-              {/* ================================================== */}
+              {/* Control AI Error */}
 
               {controlRecommendationsError &&
                 !controlRecommendationsLoading && (
@@ -813,14 +869,13 @@ export default function AI() {
                 )}
 
 
-              {/* ================================================== */}
-              {/* CONTROL AI RESULTS */}
-              {/* ================================================== */}
+              {/* Control AI Results */}
 
               {controlRecommendations &&
                 !controlRecommendationsLoading && (
 
                   <div className="mt-6 space-y-5">
+
 
                     {/* Overall Assessment */}
 
@@ -923,23 +978,35 @@ export default function AI() {
                                 <div className="mt-3 flex flex-wrap gap-2 text-xs">
 
                                   {control.control_id !== null && (
+
                                     <span className="rounded bg-slate-100 px-2 py-1 text-slate-600">
+
                                       Control #{control.control_id}
+
                                     </span>
+
                                   )}
 
                                   <span className="rounded bg-slate-100 px-2 py-1 text-slate-600">
+
                                     Confidence{" "}
+
                                     {Math.round(
                                       control.confidence * 100
                                     )}
+
                                     %
+
                                   </span>
 
                                   {control.already_exists && (
+
                                     <span className="rounded bg-emerald-100 px-2 py-1 font-medium text-emerald-700">
+
                                       Already Exists
+
                                     </span>
+
                                   )}
 
                                 </div>
@@ -1011,17 +1078,25 @@ export default function AI() {
                                 <div className="mt-3 flex flex-wrap gap-2 text-xs">
 
                                   <span className="rounded bg-slate-100 px-2 py-1 text-slate-600">
+
                                     Confidence{" "}
+
                                     {Math.round(
                                       control.confidence * 100
                                     )}
+
                                     %
+
                                   </span>
 
                                   {!control.already_exists && (
+
                                     <span className="rounded bg-orange-100 px-2 py-1 font-medium text-orange-700">
+
                                       New Control
+
                                     </span>
+
                                   )}
 
                                 </div>
@@ -1047,16 +1122,18 @@ export default function AI() {
         </div>
 
 
-        {/* ================================================== */}
-        {/* AUDIT INTELLIGENCE */}
-        {/* ================================================== */}
+        {/* ==================================================
+            AUDIT INTELLIGENCE
+        ================================================== */}
 
         <section className="rounded-2xl border bg-white p-6 shadow-sm">
 
           <div className="flex items-center gap-3">
 
             <div className="rounded-lg bg-blue-50 p-2">
+
               <ClipboardCheck className="h-5 w-5 text-blue-600" />
+
             </div>
 
             <div>
@@ -1080,11 +1157,15 @@ export default function AI() {
               Select Audit
             </label>
 
+
             <select
               value={selectedAudit}
               onChange={(e) => {
+
                 setSelectedAudit(e.target.value);
+
                 resetAuditSummary();
+
               }}
               disabled={auditsLoading}
               className="w-full rounded-lg border border-slate-200 bg-white p-3 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 disabled:bg-slate-50"
@@ -1133,12 +1214,16 @@ export default function AI() {
             >
 
               {auditSummaryLoading ? (
+
                 <Loader2
                   size={16}
                   className="animate-spin"
                 />
+
               ) : (
+
                 <ClipboardCheck size={16} />
+
               )}
 
               {auditSummaryLoading
@@ -1148,9 +1233,7 @@ export default function AI() {
             </button>
 
 
-            {/* ================================================== */}
-            {/* AUDIT AI LOADING */}
-            {/* ================================================== */}
+            {/* Audit AI Loading */}
 
             {auditSummaryLoading && (
 
@@ -1179,9 +1262,7 @@ export default function AI() {
             )}
 
 
-            {/* ================================================== */}
-            {/* AUDIT AI ERROR */}
-            {/* ================================================== */}
+            {/* Audit AI Error */}
 
             {auditSummaryError &&
               !auditSummaryLoading && (
@@ -1220,14 +1301,13 @@ export default function AI() {
               )}
 
 
-            {/* ================================================== */}
-            {/* AUDIT AI RESULT */}
-            {/* ================================================== */}
+            {/* Audit AI Result */}
 
             {auditSummary &&
               !auditSummaryLoading && (
 
                 <div className="mt-6 space-y-5">
+
 
                   {/* Overall Assessment */}
 
@@ -1374,6 +1454,7 @@ export default function AI() {
         </section>
 
       </div>
+
     </AppLayout>
   );
 }

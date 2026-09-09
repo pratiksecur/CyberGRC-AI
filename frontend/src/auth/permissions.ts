@@ -24,7 +24,8 @@ export type PermissionResource =
   | "audit_findings"
   | "corrective_actions"
   | "reports"
-  | "ai";
+  | "ai"
+  | "ai_executive_summary";
 
 type PermissionMap = Partial<
   Record<
@@ -166,6 +167,10 @@ export const ROLE_PERMISSIONS: Record<
       "view",
       "use",
     ],
+    ai_executive_summary: [
+      "view",
+      "use",
+    ],
   },
 
   "Risk Analyst": {
@@ -294,6 +299,7 @@ export function hasPermission(
   resource: PermissionResource,
   action: PermissionAction
 ): boolean {
+
   if (!role) {
     return false;
   }
