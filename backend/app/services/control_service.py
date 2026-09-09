@@ -10,7 +10,8 @@ from app.schemas.control import (
 
 def create_control(
     db: Session,
-    control_data: ControlCreate
+    control_data: ControlCreate,
+    created_by_id: int
 ):
     """
     Create a new control.
@@ -32,6 +33,7 @@ def create_control(
         status=control_data.status,
         effectiveness=control_data.effectiveness,
         owner_id=control_data.owner_id,
+        created_by_id=created_by_id,
     )
 
     db.add(control)
@@ -179,6 +181,12 @@ def get_average_effectiveness(db: Session):
     if not controls:
         return 0
 
-    total = sum(control.effectiveness for control in controls)
+    total = sum(
+        control.effectiveness
+        for control in controls
+    )
 
-    return round(total / len(controls), 1)
+    return round(
+        total / len(controls),
+        1
+    )

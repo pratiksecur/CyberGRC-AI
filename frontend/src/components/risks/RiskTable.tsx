@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+
 import { useDeleteRisk } from "@/hooks/useDeleteRisk";
 
 import type { Risk } from "@/api/risks";
@@ -12,13 +13,11 @@ interface Props {
 }
 
 export default function RiskTable({ risks }: Props) {
-
   const navigate = useNavigate();
 
   const deleteMutation = useDeleteRisk();
 
   function handleDelete(id: number) {
-
     const confirmed = window.confirm(
       "Are you sure you want to delete this risk?"
     );
@@ -26,11 +25,9 @@ export default function RiskTable({ risks }: Props) {
     if (!confirmed) return;
 
     deleteMutation.mutate(id);
-
   }
 
   return (
-
     <div className="overflow-hidden rounded-xl border bg-white shadow-sm">
 
       <table className="min-w-full">
@@ -93,13 +90,17 @@ export default function RiskTable({ risks }: Props) {
               {/* Risk Score */}
 
               <td className="px-6 py-5">
-                <RiskScoreBadge score={risk.risk_score} />
+                <RiskScoreBadge
+                  score={risk.risk_score}
+                />
               </td>
 
               {/* Status */}
 
               <td className="px-6 py-5">
-                <RiskStatusBadge status={risk.status} />
+                <RiskStatusBadge
+                  status={risk.status}
+                />
               </td>
 
               {/* Owner */}
@@ -111,7 +112,9 @@ export default function RiskTable({ risks }: Props) {
               {/* Created */}
 
               <td className="px-6 py-5">
-                {new Date(risk.created_at).toLocaleDateString()}
+                {new Date(
+                  risk.created_at
+                ).toLocaleDateString()}
               </td>
 
               {/* Actions */}
@@ -119,9 +122,15 @@ export default function RiskTable({ risks }: Props) {
               <td className="px-6 py-5 text-right">
 
                 <RiskActions
-                  onView={() => navigate(`/risks/${risk.id}`)}
-                  onEdit={() => navigate(`/risks/${risk.id}/edit`)}
-                  onDelete={() => handleDelete(risk.id)}
+                  onView={() =>
+                    navigate(`/risks/${risk.id}`)
+                  }
+                  onEdit={() =>
+                    navigate(`/risks/${risk.id}/edit`)
+                  }
+                  onDelete={() =>
+                    handleDelete(risk.id)
+                  }
                 />
 
               </td>
@@ -135,7 +144,5 @@ export default function RiskTable({ risks }: Props) {
       </table>
 
     </div>
-
   );
-
 }

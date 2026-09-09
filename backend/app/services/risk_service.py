@@ -5,9 +5,16 @@ from app.models.user import User
 from app.schemas.risk import RiskCreate, RiskUpdate
 
 
-def create_risk(db: Session, risk_data: RiskCreate):
+def create_risk(
+    db: Session,
+    risk_data: RiskCreate,
+    created_by_id: int
+):
     """
     Create a new risk.
+
+    created_by_id represents the authenticated
+    user who submitted the risk.
     """
 
     owner = (
@@ -30,7 +37,8 @@ def create_risk(db: Session, risk_data: RiskCreate):
         likelihood=risk_data.likelihood,
         impact=risk_data.impact,
         risk_score=risk_score,
-        owner_id=risk_data.owner_id
+        owner_id=risk_data.owner_id,
+        created_by_id=created_by_id
     )
 
     db.add(risk)
@@ -52,7 +60,11 @@ def get_all_risks(db: Session):
         .all()
     )
 
-def get_risk_by_id(db: Session, risk_id: int):
+
+def get_risk_by_id(
+    db: Session,
+    risk_id: int
+):
     """
     Get a risk by its ID.
     """
@@ -62,6 +74,7 @@ def get_risk_by_id(db: Session, risk_id: int):
         .filter(Risk.id == risk_id)
         .first()
     )
+
 
 def update_risk(
     db: Session,
@@ -81,7 +94,10 @@ def update_risk(
     if risk is None:
         return None
 
+    # ------------------------------------------------------
     # Validate owner if changed
+    # ------------------------------------------------------
+
     if risk_data.owner_id is not None:
 
         owner = (
@@ -95,7 +111,10 @@ def update_risk(
 
         risk.owner_id = risk_data.owner_id
 
+    # ------------------------------------------------------
     # Update simple fields
+    # ------------------------------------------------------
+
     if risk_data.title is not None:
         risk.title = risk_data.title
 
@@ -111,7 +130,10 @@ def update_risk(
     if risk_data.status is not None:
         risk.status = risk_data.status
 
+    # ------------------------------------------------------
     # Recalculate risk score
+    # ------------------------------------------------------
+
     risk.risk_score = (
         risk.likelihood *
         risk.impact
@@ -122,6 +144,7 @@ def update_risk(
     db.refresh(risk)
 
     return risk
+
 
 def delete_risk(
     db: Session,
@@ -145,6 +168,7 @@ def delete_risk(
     db.commit()
 
     return True
+
 
 def get_total_risks(db: Session):
     """

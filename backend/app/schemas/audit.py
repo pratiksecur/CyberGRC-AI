@@ -44,6 +44,8 @@ class AuditUpdate(BaseModel):
 
     end_date: Optional[date] = None
 
+    auditor_id: Optional[int] = None
+
 
 class AuditResponse(BaseModel):
     id: int
@@ -53,6 +55,8 @@ class AuditResponse(BaseModel):
     framework_id: int
 
     auditor_id: int
+
+    created_by_id: int
 
     scope: str
 

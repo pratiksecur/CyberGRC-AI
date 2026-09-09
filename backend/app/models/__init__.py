@@ -9,3 +9,4 @@ from app.models.evidence import Evidence
 from app.models.audit import Audit
 from app.models.audit_finding import AuditFinding
 from app.models.corrective_action import CorrectiveAction
+from app.models.notification import Notification

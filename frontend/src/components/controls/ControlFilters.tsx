@@ -1,5 +1,7 @@
 import { Search, Plus } from "lucide-react";
 
+import Can from "@/components/auth/Can";
+
 interface ControlFiltersProps {
   search: string;
   onSearchChange: (value: string) => void;
@@ -32,7 +34,9 @@ export default function ControlFilters({
           type="text"
           placeholder="Search controls..."
           value={search}
-          onChange={(e) => onSearchChange(e.target.value)}
+          onChange={(e) =>
+            onSearchChange(e.target.value)
+          }
           className="w-full rounded-lg border border-slate-200 py-2 pl-10 pr-4 focus:border-blue-500 focus:outline-none"
         />
 
@@ -44,7 +48,9 @@ export default function ControlFilters({
 
         <select
           value={status}
-          onChange={(e) => onStatusChange(e.target.value)}
+          onChange={(e) =>
+            onStatusChange(e.target.value)
+          }
           className="rounded-lg border border-slate-200 px-3 py-2"
         >
           <option value="">
@@ -58,12 +64,13 @@ export default function ControlFilters({
           <option value="Inactive">
             Inactive
           </option>
-
         </select>
 
         <select
           value={framework}
-          onChange={(e) => onFrameworkChange(e.target.value)}
+          onChange={(e) =>
+            onFrameworkChange(e.target.value)
+          }
           className="rounded-lg border border-slate-200 px-3 py-2"
         >
           <option value="">
@@ -93,18 +100,21 @@ export default function ControlFilters({
           <option value="Corrective">
             Corrective
           </option>
-
         </select>
 
-        <button
-          onClick={onCreate}
-          className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white transition hover:bg-blue-700"
-        >
-          <Plus size={18} />
+        {/* Create Control */}
 
-          New Control
+        <Can resource="controls" action="create">
+          <button
+            onClick={onCreate}
+            type="button"
+            className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white transition hover:bg-blue-700"
+          >
+            <Plus size={18} />
 
-        </button>
+            New Control
+          </button>
+        </Can>
 
       </div>
 

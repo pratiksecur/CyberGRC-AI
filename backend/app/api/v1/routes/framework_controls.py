@@ -2,8 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database.database import get_db
-from app.auth.permissions import require_roles
-from app.core.roles import UserRole
+from app.auth.permissions import require_permission
 from app.models.user import User
 
 from app.schemas.framework_control import (
@@ -34,9 +33,9 @@ def create_new_framework_control(
     control_data: FrameworkControlCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(
-        require_roles(
-            UserRole.ADMIN,
-            UserRole.GRC_MANAGER,
+        require_permission(
+            "framework_controls",
+            "create"
         )
     )
 ):
@@ -71,15 +70,16 @@ def create_new_framework_control(
 def list_all_framework_controls(
     db: Session = Depends(get_db),
     current_user: User = Depends(
-        require_roles(
-            UserRole.ADMIN,
-            UserRole.GRC_MANAGER,
-            UserRole.AUDITOR,
+        require_permission(
+            "framework_controls",
+            "view"
         )
     )
 ):
     """
     Get all framework controls.
+
+    Framework controls are organization-wide resources.
     """
 
     return get_all_framework_controls(db)
@@ -93,10 +93,9 @@ def get_framework_control(
     control_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(
-        require_roles(
-            UserRole.ADMIN,
-            UserRole.GRC_MANAGER,
-            UserRole.AUDITOR,
+        require_permission(
+            "framework_controls",
+            "view"
         )
     )
 ):
@@ -127,9 +126,9 @@ def update_existing_framework_control(
     control_data: FrameworkControlUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(
-        require_roles(
-            UserRole.ADMIN,
-            UserRole.GRC_MANAGER,
+        require_permission(
+            "framework_controls",
+            "update"
         )
     )
 ):
@@ -159,9 +158,9 @@ def delete_existing_framework_control(
     control_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(
-        require_roles(
-            UserRole.ADMIN,
-            UserRole.GRC_MANAGER,
+        require_permission(
+            "framework_controls",
+            "delete"
         )
     )
 ):

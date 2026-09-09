@@ -4,6 +4,8 @@ import {
   Trash2,
 } from "lucide-react";
 
+import Can from "@/components/auth/Can";
+
 interface Control {
   id: number;
   title: string;
@@ -27,7 +29,6 @@ export default function ControlsTable({
   onEdit,
   onDelete,
 }: Props) {
-
   return (
     <div className="overflow-hidden rounded-2xl border bg-white">
 
@@ -107,6 +108,8 @@ export default function ControlsTable({
                   className="border-b hover:bg-slate-50"
                 >
 
+                  {/* Control */}
+
                   <td className="px-6 py-5">
 
                     <div className="font-medium">
@@ -119,9 +122,13 @@ export default function ControlsTable({
 
                   </td>
 
+                  {/* Type */}
+
                   <td className="px-6 py-5">
                     {control.control_type}
                   </td>
+
+                  {/* Status */}
 
                   <td className="px-6 py-5">
 
@@ -137,13 +144,19 @@ export default function ControlsTable({
 
                   </td>
 
+                  {/* Effectiveness */}
+
                   <td className="px-6 py-5">
                     {control.effectiveness}%
                   </td>
 
+                  {/* Owner */}
+
                   <td className="px-6 py-5">
                     User #{control.owner_id}
                   </td>
+
+                  {/* Created */}
 
                   <td className="px-6 py-5">
                     {new Date(
@@ -151,30 +164,65 @@ export default function ControlsTable({
                     ).toLocaleDateString()}
                   </td>
 
+                  {/* Actions */}
+
                   <td className="px-6 py-5">
 
                     <div className="flex justify-center gap-3">
 
-                      <button
-                        onClick={() => onView?.(control.id)}
-                        className="text-slate-500 hover:text-blue-600"
-                      >
-                        <Eye size={18} />
-                      </button>
+                      {/* View */}
 
-                      <button
-                        onClick={() => onEdit?.(control.id)}
-                        className="text-slate-500 hover:text-amber-600"
+                      <Can
+                        resource="controls"
+                        action="view"
                       >
-                        <Pencil size={18} />
-                      </button>
+                        <button
+                          onClick={() =>
+                            onView?.(control.id)
+                          }
+                          type="button"
+                          title="View Control"
+                          className="text-slate-500 hover:text-blue-600"
+                        >
+                          <Eye size={18} />
+                        </button>
+                      </Can>
 
-                      <button
-                        onClick={() => onDelete?.(control.id)}
-                        className="text-slate-500 hover:text-red-600"
+                      {/* Edit */}
+
+                      <Can
+                        resource="controls"
+                        action="update"
                       >
-                        <Trash2 size={18} />
-                      </button>
+                        <button
+                          onClick={() =>
+                            onEdit?.(control.id)
+                          }
+                          type="button"
+                          title="Edit Control"
+                          className="text-slate-500 hover:text-amber-600"
+                        >
+                          <Pencil size={18} />
+                        </button>
+                      </Can>
+
+                      {/* Delete */}
+
+                      <Can
+                        resource="controls"
+                        action="delete"
+                      >
+                        <button
+                          onClick={() =>
+                            onDelete?.(control.id)
+                          }
+                          type="button"
+                          title="Delete Control"
+                          className="text-slate-500 hover:text-red-600"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </Can>
 
                     </div>
 

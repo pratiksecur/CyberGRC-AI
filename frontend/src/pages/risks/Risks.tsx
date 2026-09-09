@@ -11,6 +11,8 @@ import { useRisks } from "@/hooks/useRisks";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 
+import Can from "@/components/auth/Can";
+
 import RiskOverview from "@/components/dashboard/RiskOverview";
 import RiskSeverityChart from "@/components/dashboard/RiskSeverityChart";
 import RiskStatusChart from "@/components/dashboard/RiskStatusChart";
@@ -19,7 +21,6 @@ import HighestRisk from "@/components/dashboard/HighestRisk";
 import DashboardSkeleton from "@/components/dashboard/DashboardSkeleton";
 
 export default function Risks() {
-
   const navigate = useNavigate();
 
   const {
@@ -33,54 +34,42 @@ export default function Risks() {
   const [sort, setSort] = useState("");
 
   const filteredRisks = useMemo(() => {
-
     if (!data) return [];
 
     let risks = [...data];
 
     // Search
-
     if (search) {
-
       const query = search.toLowerCase();
 
-      risks = risks.filter((risk) =>
-        risk.title.toLowerCase().includes(query) ||
-        risk.description.toLowerCase().includes(query)
+      risks = risks.filter(
+        (risk) =>
+          risk.title.toLowerCase().includes(query) ||
+          risk.description.toLowerCase().includes(query)
       );
-
     }
 
     // Status
-
     if (status) {
-
       risks = risks.filter(
         (risk) => risk.status === status
       );
-
     }
 
     // Sort
-
     if (sort === "high") {
-
       risks.sort(
         (a, b) => b.risk_score - a.risk_score
       );
-
     }
 
     if (sort === "low") {
-
       risks.sort(
         (a, b) => a.risk_score - b.risk_score
       );
-
     }
 
     return risks;
-
   }, [data, search, status, sort]);
 
   if (isLoading) {
@@ -103,13 +92,13 @@ export default function Risks() {
 
   return (
     <AppLayout>
-
       <div className="space-y-6">
+
+        {/* Header */}
 
         <div className="flex items-center justify-between">
 
           <div>
-
             <h1 className="text-3xl font-bold">
               Risk Management
             </h1>
@@ -117,17 +106,20 @@ export default function Risks() {
             <p className="text-slate-500">
               View and manage cybersecurity risks.
             </p>
-
           </div>
 
-          <Button
-            onClick={() => navigate("/risks/new")}
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            New Risk
-          </Button>
+          <Can resource="risks" action="create">
+            <Button
+              onClick={() => navigate("/risks/new")}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              New Risk
+            </Button>
+          </Can>
 
         </div>
+
+        {/* Filters */}
 
         <RiskFilters
           search={search}
@@ -138,38 +130,47 @@ export default function Risks() {
           onSortChange={setSort}
         />
 
-        <RiskOverview risks={filteredRisks} />
+        {/* Overview */}
 
-          <div className="grid gap-6 lg:grid-cols-2">
+        <RiskOverview
+          risks={filteredRisks}
+        />
 
-            <RiskSeverityChart
-              risks={filteredRisks}
-            />
+        {/* Charts */}
 
-            <RiskStatusChart
-              risks={filteredRisks}
-            />
+        <div className="grid gap-6 lg:grid-cols-2">
 
-          </div>
+          <RiskSeverityChart
+            risks={filteredRisks}
+          />
 
-          <div className="grid gap-6 lg:grid-cols-2">
+          <RiskStatusChart
+            risks={filteredRisks}
+          />
 
-            <RecentRisks
-              risks={filteredRisks}
-            />
+        </div>
 
-            <HighestRisk
-              risks={filteredRisks}
-            />
+        {/* Recent / Highest */}
 
-          </div>
+        <div className="grid gap-6 lg:grid-cols-2">
+
+          <RecentRisks
+            risks={filteredRisks}
+          />
+
+          <HighestRisk
+            risks={filteredRisks}
+          />
+
+        </div>
+
+        {/* Risk Table */}
 
         <RiskTable
           risks={filteredRisks}
         />
 
       </div>
-
     </AppLayout>
   );
 }

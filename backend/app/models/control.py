@@ -54,6 +54,12 @@ class Control(Base):
         nullable=False
     )
 
+    created_by_id = Column(
+        Integer,
+        ForeignKey("users.id"),
+        nullable=False
+    )
+
     created_at = Column(
         DateTime(timezone=True),
         server_default=func.now()
@@ -69,7 +75,14 @@ class Control(Base):
 
     owner = relationship(
         "User",
+        foreign_keys=[owner_id],
         back_populates="controls"
+    )
+
+    created_by = relationship(
+        "User",
+        foreign_keys=[created_by_id],
+        back_populates="created_controls"
     )
 
     risk_controls = relationship(

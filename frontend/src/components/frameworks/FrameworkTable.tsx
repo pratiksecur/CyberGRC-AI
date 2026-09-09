@@ -4,6 +4,8 @@ import {
   Trash2,
 } from "lucide-react";
 
+import Can from "@/components/auth/Can";
+
 interface Framework {
   id: number;
   name: string;
@@ -96,17 +98,25 @@ export default function FrameworkTable({
                   className="border-b hover:bg-slate-50"
                 >
 
+                  {/* Name */}
+
                   <td className="px-6 py-5 font-medium">
                     {framework.name}
                   </td>
+
+                  {/* Version */}
 
                   <td className="px-6 py-5">
                     {framework.version}
                   </td>
 
-                  <td className="px-6 py-5 max-w-md truncate">
+                  {/* Description */}
+
+                  <td className="max-w-md truncate px-6 py-5">
                     {framework.description}
                   </td>
+
+                  {/* Created */}
 
                   <td className="px-6 py-5">
                     {new Date(
@@ -114,30 +124,65 @@ export default function FrameworkTable({
                     ).toLocaleDateString()}
                   </td>
 
+                  {/* Actions */}
+
                   <td className="px-6 py-5">
 
                     <div className="flex justify-center gap-3">
 
-                      <button
-                        onClick={() => onView?.(framework.id)}
-                        className="text-slate-500 hover:text-blue-600"
-                      >
-                        <Eye size={18} />
-                      </button>
+                      {/* View */}
 
-                      <button
-                        onClick={() => onEdit?.(framework.id)}
-                        className="text-slate-500 hover:text-amber-600"
+                      <Can
+                        resource="frameworks"
+                        action="view"
                       >
-                        <Pencil size={18} />
-                      </button>
+                        <button
+                          onClick={() =>
+                            onView?.(framework.id)
+                          }
+                          type="button"
+                          title="View Framework"
+                          className="text-slate-500 hover:text-blue-600"
+                        >
+                          <Eye size={18} />
+                        </button>
+                      </Can>
 
-                      <button
-                        onClick={() => onDelete?.(framework.id)}
-                        className="text-slate-500 hover:text-red-600"
+                      {/* Edit */}
+
+                      <Can
+                        resource="frameworks"
+                        action="update"
                       >
-                        <Trash2 size={18} />
-                      </button>
+                        <button
+                          onClick={() =>
+                            onEdit?.(framework.id)
+                          }
+                          type="button"
+                          title="Edit Framework"
+                          className="text-slate-500 hover:text-amber-600"
+                        >
+                          <Pencil size={18} />
+                        </button>
+                      </Can>
+
+                      {/* Delete */}
+
+                      <Can
+                        resource="frameworks"
+                        action="delete"
+                      >
+                        <button
+                          onClick={() =>
+                            onDelete?.(framework.id)
+                          }
+                          type="button"
+                          title="Delete Framework"
+                          className="text-slate-500 hover:text-red-600"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </Can>
 
                     </div>
 

@@ -1,15 +1,21 @@
 import { useNavigate, useParams } from "react-router-dom";
+
 import AppLayout from "@/layouts/AppLayout";
+
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Pencil } from "lucide-react";
+import {
+  ArrowLeft,
+  Pencil,
+} from "lucide-react";
 
 import { useRisk } from "@/hooks/useRisk";
+
+import Can from "@/components/auth/Can";
 
 import RiskScoreBadge from "@/components/risks/RiskScoreBadge";
 import RiskStatusBadge from "@/components/risks/RiskStatusBadge";
 
 export default function ViewRisk() {
-
   const navigate = useNavigate();
 
   const { id } = useParams();
@@ -21,7 +27,6 @@ export default function ViewRisk() {
   } = useRisk(Number(id));
 
   if (isLoading) {
-
     return (
       <AppLayout>
         <div className="p-10 text-center">
@@ -29,11 +34,9 @@ export default function ViewRisk() {
         </div>
       </AppLayout>
     );
-
   }
 
   if (error || !data) {
-
     return (
       <AppLayout>
         <div className="p-10 text-red-500">
@@ -41,11 +44,9 @@ export default function ViewRisk() {
         </div>
       </AppLayout>
     );
-
   }
 
   return (
-
     <AppLayout>
 
       <div className="mx-auto max-w-5xl space-y-6">
@@ -57,20 +58,18 @@ export default function ViewRisk() {
           <div>
 
             <h1 className="text-3xl font-bold">
-
               {data.title}
-
             </h1>
 
             <p className="mt-2 text-slate-500">
-
               Risk Details
-
             </p>
 
           </div>
 
           <div className="flex gap-3">
+
+            {/* Back */}
 
             <Button
               variant="outline"
@@ -80,12 +79,18 @@ export default function ViewRisk() {
               Back
             </Button>
 
-            <Button
-            onClick={() => navigate(`/risks/${data.id}/edit`)}
-            >
-              <Pencil className="mr-2 h-4 w-4" />
-              Edit Risk
-            </Button>
+            {/* Edit */}
+
+            <Can resource="risks" action="update">
+              <Button
+                onClick={() =>
+                  navigate(`/risks/${data.id}/edit`)
+                }
+              >
+                <Pencil className="mr-2 h-4 w-4" />
+                Edit Risk
+              </Button>
+            </Can>
 
           </div>
 
@@ -118,18 +123,33 @@ export default function ViewRisk() {
             <div className="space-y-4">
 
               <div className="flex justify-between">
-                <span className="text-slate-500">Likelihood</span>
-                <span>{data.likelihood}</span>
+                <span className="text-slate-500">
+                  Likelihood
+                </span>
+
+                <span>
+                  {data.likelihood}
+                </span>
               </div>
 
               <div className="flex justify-between">
-                <span className="text-slate-500">Impact</span>
-                <span>{data.impact}</span>
+                <span className="text-slate-500">
+                  Impact
+                </span>
+
+                <span>
+                  {data.impact}
+                </span>
               </div>
 
               <div className="flex justify-between">
-                <span className="text-slate-500">Owner</span>
-                <span>User #{data.owner_id}</span>
+                <span className="text-slate-500">
+                  Owner
+                </span>
+
+                <span>
+                  User #{data.owner_id}
+                </span>
               </div>
 
             </div>
@@ -175,7 +195,9 @@ export default function ViewRisk() {
                 </span>
 
                 <span>
-                  {new Date(data.created_at).toLocaleDateString()}
+                  {new Date(
+                    data.created_at
+                  ).toLocaleDateString()}
                 </span>
 
               </div>
@@ -187,7 +209,9 @@ export default function ViewRisk() {
                 </span>
 
                 <span>
-                  {new Date(data.updated_at).toLocaleDateString()}
+                  {new Date(
+                    data.updated_at
+                  ).toLocaleDateString()}
                 </span>
 
               </div>
@@ -201,7 +225,5 @@ export default function ViewRisk() {
       </div>
 
     </AppLayout>
-
   );
-
 }

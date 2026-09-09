@@ -29,6 +29,13 @@ import {
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useTheme } from "@/contexts/ThemeContext";
 
+import {
+  getNotifications,
+  getUnreadNotificationCount,
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
+} from "@/api/notifications";
+
 type Notification = {
   id: number;
   type: string;
@@ -38,10 +45,6 @@ type Notification = {
   source_id: number;
   is_read: boolean;
   created_at: string;
-};
-
-type NotificationUnreadResponse = {
-  unread_count: number;
 };
 
 type SearchResult = {
@@ -120,17 +123,6 @@ export default function TopNavbar() {
     : "--";
 
   /* ================================================== */
-  /* AUTH TOKEN */
-  /* ================================================== */
-
-  const getAccessToken = () => {
-    return (
-      localStorage.getItem("access_token") ||
-      localStorage.getItem("token")
-    );
-  };
-
-  /* ================================================== */
   /* GLOBAL SEARCH */
   /* ================================================== */
 
@@ -146,7 +138,10 @@ export default function TopNavbar() {
     }
 
     const runSearch = async () => {
-      const token = getAccessToken();
+      const token =
+        localStorage.getItem(
+          "access_token"
+        );
 
       if (!token) {
         return;
@@ -158,7 +153,8 @@ export default function TopNavbar() {
       try {
         const headers = {
           Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
+          "Content-Type":
+            "application/json",
         };
 
         const endpoints = [
@@ -424,36 +420,11 @@ export default function TopNavbar() {
   /* ================================================== */
 
   const fetchNotifications = async () => {
-    const token = getAccessToken();
-
-    if (!token) {
-      return;
-    }
-
     try {
       setNotificationsError(false);
 
-      const response =
-        await fetch(
-          `${API_BASE_URL}/notifications/`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type":
-                "application/json",
-            },
-          }
-        );
-
-      if (!response.ok) {
-        throw new Error(
-          "Failed to fetch notifications"
-        );
-      }
-
-      const data: Notification[] =
-        await response.json();
+      const data =
+        await getNotifications();
 
       setNotifications(data);
     } catch (error) {
@@ -471,38 +442,11 @@ export default function TopNavbar() {
   /* ================================================== */
 
   const fetchUnreadCount = async () => {
-    const token = getAccessToken();
-
-    if (!token) {
-      return;
-    }
-
     try {
-      const response =
-        await fetch(
-          `${API_BASE_URL}/notifications/unread-count`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type":
-                "application/json",
-            },
-          }
-        );
+      const count =
+        await getUnreadNotificationCount();
 
-      if (!response.ok) {
-        throw new Error(
-          "Failed to fetch unread count"
-        );
-      }
-
-      const data: NotificationUnreadResponse =
-        await response.json();
-
-      setUnreadCount(
-        data.unread_count
-      );
+      setUnreadCount(count);
     } catch (error) {
       console.error(
         "Failed to load unread notification count:",
@@ -555,36 +499,14 @@ export default function TopNavbar() {
   /* MARK ONE NOTIFICATION AS READ */
   /* ================================================== */
 
-  const markNotificationAsRead =
+  const handleMarkNotificationAsRead =
     async (
       notificationId: number
     ) => {
-      const token =
-        getAccessToken();
-
-      if (!token) {
-        return;
-      }
-
       try {
-        const response =
-          await fetch(
-            `${API_BASE_URL}/notifications/${notificationId}/read`,
-            {
-              method: "PATCH",
-              headers: {
-                Authorization: `Bearer ${token}`,
-                "Content-Type":
-                  "application/json",
-              },
-            }
-          );
-
-        if (!response.ok) {
-          throw new Error(
-            "Failed to mark notification as read"
-          );
-        }
+        await markNotificationAsRead(
+          notificationId
+        );
 
         setNotifications(
           (current) =>
@@ -619,37 +541,14 @@ export default function TopNavbar() {
   /* MARK ALL NOTIFICATIONS AS READ */
   /* ================================================== */
 
-  const markAllNotificationsAsRead =
+  const handleMarkAllNotificationsAsRead =
     async () => {
-      const token =
-        getAccessToken();
-
-      if (
-        !token ||
-        unreadCount === 0
-      ) {
+      if (unreadCount === 0) {
         return;
       }
 
       try {
-        const response =
-          await fetch(
-            `${API_BASE_URL}/notifications/read-all`,
-            {
-              method: "PATCH",
-              headers: {
-                Authorization: `Bearer ${token}`,
-                "Content-Type":
-                  "application/json",
-              },
-            }
-          );
-
-        if (!response.ok) {
-          throw new Error(
-            "Failed to mark all notifications as read"
-          );
-        }
+        await markAllNotificationsAsRead();
 
         setNotifications(
           (current) =>
@@ -1242,7 +1141,7 @@ export default function TopNavbar() {
                   <button
                     type="button"
                     onClick={
-                      markAllNotificationsAsRead
+                      handleMarkAllNotificationsAsRead
                     }
                     className="
                       text-xs
@@ -1325,7 +1224,7 @@ export default function TopNavbar() {
                           if (
                             !notification.is_read
                           ) {
-                            markNotificationAsRead(
+                            handleMarkNotificationAsRead(
                               notification.id
                             );
                           }

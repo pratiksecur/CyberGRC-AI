@@ -2,9 +2,13 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database.database import get_db
-from app.auth.permissions import require_roles
-from app.core.roles import UserRole
+
+from app.auth.permissions import require_permission
+from app.auth.visibility import get_visible_user_ids
+from app.auth.access import ensure_resource_owner_in_scope
+
 from app.models.user import User
+from app.models.risk import Risk
 
 from app.schemas.risk import (
     RiskCreate,
@@ -14,17 +18,20 @@ from app.schemas.risk import (
 
 from app.services.risk_service import (
     create_risk,
-    get_all_risks,
-    get_risk_by_id,
     update_risk,
     delete_risk,
 )
+
 
 router = APIRouter(
     prefix="/risks",
     tags=["Risk Management"]
 )
 
+
+# ==========================================================
+# CREATE RISK
+# ==========================================================
 
 @router.post(
     "/",
@@ -34,18 +41,40 @@ def create_new_risk(
     risk_data: RiskCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(
-        require_roles(
-            UserRole.ADMIN,
-            UserRole.GRC_MANAGER,
-            UserRole.RISK_ANALYST,
+        require_permission(
+            "risks",
+            "create"
         )
     )
 ):
     """
     Create a new risk.
+
+    The current user must have permission to create risks.
+
+    The selected owner must belong to the user's
+    organizational visibility scope.
     """
 
-    risk = create_risk(db, risk_data)
+    # ------------------------------------------------------
+    # Validate owner organizational scope
+    # ------------------------------------------------------
+
+    ensure_resource_owner_in_scope(
+        db,
+        current_user,
+        risk_data.owner_id
+    )
+
+    # ------------------------------------------------------
+    # Create risk
+    # ------------------------------------------------------
+
+    risk = create_risk(
+        db,
+        risk_data,
+        current_user.id
+    )
 
     if risk is None:
         raise HTTPException(
@@ -56,6 +85,10 @@ def create_new_risk(
     return risk
 
 
+# ==========================================================
+# LIST RISKS
+# ==========================================================
+
 @router.get(
     "/",
     response_model=list[RiskResponse]
@@ -63,20 +96,36 @@ def create_new_risk(
 def list_all_risks(
     db: Session = Depends(get_db),
     current_user: User = Depends(
-        require_roles(
-            UserRole.ADMIN,
-            UserRole.GRC_MANAGER,
-            UserRole.RISK_ANALYST,
-            UserRole.AUDITOR,
+        require_permission(
+            "risks",
+            "view"
         )
     )
 ):
     """
-    Get all risks.
+    Get risks visible to the current user.
+
+    Visibility is determined by the organizational
+    hierarchy.
     """
 
-    return get_all_risks(db)
+    visible_user_ids = get_visible_user_ids(
+        db,
+        current_user
+    )
 
+    return (
+        db.query(Risk)
+        .filter(
+            Risk.owner_id.in_(visible_user_ids)
+        )
+        .all()
+    )
+
+
+# ==========================================================
+# GET SINGLE RISK
+# ==========================================================
 
 @router.get(
     "/{risk_id}",
@@ -86,19 +135,30 @@ def get_risk(
     risk_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(
-        require_roles(
-            UserRole.ADMIN,
-            UserRole.GRC_MANAGER,
-            UserRole.RISK_ANALYST,
-            UserRole.AUDITOR,
+        require_permission(
+            "risks",
+            "view"
         )
     )
 ):
     """
-    Get a risk by its ID.
+    Get a risk by ID if the current user has
+    organizational visibility.
     """
 
-    risk = get_risk_by_id(db, risk_id)
+    visible_user_ids = get_visible_user_ids(
+        db,
+        current_user
+    )
+
+    risk = (
+        db.query(Risk)
+        .filter(
+            Risk.id == risk_id,
+            Risk.owner_id.in_(visible_user_ids)
+        )
+        .first()
+    )
 
     if risk is None:
         raise HTTPException(
@@ -108,6 +168,10 @@ def get_risk(
 
     return risk
 
+
+# ==========================================================
+# UPDATE RISK
+# ==========================================================
 
 @router.patch(
     "/{risk_id}",
@@ -118,21 +182,33 @@ def update_existing_risk(
     risk_data: RiskUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(
-        require_roles(
-            UserRole.ADMIN,
-            UserRole.GRC_MANAGER,
-            UserRole.RISK_ANALYST,
+        require_permission(
+            "risks",
+            "update"
         )
     )
 ):
     """
-    Update an existing risk.
+    Update a risk within the current user's
+    organizational visibility scope.
     """
 
-    risk = update_risk(
+    visible_user_ids = get_visible_user_ids(
         db,
-        risk_id,
-        risk_data
+        current_user
+    )
+
+    # ------------------------------------------------------
+    # Find risk within user's visibility scope
+    # ------------------------------------------------------
+
+    risk = (
+        db.query(Risk)
+        .filter(
+            Risk.id == risk_id,
+            Risk.owner_id.in_(visible_user_ids)
+        )
+        .first()
     )
 
     if risk is None:
@@ -141,13 +217,46 @@ def update_existing_risk(
             detail="Risk not found."
         )
 
-    if risk == "OWNER_NOT_FOUND":
+    # ------------------------------------------------------
+    # Validate new owner if ownership is being changed
+    # ------------------------------------------------------
+
+    if risk_data.owner_id is not None:
+
+        ensure_resource_owner_in_scope(
+            db,
+            current_user,
+            risk_data.owner_id
+        )
+
+    # ------------------------------------------------------
+    # Update risk
+    # ------------------------------------------------------
+
+    updated_risk = update_risk(
+        db,
+        risk_id,
+        risk_data
+    )
+
+    if updated_risk is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Risk not found."
+        )
+
+    if updated_risk == "OWNER_NOT_FOUND":
         raise HTTPException(
             status_code=404,
             detail="Owner not found."
         )
 
-    return risk
+    return updated_risk
+
+
+# ==========================================================
+# DELETE RISK
+# ==========================================================
 
 @router.delete(
     "/{risk_id}"
@@ -156,15 +265,36 @@ def delete_existing_risk(
     risk_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(
-        require_roles(
-            UserRole.ADMIN,
-            UserRole.GRC_MANAGER,
+        require_permission(
+            "risks",
+            "delete"
         )
     )
 ):
     """
-    Delete an existing risk.
+    Delete a risk within the current user's
+    organizational visibility scope.
     """
+
+    visible_user_ids = get_visible_user_ids(
+        db,
+        current_user
+    )
+
+    risk = (
+        db.query(Risk)
+        .filter(
+            Risk.id == risk_id,
+            Risk.owner_id.in_(visible_user_ids)
+        )
+        .first()
+    )
+
+    if risk is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Risk not found."
+        )
 
     deleted = delete_risk(
         db,

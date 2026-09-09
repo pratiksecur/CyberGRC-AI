@@ -1,39 +1,43 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
 
 import Dashboard from "@/pages/dashboard/Dashboard";
+
 import Risks from "@/pages/risks/Risks";
 import CreateRisk from "@/pages/risks/CreateRisk";
-import Controls from "@/pages/controls/Controls";
-import Frameworks from "@/pages/frameworks/Frameworks";
-import Evidence from "@/pages/evidence/Evidence";
-import Audits from "@/pages/audits/Audits";
-import AI from "@/pages/ai/AI";
-import Settings from "@/pages/settings/Settings";
-import Login from "@/pages/auth/Login";
-import Register from "@/pages/auth/Register";
-
-import ProtectedRoute from "./ProtectedRoute";
 import ViewRisk from "@/pages/risks/ViewRisk";
 import EditRisk from "@/pages/risks/EditRisk";
 
+import Controls from "@/pages/controls/Controls";
 import CreateControl from "@/pages/controls/CreateControl";
 import ViewControl from "@/pages/controls/ViewControl";
 import EditControl from "@/pages/controls/EditControl";
 
+import Frameworks from "@/pages/frameworks/Frameworks";
 import CreateFramework from "@/pages/frameworks/CreateFramework";
 import ViewFramework from "@/pages/frameworks/ViewFramework";
 import EditFramework from "@/pages/frameworks/EditFramework";
 
+import FrameworkControls from "@/pages/framework-controls/FrameworkControls";
+import CreateFrameworkControl from "@/pages/framework-controls/CreateFrameworkControl";
+import ViewFrameworkControl from "@/pages/framework-controls/ViewFrameworkControl";
+import EditFrameworkControl from "@/pages/framework-controls/EditFrameworkControl";
+
+import Evidence from "@/pages/evidence/Evidence";
 import CreateEvidence from "@/pages/evidence/CreateEvidence";
 import ViewEvidence from "@/pages/evidence/ViewEvidence";
 import EditEvidence from "@/pages/evidence/EditEvidence";
 
+import Audits from "@/pages/audits/Audits";
 import CreateAudit from "@/pages/audits/CreateAudit";
 import ViewAudit from "@/pages/audits/ViewAudit";
 import EditAudit from "@/pages/audits/EditAudit";
 
 import AuditFindings from "@/pages/audit-findings/AuditFindings";
-
 import CreateAuditFinding from "@/pages/audit-findings/CreateAuditFinding";
 import ViewAuditFinding from "@/pages/audit-findings/ViewAuditFinding";
 import EditAuditFinding from "@/pages/audit-findings/EditAuditFinding";
@@ -49,12 +53,22 @@ import AuditReport from "@/pages/reports/AuditReport";
 import ComplianceReport from "@/pages/reports/ComplianceReport";
 import CorrectiveActionsReport from "@/pages/reports/CorrectiveActionsReport";
 
+import AI from "@/pages/ai/AI";
+import Settings from "@/pages/settings/Settings";
+
+import Login from "@/pages/auth/Login";
+import Register from "@/pages/auth/Register";
+
+import ProtectedRoute from "./ProtectedRoute";
+
 export default function AppRouter() {
   return (
     <BrowserRouter>
       <Routes>
 
-        {/* Public Route */}
+        {/* ================================================== */}
+        {/* PUBLIC ROUTES */}
+        {/* ================================================== */}
 
         <Route
           path="/login"
@@ -66,14 +80,23 @@ export default function AppRouter() {
           element={<Register />}
         />
 
-        {/* Redirect Root */}
+        {/* ================================================== */}
+        {/* ROOT */}
+        {/* ================================================== */}
 
         <Route
           path="/"
-          element={<Navigate to="/dashboard" replace />}
+          element={
+            <Navigate
+              to="/dashboard"
+              replace
+            />
+          }
         />
 
-        {/* Protected Routes */}
+        {/* ================================================== */}
+        {/* DASHBOARD */}
+        {/* ================================================== */}
 
         <Route
           path="/dashboard"
@@ -84,10 +107,17 @@ export default function AppRouter() {
           }
         />
 
+        {/* ================================================== */}
+        {/* RISKS */}
+        {/* ================================================== */}
+
         <Route
           path="/risks"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute
+              resource="risks"
+              action="view"
+            >
               <Risks />
             </ProtectedRoute>
           }
@@ -96,34 +126,50 @@ export default function AppRouter() {
         <Route
           path="/risks/new"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute
+              resource="risks"
+              action="create"
+            >
               <CreateRisk />
             </ProtectedRoute>
           }
         />
 
         <Route
-        path="/risks/:id"
-        element={
-            <ProtectedRoute>
-              <ViewRisk />
-            </ProtectedRoute>
-        }
-        />
-
-        <Route
-          path="/risks/:id/edit"
+          path="/risks/:id"
           element={
-            <ProtectedRoute>
-              <EditRisk />
+            <ProtectedRoute
+              resource="risks"
+              action="view"
+            >
+              <ViewRisk />
             </ProtectedRoute>
           }
         />
 
         <Route
+          path="/risks/:id/edit"
+          element={
+            <ProtectedRoute
+              resource="risks"
+              action="update"
+            >
+              <EditRisk />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* ================================================== */}
+        {/* CONTROLS */}
+        {/* ================================================== */}
+
+        <Route
           path="/controls"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute
+              resource="controls"
+              action="view"
+            >
               <Controls />
             </ProtectedRoute>
           }
@@ -132,7 +178,10 @@ export default function AppRouter() {
         <Route
           path="/controls/new"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute
+              resource="controls"
+              action="create"
+            >
               <CreateControl />
             </ProtectedRoute>
           }
@@ -141,7 +190,10 @@ export default function AppRouter() {
         <Route
           path="/controls/:id"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute
+              resource="controls"
+              action="view"
+            >
               <ViewControl />
             </ProtectedRoute>
           }
@@ -150,16 +202,26 @@ export default function AppRouter() {
         <Route
           path="/controls/:id/edit"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute
+              resource="controls"
+              action="update"
+            >
               <EditControl />
             </ProtectedRoute>
           }
         />
-        
+
+        {/* ================================================== */}
+        {/* FRAMEWORKS */}
+        {/* ================================================== */}
+
         <Route
           path="/frameworks"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute
+              resource="frameworks"
+              action="view"
+            >
               <Frameworks />
             </ProtectedRoute>
           }
@@ -168,7 +230,10 @@ export default function AppRouter() {
         <Route
           path="/frameworks/new"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute
+              resource="frameworks"
+              action="create"
+            >
               <CreateFramework />
             </ProtectedRoute>
           }
@@ -177,7 +242,10 @@ export default function AppRouter() {
         <Route
           path="/frameworks/:id"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute
+              resource="frameworks"
+              action="view"
+            >
               <ViewFramework />
             </ProtectedRoute>
           }
@@ -186,16 +254,78 @@ export default function AppRouter() {
         <Route
           path="/frameworks/:id/edit"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute
+              resource="frameworks"
+              action="update"
+            >
               <EditFramework />
             </ProtectedRoute>
           }
         />
 
+        {/* ================================================== */}
+        {/* FRAMEWORK CONTROLS */}
+        {/* ================================================== */}
+
+        <Route
+          path="/framework-controls"
+          element={
+            <ProtectedRoute
+              resource="framework_controls"
+              action="view"
+            >
+              <FrameworkControls />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/framework-controls/new"
+          element={
+            <ProtectedRoute
+              resource="framework_controls"
+              action="create"
+            >
+              <CreateFrameworkControl />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/framework-controls/:id"
+          element={
+            <ProtectedRoute
+              resource="framework_controls"
+              action="view"
+            >
+              <ViewFrameworkControl />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/framework-controls/:id/edit"
+          element={
+            <ProtectedRoute
+              resource="framework_controls"
+              action="update"
+            >
+              <EditFrameworkControl />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* ================================================== */}
+        {/* EVIDENCE */}
+        {/* ================================================== */}
+
         <Route
           path="/evidence"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute
+              resource="evidence"
+              action="view"
+            >
               <Evidence />
             </ProtectedRoute>
           }
@@ -204,7 +334,10 @@ export default function AppRouter() {
         <Route
           path="/evidence/new"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute
+              resource="evidence"
+              action="create"
+            >
               <CreateEvidence />
             </ProtectedRoute>
           }
@@ -213,7 +346,10 @@ export default function AppRouter() {
         <Route
           path="/evidence/:id"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute
+              resource="evidence"
+              action="view"
+            >
               <ViewEvidence />
             </ProtectedRoute>
           }
@@ -222,16 +358,26 @@ export default function AppRouter() {
         <Route
           path="/evidence/:id/edit"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute
+              resource="evidence"
+              action="update"
+            >
               <EditEvidence />
             </ProtectedRoute>
           }
         />
 
+        {/* ================================================== */}
+        {/* AUDITS */}
+        {/* ================================================== */}
+
         <Route
           path="/audits"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute
+              resource="audits"
+              action="view"
+            >
               <Audits />
             </ProtectedRoute>
           }
@@ -240,7 +386,10 @@ export default function AppRouter() {
         <Route
           path="/audits/new"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute
+              resource="audits"
+              action="create"
+            >
               <CreateAudit />
             </ProtectedRoute>
           }
@@ -249,7 +398,10 @@ export default function AppRouter() {
         <Route
           path="/audits/:id"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute
+              resource="audits"
+              action="view"
+            >
               <ViewAudit />
             </ProtectedRoute>
           }
@@ -258,16 +410,26 @@ export default function AppRouter() {
         <Route
           path="/audits/:id/edit"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute
+              resource="audits"
+              action="update"
+            >
               <EditAudit />
             </ProtectedRoute>
           }
         />
 
+        {/* ================================================== */}
+        {/* AUDIT FINDINGS */}
+        {/* ================================================== */}
+
         <Route
           path="/audit-findings"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute
+              resource="audit_findings"
+              action="view"
+            >
               <AuditFindings />
             </ProtectedRoute>
           }
@@ -276,7 +438,10 @@ export default function AppRouter() {
         <Route
           path="/audit-findings/new"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute
+              resource="audit_findings"
+              action="create"
+            >
               <CreateAuditFinding />
             </ProtectedRoute>
           }
@@ -285,7 +450,10 @@ export default function AppRouter() {
         <Route
           path="/audit-findings/:id"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute
+              resource="audit_findings"
+              action="view"
+            >
               <ViewAuditFinding />
             </ProtectedRoute>
           }
@@ -294,16 +462,26 @@ export default function AppRouter() {
         <Route
           path="/audit-findings/:id/edit"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute
+              resource="audit_findings"
+              action="update"
+            >
               <EditAuditFinding />
             </ProtectedRoute>
           }
         />
 
+        {/* ================================================== */}
+        {/* CORRECTIVE ACTIONS */}
+        {/* ================================================== */}
+
         <Route
           path="/corrective-actions"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute
+              resource="corrective_actions"
+              action="view"
+            >
               <CorrectiveActions />
             </ProtectedRoute>
           }
@@ -312,7 +490,10 @@ export default function AppRouter() {
         <Route
           path="/corrective-actions/new"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute
+              resource="corrective_actions"
+              action="create"
+            >
               <CreateCorrectiveAction />
             </ProtectedRoute>
           }
@@ -321,7 +502,10 @@ export default function AppRouter() {
         <Route
           path="/corrective-actions/:id"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute
+              resource="corrective_actions"
+              action="view"
+            >
               <ViewCorrectiveAction />
             </ProtectedRoute>
           }
@@ -330,16 +514,26 @@ export default function AppRouter() {
         <Route
           path="/corrective-actions/:id/edit"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute
+              resource="corrective_actions"
+              action="update"
+            >
               <EditCorrectiveAction />
             </ProtectedRoute>
           }
         />
 
+        {/* ================================================== */}
+        {/* REPORTS */}
+        {/* ================================================== */}
+
         <Route
           path="/reports"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute
+              resource="reports"
+              action="view"
+            >
               <Reports />
             </ProtectedRoute>
           }
@@ -348,7 +542,10 @@ export default function AppRouter() {
         <Route
           path="/reports/risks"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute
+              resource="reports"
+              action="view"
+            >
               <RiskReport />
             </ProtectedRoute>
           }
@@ -357,7 +554,10 @@ export default function AppRouter() {
         <Route
           path="/reports/audits"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute
+              resource="reports"
+              action="view"
+            >
               <AuditReport />
             </ProtectedRoute>
           }
@@ -366,7 +566,10 @@ export default function AppRouter() {
         <Route
           path="/reports/compliance"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute
+              resource="reports"
+              action="view"
+            >
               <ComplianceReport />
             </ProtectedRoute>
           }
@@ -375,20 +578,34 @@ export default function AppRouter() {
         <Route
           path="/reports/corrective-actions"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute
+              resource="reports"
+              action="view"
+            >
               <CorrectiveActionsReport />
             </ProtectedRoute>
           }
         />
 
+        {/* ================================================== */}
+        {/* AI */}
+        {/* ================================================== */}
+
         <Route
           path="/ai"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute
+              resource="ai"
+              action="view"
+            >
               <AI />
             </ProtectedRoute>
           }
         />
+
+        {/* ================================================== */}
+        {/* SETTINGS */}
+        {/* ================================================== */}
 
         <Route
           path="/settings"

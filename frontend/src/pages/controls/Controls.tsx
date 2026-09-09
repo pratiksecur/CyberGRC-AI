@@ -173,8 +173,12 @@ export default function Controls() {
 
         <ControlsTable
           controls={filteredControls}
-          onView={(id) => navigate(`/controls/${id}`)}
-          onEdit={(id) => navigate(`/controls/${id}/edit`)}
+          onView={(id) =>
+            navigate(`/controls/${id}`)
+          }
+          onEdit={(id) =>
+            navigate(`/controls/${id}/edit`)
+          }
           onDelete={async (id) => {
             const confirmed = window.confirm(
               "Are you sure you want to delete this control?"

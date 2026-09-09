@@ -7,8 +7,21 @@ from sqlalchemy import pool
 from alembic import context
 
 from app.database.database import Base
-from app.models.user import User
-from app.models.risk import Risk
+
+from app.models import (
+    user,
+    risk,
+    control,
+    framework,
+    evidence,
+    audit,
+    audit_finding,
+    corrective_action,
+    notification,
+    risk_control,
+    framework_control,
+    control_framework_control,
+)
 
 
 # Alembic Config object

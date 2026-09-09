@@ -25,7 +25,6 @@ export default function Frameworks() {
   } = useFrameworks();
 
   const [search, setSearch] = useState("");
-
   const [version, setVersion] = useState("");
 
   const filteredFrameworks = useMemo(() => {
@@ -161,12 +160,18 @@ export default function Frameworks() {
             navigate(`/frameworks/${id}/edit`)
           }
           onDelete={async (id) => {
-            if (!confirm("Delete this framework?")) return;
+            if (!window.confirm(
+              "Delete this framework?"
+            )) {
+              return;
+            }
 
             try {
               await deleteMutation.mutateAsync(id);
             } catch {
-              alert("Failed to delete framework.");
+              alert(
+                "Failed to delete framework."
+              );
             }
           }}
         />

@@ -5,15 +5,15 @@ import AppLayout from "@/layouts/AppLayout";
 
 import { useCreateFramework } from "@/hooks/useCreateFramework";
 
+import Can from "@/components/auth/Can";
+
 export default function CreateFramework() {
   const navigate = useNavigate();
 
   const mutation = useCreateFramework();
 
   const [name, setName] = useState("");
-
   const [version, setVersion] = useState("");
-
   const [description, setDescription] =
     useState("");
 
@@ -22,13 +22,18 @@ export default function CreateFramework() {
   ) => {
     e.preventDefault();
 
-    await mutation.mutateAsync({
-      name,
-      version,
-      description,
-    });
+    try {
+      await mutation.mutateAsync({
+        name,
+        version,
+        description,
+      });
 
-    navigate("/frameworks");
+      navigate("/frameworks");
+    } catch (error) {
+      console.error(error);
+      alert("Failed to create framework.");
+    }
   };
 
   return (
@@ -104,15 +109,20 @@ export default function CreateFramework() {
 
           <div className="flex justify-end">
 
-            <button
-              type="submit"
-              disabled={mutation.isPending}
-              className="rounded-lg bg-blue-600 px-6 py-3 text-white hover:bg-blue-700 disabled:opacity-50"
+            <Can
+              resource="frameworks"
+              action="create"
             >
-              {mutation.isPending
-                ? "Creating..."
-                : "Create Framework"}
-            </button>
+              <button
+                type="submit"
+                disabled={mutation.isPending}
+                className="rounded-lg bg-blue-600 px-6 py-3 text-white hover:bg-blue-700 disabled:opacity-50"
+              >
+                {mutation.isPending
+                  ? "Creating..."
+                  : "Create Framework"}
+              </button>
+            </Can>
 
           </div>
 

@@ -6,6 +6,8 @@ import AppLayout from "@/layouts/AppLayout";
 import { useFramework } from "@/hooks/useFramework";
 import { useUpdateFramework } from "@/hooks/useUpdateFramework";
 
+import Can from "@/components/auth/Can";
+
 export default function EditFramework() {
   const { id } = useParams();
 
@@ -23,9 +25,7 @@ export default function EditFramework() {
     useUpdateFramework(frameworkId);
 
   const [name, setName] = useState("");
-
   const [version, setVersion] = useState("");
-
   const [description, setDescription] =
     useState("");
 
@@ -50,7 +50,6 @@ export default function EditFramework() {
       });
 
       navigate("/frameworks");
-
     } catch (error: any) {
       alert(
         error?.response?.data?.error?.message ??
@@ -140,9 +139,7 @@ export default function EditFramework() {
               className="w-full rounded-lg border p-3"
               value={description}
               onChange={(e) =>
-                setDescription(
-                  e.target.value
-                )
+                setDescription(e.target.value)
               }
             />
 
@@ -150,15 +147,20 @@ export default function EditFramework() {
 
           <div className="flex justify-end">
 
-            <button
-              type="submit"
-              disabled={updateMutation.isPending}
-              className="rounded-lg bg-blue-600 px-6 py-3 text-white hover:bg-blue-700 disabled:opacity-50"
+            <Can
+              resource="frameworks"
+              action="update"
             >
-              {updateMutation.isPending
-                ? "Updating..."
-                : "Update Framework"}
-            </button>
+              <button
+                type="submit"
+                disabled={updateMutation.isPending}
+                className="rounded-lg bg-blue-600 px-6 py-3 text-white hover:bg-blue-700 disabled:opacity-50"
+              >
+                {updateMutation.isPending
+                  ? "Updating..."
+                  : "Update Framework"}
+              </button>
+            </Can>
 
           </div>
 

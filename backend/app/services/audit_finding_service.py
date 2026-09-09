@@ -22,22 +22,15 @@ def finding_response(
 
     return {
         "id": finding.id,
-
         "audit_id": finding.audit_id,
         "audit_name": audit_name,
-
         "control_id": finding.control_id,
         "control_name": control_name,
-
         "title": finding.title,
         "description": finding.description,
-
         "severity": finding.severity,
-
         "recommendation": finding.recommendation,
-
         "status": finding.status,
-
         "created_at": finding.created_at,
         "updated_at": finding.updated_at,
     }
@@ -45,10 +38,12 @@ def finding_response(
 
 def create_audit_finding(
     db: Session,
-    finding_data: AuditFindingCreate
+    finding_data: AuditFindingCreate,
 ):
     """
     Create a new audit finding.
+
+    Organizational authorization is handled by the route.
     """
 
     audit = (
@@ -213,6 +208,8 @@ def update_audit_finding(
 ):
     """
     Update an audit finding.
+
+    Relationship authorization is handled by the route.
     """
 
     finding = (
@@ -262,24 +259,16 @@ def update_audit_finding(
         finding.title = finding_data.title
 
     if finding_data.description is not None:
-        finding.description = (
-            finding_data.description
-        )
+        finding.description = finding_data.description
 
     if finding_data.severity is not None:
-        finding.severity = (
-            finding_data.severity.value
-        )
+        finding.severity = finding_data.severity.value
 
     if finding_data.recommendation is not None:
-        finding.recommendation = (
-            finding_data.recommendation
-        )
+        finding.recommendation = finding_data.recommendation
 
     if finding_data.status is not None:
-        finding.status = (
-            finding_data.status.value
-        )
+        finding.status = finding_data.status.value
 
     db.commit()
     db.refresh(finding)
