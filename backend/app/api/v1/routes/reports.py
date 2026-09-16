@@ -45,6 +45,7 @@ def risk_report(
     visible_user_ids = get_visible_user_ids(
         db,
         current_user,
+        "reports",
     )
 
     return get_risk_report(
@@ -72,6 +73,7 @@ def audit_report(
     visible_user_ids = get_visible_user_ids(
         db,
         current_user,
+        "reports",
     )
 
     return get_audit_report(
@@ -98,6 +100,7 @@ def compliance_report(
     visible_user_ids = get_visible_user_ids(
         db,
         current_user,
+        "reports",
     )
 
     return get_compliance_report(

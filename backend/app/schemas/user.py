@@ -1,5 +1,6 @@
-from pydantic import BaseModel, EmailStr, Field
 from datetime import datetime
+
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 from app.core.roles import UserRole
 
@@ -22,9 +23,9 @@ class UserResponse(BaseModel):
     role: str
     created_at: datetime
 
-    model_config = {
-        "from_attributes": True
-    }
+    model_config = ConfigDict(
+        from_attributes=True
+    )
 
 
 class UserListResponse(BaseModel):
@@ -34,12 +35,14 @@ class UserListResponse(BaseModel):
     role: str
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(
+        from_attributes=True
+    )
 
 
 class UserRoleUpdate(BaseModel):
     role: UserRole
+
 
 class UserOrganizationUpdate(BaseModel):
     manager_id: int | None = None
@@ -47,6 +50,7 @@ class UserOrganizationUpdate(BaseModel):
         default=None,
         max_length=100
     )
+
 
 class Token(BaseModel):
     access_token: str

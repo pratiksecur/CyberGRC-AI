@@ -63,7 +63,8 @@ def create_new_risk(
     ensure_resource_owner_in_scope(
         db,
         current_user,
-        risk_data.owner_id
+        risk_data.owner_id,
+        "risks",
     )
 
     # ------------------------------------------------------
@@ -111,7 +112,8 @@ def list_all_risks(
 
     visible_user_ids = get_visible_user_ids(
         db,
-        current_user
+        current_user,
+        "risks",
     )
 
     return (
@@ -148,7 +150,8 @@ def get_risk(
 
     visible_user_ids = get_visible_user_ids(
         db,
-        current_user
+        current_user,
+        "risks",
     )
 
     risk = (
@@ -195,7 +198,8 @@ def update_existing_risk(
 
     visible_user_ids = get_visible_user_ids(
         db,
-        current_user
+        current_user,
+        "risks",
     )
 
     # ------------------------------------------------------
@@ -226,7 +230,8 @@ def update_existing_risk(
         ensure_resource_owner_in_scope(
             db,
             current_user,
-            risk_data.owner_id
+            risk_data.owner_id,
+            "risks",
         )
 
     # ------------------------------------------------------
@@ -278,7 +283,8 @@ def delete_existing_risk(
 
     visible_user_ids = get_visible_user_ids(
         db,
-        current_user
+        current_user,
+        "risks",
     )
 
     risk = (

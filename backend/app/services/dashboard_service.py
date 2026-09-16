@@ -227,9 +227,12 @@ def get_dashboard_data(
             AuditFinding.audit_id == Audit.id,
         )
         .filter(
+            CorrectiveAction.assigned_to.in_(
+                action_visible_user_ids
+            ),
             Audit.auditor_id.in_(
                 action_visible_user_ids
-            )
+            ),
         )
         .all()
     )

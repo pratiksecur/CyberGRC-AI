@@ -4,15 +4,19 @@ from sqlalchemy.orm import Session
 
 from app.models.corrective_action import CorrectiveAction
 from app.models.audit_finding import AuditFinding
+from app.models.audit import Audit
 from app.models.user import User
 
 
 def get_corrective_action_report(
     db: Session,
+    visible_user_ids: list[int],
 ):
     """
     Generate a corrective actions report using
-    live database data.
+    live database data limited to corrective actions
+    assigned to users within the authenticated user's
+    report visibility scope.
     """
 
     actions = (
@@ -23,9 +27,22 @@ def get_corrective_action_report(
             == AuditFinding.id,
         )
         .join(
+            Audit,
+            AuditFinding.audit_id
+            == Audit.id,
+        )
+        .join(
             User,
             CorrectiveAction.assigned_to
             == User.id,
+        )
+        .filter(
+            CorrectiveAction.assigned_to.in_(
+                visible_user_ids
+            ),
+            Audit.auditor_id.in_(
+                visible_user_ids
+            ),
         )
         .order_by(
             CorrectiveAction.due_date.asc(),

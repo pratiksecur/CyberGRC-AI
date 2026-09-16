@@ -56,7 +56,8 @@ def list_visible_users(
 
     visible_user_ids = get_visible_user_ids(
         db,
-        current_user
+        current_user,
+        "users",
     )
 
     return get_visible_users(
