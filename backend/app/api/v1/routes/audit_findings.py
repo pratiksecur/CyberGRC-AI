@@ -69,6 +69,7 @@ def create_new_audit_finding(
         db,
         current_user,
         audit.auditor_id,
+        "audit_findings",
     )
 
     control = (
@@ -121,6 +122,7 @@ def list_all_findings(
     visible_user_ids = get_visible_user_ids(
         db,
         current_user,
+        "audit_findings",
     )
 
     results = (
@@ -181,6 +183,7 @@ def get_finding(
     visible_user_ids = get_visible_user_ids(
         db,
         current_user,
+        "audit_findings",
     )
 
     result = (
@@ -255,6 +258,7 @@ def update_existing_finding(
     visible_user_ids = get_visible_user_ids(
         db,
         current_user,
+        "audit_findings",
     )
 
     finding = (
@@ -297,6 +301,7 @@ def update_existing_finding(
             db,
             current_user,
             new_audit.auditor_id,
+            "audit_findings",
         )
 
     # If changing the control, only verify that it exists.
@@ -361,6 +366,7 @@ def delete_existing_finding(
     visible_user_ids = get_visible_user_ids(
         db,
         current_user,
+        "audit_findings",
     )
 
     finding = (

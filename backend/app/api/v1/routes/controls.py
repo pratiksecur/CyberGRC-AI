@@ -64,7 +64,8 @@ def create_new_control(
     ensure_resource_owner_in_scope(
         db,
         current_user,
-        control_data.owner_id
+        control_data.owner_id,
+        "controls",
     )
 
     control = create_control(
@@ -101,7 +102,8 @@ def list_all_controls(
 
     visible_user_ids = get_visible_user_ids(
         db,
-        current_user
+        current_user,
+        "controls",
     )
 
     return (
@@ -136,7 +138,8 @@ def get_control(
 
     visible_user_ids = get_visible_user_ids(
         db,
-        current_user
+        current_user,
+        "controls",
     )
 
     control = (
@@ -181,7 +184,8 @@ def update_existing_control(
 
     visible_user_ids = get_visible_user_ids(
         db,
-        current_user
+        current_user,
+        "controls",
     )
 
     control = (
@@ -206,7 +210,8 @@ def update_existing_control(
         ensure_resource_owner_in_scope(
             db,
             current_user,
-            control_data.owner_id
+            control_data.owner_id,
+            "controls",
         )
 
     updated_control = update_control(
@@ -244,7 +249,8 @@ def delete_existing_control(
 
     visible_user_ids = get_visible_user_ids(
         db,
-        current_user
+        current_user,
+        "controls",
     )
 
     control = (

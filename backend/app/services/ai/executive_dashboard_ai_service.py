@@ -30,14 +30,11 @@ def generate_executive_dashboard(
     """
     Generate the GRC Manager's AI Executive Summary.
 
-    The AI context is built from authorized organizational
-    scope before any data is sent to the AI provider.
+    Operational records are restricted to the current
+    user's appropriate visibility scope.
 
-    Framework definitions remain organization-wide because
-    they are reference requirements.
-
-    Operational records are filtered by ownership or
-    assignment scope.
+    Corrective actions require BOTH the assigned user
+    and parent audit to be within the user's scope.
     """
 
     # ==================================================
@@ -98,8 +95,7 @@ def generate_executive_dashboard(
         .all()
     )
 
-    # Frameworks are reference data and remain
-    # organization-wide.
+    # Frameworks are reference data.
     frameworks = (
         db.query(Framework)
         .all()
@@ -125,6 +121,18 @@ def generate_executive_dashboard(
         .all()
     )
 
+    # ==================================================
+    # CORRECTIVE ACTIONS
+    # ==================================================
+
+    # A corrective action is visible only when:
+    #
+    #   assigned_to ∈ action scope
+    #   AND
+    #   parent audit auditor ∈ action scope
+    #
+    # This mirrors the API authorization boundary.
+
     corrective_actions = (
         db.query(CorrectiveAction)
         .join(
@@ -138,9 +146,12 @@ def generate_executive_dashboard(
             == Audit.id,
         )
         .filter(
+            CorrectiveAction.assigned_to.in_(
+                action_visible_user_ids
+            ),
             Audit.auditor_id.in_(
                 action_visible_user_ids
-            )
+            ),
         )
         .all()
     )
@@ -194,11 +205,9 @@ def generate_executive_dashboard(
     # ==================================================
 
     try:
-
         provider = get_ai_provider()
 
     except Exception as e:
-
         raise HTTPException(
             status_code=500,
             detail=(
@@ -214,14 +223,11 @@ def generate_executive_dashboard(
     for attempt in range(2):
 
         try:
-
             response = provider.generate(
                 prompt
             )
 
-            cleaned_response = (
-                response.strip()
-            )
+            cleaned_response = response.strip()
 
             # --------------------------------------------------
             # Remove JSON markdown fences
@@ -230,7 +236,6 @@ def generate_executive_dashboard(
             if cleaned_response.startswith(
                 "```json"
             ):
-
                 cleaned_response = (
                     cleaned_response[7:]
                     .strip()
@@ -239,7 +244,6 @@ def generate_executive_dashboard(
                 if cleaned_response.endswith(
                     "```"
                 ):
-
                     cleaned_response = (
                         cleaned_response[:-3]
                         .strip()
@@ -248,7 +252,6 @@ def generate_executive_dashboard(
             elif cleaned_response.startswith(
                 "```"
             ):
-
                 cleaned_response = (
                     cleaned_response[3:]
                     .strip()
@@ -257,7 +260,6 @@ def generate_executive_dashboard(
                 if cleaned_response.endswith(
                     "```"
                 ):
-
                     cleaned_response = (
                         cleaned_response[:-3]
                         .strip()

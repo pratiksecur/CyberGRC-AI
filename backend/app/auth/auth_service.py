@@ -35,32 +35,45 @@ def create_user(db: Session, user: UserCreate):
     return new_user
 
 
-def login_user(db: Session, email: str, password: str):
+def login_user(
+    db: Session,
+    email: str,
+    password: str,
+):
     """
     Authenticate a user and return a JWT token.
+
+    Authentication failures intentionally return the same
+    message regardless of whether the email exists or the
+    password is incorrect.
     """
 
-    user = db.query(User).filter(User.email == email).first()
-
-    print("User Found:", user)
+    user = (
+        db.query(User)
+        .filter(User.email == email)
+        .first()
+    )
 
     if not user:
-        raise ValueError("Invalid email or password.")
+        raise ValueError(
+            "Invalid email or password."
+        )
 
-    print("Stored Password Hash:", user.hashed_password)
-
-    password_match = verify_password(password, user.hashed_password)
-
-    print("Password Match:", password_match)
-
-    if not password_match:
-        raise ValueError("Invalid email or password.")
+    if not verify_password(
+        password,
+        user.hashed_password,
+    ):
+        raise ValueError(
+            "Invalid email or password."
+        )
 
     access_token = create_access_token(
-        data={"sub": user.email}
+        data={
+            "sub": user.email
+        }
     )
 
     return {
         "access_token": access_token,
-        "token_type": "bearer"
+        "token_type": "bearer",
     }

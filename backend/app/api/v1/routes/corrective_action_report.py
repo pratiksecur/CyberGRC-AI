@@ -3,8 +3,8 @@ from sqlalchemy.orm import Session
 
 from app.database.database import get_db
 
-from app.auth.permissions import require_roles
-from app.core.roles import UserRole
+from app.auth.permissions import require_permission
+from app.auth.visibility import get_visible_user_ids
 
 from app.models.user import User
 
@@ -30,15 +30,22 @@ router = APIRouter(
 def corrective_action_report(
     db: Session = Depends(get_db),
     current_user: User = Depends(
-        require_roles(
-            UserRole.ADMIN,
-            UserRole.GRC_MANAGER,
-            UserRole.AUDITOR,
-        )
+        require_permission("reports", "view")
     ),
 ):
     """
-    Generate a corrective actions report.
+    Generate a corrective actions report limited
+    to corrective actions within the authenticated
+    user's report visibility scope.
     """
 
-    return get_corrective_action_report(db)
+    visible_user_ids = get_visible_user_ids(
+        db,
+        current_user,
+        "reports",
+    )
+
+    return get_corrective_action_report(
+        db,
+        visible_user_ids,
+    )

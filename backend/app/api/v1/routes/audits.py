@@ -59,6 +59,7 @@ def create_new_audit(
         db,
         current_user,
         audit_data.auditor_id,
+        "audits",
     )
 
     # ------------------------------------------------------
@@ -119,6 +120,7 @@ def list_all_audits(
     visible_user_ids = get_visible_user_ids(
         db,
         current_user,
+        "audits",
     )
 
     return (
@@ -152,6 +154,7 @@ def get_audit(
     visible_user_ids = get_visible_user_ids(
         db,
         current_user,
+        "audits",
     )
 
     audit = (
@@ -195,6 +198,7 @@ def update_existing_audit(
     visible_user_ids = get_visible_user_ids(
         db,
         current_user,
+        "audits",
     )
 
     audit = (
@@ -221,6 +225,7 @@ def update_existing_audit(
             db,
             current_user,
             audit_data.auditor_id,
+            "audits",
         )
 
         auditor = (
@@ -279,6 +284,7 @@ def delete_existing_audit(
     visible_user_ids = get_visible_user_ids(
         db,
         current_user,
+        "audits",
     )
 
     audit = (

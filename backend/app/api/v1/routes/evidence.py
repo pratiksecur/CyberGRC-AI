@@ -91,6 +91,7 @@ def create_new_evidence(
         db,
         current_user,
         control.owner_id,
+        "evidence",
     )
 
     # ------------------------------------------------------
@@ -154,6 +155,7 @@ def list_all_evidence(
     visible_user_ids = get_visible_user_ids(
         db,
         current_user,
+        "evidence",
     )
 
     return (
@@ -191,6 +193,7 @@ def get_evidence(
     visible_user_ids = get_visible_user_ids(
         db,
         current_user,
+        "evidence",
     )
 
     evidence = (
@@ -238,6 +241,7 @@ def update_existing_evidence(
     visible_user_ids = get_visible_user_ids(
         db,
         current_user,
+        "evidence",
     )
 
     evidence = (
@@ -295,6 +299,7 @@ def delete_existing_evidence(
     visible_user_ids = get_visible_user_ids(
         db,
         current_user,
+        "evidence",
     )
 
     evidence = (

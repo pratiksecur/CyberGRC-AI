@@ -3,9 +3,13 @@ from sqlalchemy.orm import Session
 
 from app.database.database import get_db
 
-from app.auth.permissions import require_permission
+from app.auth.permissions import (
+    require_permission,
+    get_access_scope,
+)
 from app.auth.visibility import get_visible_user_ids
 from app.auth.access import ensure_user_in_scope
+from app.auth.scopes import AccessScope
 
 from app.models.audit import Audit
 from app.models.audit_finding import AuditFinding
@@ -34,6 +38,67 @@ router = APIRouter(
 )
 
 
+def _build_scoped_corrective_action_query(
+    db: Session,
+    current_user: User,
+):
+    """
+    Build the corrective-action query according to the
+    user's corrective-action visibility scope.
+
+    OWN:
+        Visibility is determined by assigned_to.
+
+    SUBORDINATES / ORGANIZATION:
+        Both assigned_to and the parent audit must be
+        within the user's corrective-action scope.
+
+    This preserves the distinction between a user's own
+    assigned remediation work and management-level
+    organizational visibility.
+    """
+
+    visible_user_ids = get_visible_user_ids(
+        db,
+        current_user,
+        "corrective_actions",
+    )
+
+    query = (
+        db.query(CorrectiveAction)
+        .join(
+            AuditFinding,
+            CorrectiveAction.finding_id == AuditFinding.id,
+        )
+        .join(
+            Audit,
+            AuditFinding.audit_id == Audit.id,
+        )
+        .filter(
+            CorrectiveAction.assigned_to.in_(
+                visible_user_ids
+            )
+        )
+    )
+
+    scope = get_access_scope(
+        current_user,
+        "corrective_actions",
+    )
+
+    if scope in (
+        AccessScope.SUBORDINATES,
+        AccessScope.ORGANIZATION,
+    ):
+        query = query.filter(
+            Audit.auditor_id.in_(
+                visible_user_ids
+            )
+        )
+
+    return query
+
+
 @router.post(
     "/",
     response_model=CorrectiveActionResponse,
@@ -48,10 +113,12 @@ def create_action(
     """
     Create a corrective action.
 
-    The parent finding must belong to an audit
-    within the user's organizational scope.
+    Creation requires BOTH:
+    1. The parent audit to be within the creator's scope.
+    2. The assigned user to be within the creator's scope.
 
-    The assigned user must also be within scope.
+    This prevents creation against an out-of-scope finding
+    or assignment to an out-of-scope user.
     """
 
     finding = (
@@ -86,18 +153,26 @@ def create_action(
             detail="Audit not found.",
         )
 
-    # The parent audit determines the action's scope.
+    # --------------------------------------------------
+    # Parent audit authorization
+    # --------------------------------------------------
+
     ensure_user_in_scope(
         db,
         current_user,
         audit.auditor_id,
+        "corrective_actions",
     )
 
-    # The assignee must be within the creator's scope.
+    # --------------------------------------------------
+    # Assignee authorization
+    # --------------------------------------------------
+
     ensure_user_in_scope(
         db,
         current_user,
         action_data.assigned_to,
+        "corrective_actions",
     )
 
     action = create_corrective_action(
@@ -137,30 +212,23 @@ def list_actions(
     ),
 ):
     """
-    Return only corrective actions whose parent
-    finding belongs to an audit within scope.
+    Return corrective actions according to the caller's
+    corrective-action scope.
+
+    OWN:
+        Return actions assigned to the current user.
+
+    SUBORDINATES / ORGANIZATION:
+        Return actions where both the assignee and the
+        parent audit are within the caller's scope.
     """
 
-    visible_user_ids = get_visible_user_ids(
+    query = _build_scoped_corrective_action_query(
         db,
         current_user,
     )
 
-    actions = (
-        db.query(CorrectiveAction)
-        .join(
-            AuditFinding,
-            CorrectiveAction.finding_id == AuditFinding.id,
-        )
-        .join(
-            Audit,
-            AuditFinding.audit_id == Audit.id,
-        )
-        .filter(
-            Audit.auditor_id.in_(visible_user_ids)
-        )
-        .all()
-    )
+    actions = query.all()
 
     return [
         _serialize_corrective_action(action)
@@ -179,16 +247,14 @@ def list_assignees(
     ),
 ):
     """
-    Get users that can be selected when assigning
-    a corrective action.
-
-    Only users within the current user's organizational
-    visibility scope are returned.
+    Return users that can be selected as corrective-action
+    assignees within the current user's visibility scope.
     """
 
     visible_user_ids = get_visible_user_ids(
         db,
         current_user,
+        "corrective_actions",
     )
 
     users = (
@@ -223,28 +289,17 @@ def get_action(
     ),
 ):
     """
-    Return a corrective action only if its parent
-    finding belongs to an audit within scope.
+    Return a corrective action according to the caller's
+    corrective-action visibility scope.
     """
 
-    visible_user_ids = get_visible_user_ids(
-        db,
-        current_user,
-    )
-
     action = (
-        db.query(CorrectiveAction)
-        .join(
-            AuditFinding,
-            CorrectiveAction.finding_id == AuditFinding.id,
-        )
-        .join(
-            Audit,
-            AuditFinding.audit_id == Audit.id,
+        _build_scoped_corrective_action_query(
+            db,
+            current_user,
         )
         .filter(
             CorrectiveAction.id == action_id,
-            Audit.auditor_id.in_(visible_user_ids),
         )
         .first()
     )
@@ -271,28 +326,17 @@ def update_action(
     ),
 ):
     """
-    Update a corrective action only if its parent
-    finding belongs to an audit within scope.
+    Update a corrective action according to the caller's
+    corrective-action visibility scope.
     """
 
-    visible_user_ids = get_visible_user_ids(
-        db,
-        current_user,
-    )
-
     action = (
-        db.query(CorrectiveAction)
-        .join(
-            AuditFinding,
-            CorrectiveAction.finding_id == AuditFinding.id,
-        )
-        .join(
-            Audit,
-            AuditFinding.audit_id == Audit.id,
+        _build_scoped_corrective_action_query(
+            db,
+            current_user,
         )
         .filter(
             CorrectiveAction.id == action_id,
-            Audit.auditor_id.in_(visible_user_ids),
         )
         .first()
     )
@@ -335,28 +379,17 @@ def delete_action(
     ),
 ):
     """
-    Delete a corrective action only if its parent
-    finding belongs to an audit within scope.
+    Delete a corrective action according to the caller's
+    corrective-action visibility scope.
     """
 
-    visible_user_ids = get_visible_user_ids(
-        db,
-        current_user,
-    )
-
     action = (
-        db.query(CorrectiveAction)
-        .join(
-            AuditFinding,
-            CorrectiveAction.finding_id == AuditFinding.id,
-        )
-        .join(
-            Audit,
-            AuditFinding.audit_id == Audit.id,
+        _build_scoped_corrective_action_query(
+            db,
+            current_user,
         )
         .filter(
             CorrectiveAction.id == action_id,
-            Audit.auditor_id.in_(visible_user_ids),
         )
         .first()
     )
