@@ -14,34 +14,50 @@ oauth2_scheme = OAuth2PasswordBearer(
 
 def get_current_user(
     token: str = Depends(oauth2_scheme),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
+    """
+    Resolve the authenticated user from a JWT access token.
+
+    Authentication failures intentionally return 401 and do
+    not expose authorization or organizational information.
+    """
+
     payload = verify_access_token(token)
 
     if payload is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token."
+            detail="Invalid or expired token.",
+            headers={
+                "WWW-Authenticate": "Bearer",
+            },
         )
 
-    email = payload.get("sub")
+    subject = payload.get("sub")
 
-    if email is None:
+    if not subject or not isinstance(subject, str):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token payload."
+            detail="Invalid token payload.",
+            headers={
+                "WWW-Authenticate": "Bearer",
+            },
         )
 
     user = (
         db.query(User)
-        .filter(User.email == email)
+        .filter(User.email == subject)
         .first()
     )
 
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not found."
+            detail="Invalid authentication credentials.",
+            headers={
+                "WWW-Authenticate": "Bearer",
+            },
         )
 
     return user
