@@ -9,7 +9,7 @@ import {
 
 import AppLayout from "@/layouts/AppLayout";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/useAuth";
 
 export default function Settings() {
   const { logout, isAuthenticated } = useAuth();

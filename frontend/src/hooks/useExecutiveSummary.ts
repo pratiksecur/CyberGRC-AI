@@ -4,7 +4,7 @@ import {
   getExecutiveSummary,
 } from "@/api/ai";
 
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/useAuth";
 
 import {
   hasPermission,

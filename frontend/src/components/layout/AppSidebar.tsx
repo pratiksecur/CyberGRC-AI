@@ -4,7 +4,7 @@ import { Shield } from "lucide-react";
 import { navigation } from "@/config/navigation";
 import { hasPermission } from "@/auth/permissions";
 
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/useAuth";
 
 export default function AppSidebar() {
   const { user } = useAuth();
@@ -30,7 +30,7 @@ export default function AppSidebar() {
       ?.split(" ")
       .filter(Boolean)
       .map(
-        (name) => name[0]
+        (name: string) => name[0]
       )
       .join("")
       .slice(0, 2)

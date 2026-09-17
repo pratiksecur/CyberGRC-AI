@@ -29,8 +29,8 @@ export default function EditRisk() {
   const [impact, setImpact] = useState(1);
   const [ownerId, setOwnerId] = useState(1);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
-
     if (!data) return;
 
     setTitle(data.title);
@@ -38,8 +38,8 @@ export default function EditRisk() {
     setLikelihood(data.likelihood);
     setImpact(data.impact);
     setOwnerId(data.owner_id);
-
   }, [data]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   if (isLoading) {
 

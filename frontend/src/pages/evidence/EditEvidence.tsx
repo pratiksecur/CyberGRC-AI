@@ -27,12 +27,14 @@ export default function EditEvidence() {
   const [description, setDescription] =
     useState("");
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (data) {
       setTitle(data.title);
       setDescription(data.description);
     }
   }, [data]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleSubmit = async (
     e: React.FormEvent

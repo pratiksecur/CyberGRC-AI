@@ -6,35 +6,33 @@ export default function RiskStatusBadge({
   status,
 }: Props) {
 
-  let bg = "";
-  let text = "";
+  const statusStyles: Record<
+    string,
+    { bg: string; text: string }
+  > = {
+    open: {
+      bg: "bg-blue-100",
+      text: "text-blue-700",
+    },
+    "in progress": {
+      bg: "bg-yellow-100",
+      text: "text-yellow-700",
+    },
+    mitigated: {
+      bg: "bg-green-100",
+      text: "text-green-700",
+    },
+    closed: {
+      bg: "bg-slate-200",
+      text: "text-slate-700",
+    },
+  };
 
-  switch (status.toLowerCase()) {
-
-    case "open":
-      bg = "bg-blue-100";
-      text = "text-blue-700";
-      break;
-
-    case "in progress":
-      bg = "bg-yellow-100";
-      text = "text-yellow-700";
-      break;
-
-    case "mitigated":
-      bg = "bg-green-100";
-      text = "text-green-700";
-      break;
-
-    case "closed":
-      bg = "bg-slate-200";
-      text = "text-slate-700";
-      break;
-
-    default:
-      bg = "bg-slate-100";
-      text = "text-slate-700";
-  }
+  const { bg, text } =
+    statusStyles[status.toLowerCase()] ?? {
+      bg: "bg-slate-100",
+      text: "text-slate-700",
+    };
 
   return (
     <span

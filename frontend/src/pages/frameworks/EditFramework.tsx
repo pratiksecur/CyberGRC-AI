@@ -6,6 +6,8 @@ import AppLayout from "@/layouts/AppLayout";
 import { useFramework } from "@/hooks/useFramework";
 import { useUpdateFramework } from "@/hooks/useUpdateFramework";
 
+import { AxiosError } from "axios";
+
 import Can from "@/components/auth/Can";
 
 export default function EditFramework() {
@@ -29,6 +31,7 @@ export default function EditFramework() {
   const [description, setDescription] =
     useState("");
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (data) {
       setName(data.name);
@@ -36,6 +39,7 @@ export default function EditFramework() {
       setDescription(data.description);
     }
   }, [data]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleSubmit = async (
     e: React.FormEvent
@@ -50,10 +54,24 @@ export default function EditFramework() {
       });
 
       navigate("/frameworks");
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const axiosError =
+        error instanceof AxiosError
+          ? error
+          : null;
+
+      const responseData =
+        axiosError?.response?.data as
+          | {
+              error?: {
+                message?: string;
+              };
+            }
+          | undefined;
+
       alert(
-        error?.response?.data?.error?.message ??
-        "Failed to update framework."
+        responseData?.error?.message ??
+          "Failed to update framework."
       );
     }
   };

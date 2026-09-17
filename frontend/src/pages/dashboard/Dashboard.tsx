@@ -10,7 +10,7 @@ import CriticalRemediation from "@/components/dashboard/CriticalRemediation";
 
 import { useDashboard } from "@/hooks/useDashboard";
 import { useExecutiveSummary } from "@/hooks/useExecutiveSummary";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/useAuth";
 
 import {
   ShieldAlert,

@@ -443,7 +443,6 @@ def test_risk_creation_owner_scope(
             "description": "Authorization scope test.",
             "likelihood": 2,
             "impact": 3,
-            "status": "Open",
             "owner_id": users[owner_key].id,
         },
     )

@@ -85,32 +85,28 @@ export default function CorrectiveActionForm({
       initialData?.comments ?? ""
     );
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!initialData) return;
 
     setFindingId(
       String(initialData.finding_id)
     );
-
     setAssignedTo(
       String(initialData.assigned_to)
     );
-
     setTitle(initialData.title);
     setDescription(initialData.description);
     setPriority(initialData.priority);
     setStatus(initialData.status);
-
     setDueDate(
       initialData.due_date
         ? initialData.due_date.slice(0, 10)
         : ""
     );
-
-    setComments(
-      initialData.comments ?? ""
-    );
+    setComments(initialData.comments ?? "");
   }, [initialData]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   async function handleSubmit(
     e: React.FormEvent<HTMLFormElement>

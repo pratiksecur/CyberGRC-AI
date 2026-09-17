@@ -1,4 +1,6 @@
 import {
+  Activity,
+  Brain,
   LayoutDashboard,
   ShieldAlert,
   ShieldCheck,
@@ -17,9 +19,11 @@ import type {
   PermissionResource,
 } from "@/auth/permissions";
 
+
 export interface NavigationItem {
   label: string;
   path: string;
+
   icon: React.ComponentType<{
     size?: number;
     className?: string;
@@ -29,7 +33,9 @@ export interface NavigationItem {
   action?: PermissionAction;
 }
 
+
 export const navigation: NavigationItem[] = [
+
   {
     label: "Command Center",
     path: "/dashboard",
@@ -89,6 +95,22 @@ export const navigation: NavigationItem[] = [
     path: "/corrective-actions",
     icon: ListChecks,
     resource: "corrective_actions",
+    action: "view",
+  },
+
+  {
+    label: "GRC Intelligence",
+    path: "/intelligence",
+    icon: Brain,
+    resource: "risks",
+    action: "view",
+  },
+
+  {
+    label: "Continuous Monitoring",
+    path: "/monitoring",
+    icon: Activity,
+    resource: "risks",
     action: "view",
   },
 

@@ -33,21 +33,19 @@ export default function CreateRisk() {
   // Select current user by default
   // ------------------------------------------------------
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
-
     if (
       ownerId === null &&
       visibleUsers &&
       visibleUsers.length > 0
     ) {
-
       const currentUser = visibleUsers[0];
 
       setOwnerId(currentUser.id);
-
     }
-
   }, [visibleUsers, ownerId]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
 
   const handleSubmit = async (

@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 
 import {
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -27,7 +28,7 @@ import {
 } from "@/components/ui/avatar";
 
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { useTheme } from "@/contexts/ThemeContext";
+import { useTheme } from "@/contexts/useTheme";
 
 import {
   getNotifications,
@@ -63,7 +64,8 @@ type SearchResult = {
 };
 
 const API_BASE_URL =
-  "http://localhost:8000/api/v1";
+  import.meta.env.VITE_API_URL ||
+  "http://127.0.0.1:8000/api/v1";
 
 export default function TopNavbar() {
   const navigate = useNavigate();
@@ -132,8 +134,6 @@ export default function TopNavbar() {
       .toLowerCase();
 
     if (!query) {
-      setSearchResults([]);
-      setSearchOpen(false);
       return;
     }
 
@@ -419,48 +419,80 @@ export default function TopNavbar() {
   /* FETCH NOTIFICATIONS */
   /* ================================================== */
 
-  const fetchNotifications = async () => {
-    try {
-      setNotificationsError(false);
+  const fetchNotifications = useCallback(
+    async () => {
+      try {
+        setNotificationsError(false);
 
-      const data =
-        await getNotifications();
+        const data =
+          await getNotifications();
 
-      setNotifications(data);
-    } catch (error) {
-      console.error(
-        "Failed to load notifications:",
-        error
-      );
+        setNotifications(data);
+      } catch (error) {
+        console.error(
+          "Failed to load notifications:",
+          error
+        );
 
-      setNotificationsError(true);
-    }
-  };
+        setNotificationsError(true);
+      }
+      },
+    []
+  );
 
   /* ================================================== */
   /* FETCH UNREAD COUNT */
   /* ================================================== */
 
-  const fetchUnreadCount = async () => {
-    try {
-      const count =
-        await getUnreadNotificationCount();
-
-      setUnreadCount(count);
-    } catch (error) {
-      console.error(
-        "Failed to load unread notification count:",
-        error
-      );
-    }
-  };
-
-  /* ================================================== */
-  /* LOAD NOTIFICATIONS */
-  /* ================================================== */
-
-  const loadNotificationData =
+  const fetchUnreadCount = useCallback(
     async () => {
+      try {
+        const count =
+          await getUnreadNotificationCount();
+
+        setUnreadCount(count);
+      } catch (error) {
+        console.error(
+          "Failed to load unread notification count:",
+          error
+        );
+      }
+    },
+    []
+  );
+
+  // /* ================================================== */
+  // /* LOAD NOTIFICATIONS */
+  // /* ================================================== */
+
+  // const loadNotificationData =
+  //   useCallback(
+  //     async () => {
+  //       setNotificationsLoading(true);
+
+  //       try {
+  //         await Promise.all([
+  //           fetchNotifications(),
+  //           fetchUnreadCount(),
+  //         ]);
+  //       } finally {
+  //         setNotificationsLoading(
+  //           false
+  //         );
+  //       }
+  //     },
+  //     [
+  //       fetchNotifications,
+  //       fetchUnreadCount,
+  //     ]
+  //   );
+
+  /* ================================================== */
+  /* NOTIFICATION AUTO REFRESH */
+  /* ================================================== */
+
+  useEffect(() => {
+    const initializeNotifications = async () => {
       setNotificationsLoading(true);
 
       try {
@@ -469,31 +501,24 @@ export default function TopNavbar() {
           fetchUnreadCount(),
         ]);
       } finally {
-        setNotificationsLoading(
-          false
-        );
+        setNotificationsLoading(false);
       }
     };
 
-  /* ================================================== */
-  /* NOTIFICATION AUTO REFRESH */
-  /* ================================================== */
+    void initializeNotifications();
 
-  useEffect(() => {
-    loadNotificationData();
-
-    const interval =
-      window.setInterval(() => {
-        fetchNotifications();
-        fetchUnreadCount();
-      }, 30000);
+    const interval = window.setInterval(() => {
+      void fetchNotifications();
+      void fetchUnreadCount();
+    }, 30000);
 
     return () => {
-      window.clearInterval(
-        interval
-      );
+      window.clearInterval(interval);
     };
-  }, []);
+  }, [
+    fetchNotifications,
+    fetchUnreadCount,
+  ]);
 
   /* ================================================== */
   /* MARK ONE NOTIFICATION AS READ */

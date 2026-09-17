@@ -47,6 +47,9 @@ import CreateCorrectiveAction from "@/pages/corrective-actions/CreateCorrectiveA
 import ViewCorrectiveAction from "@/pages/corrective-actions/ViewCorrectiveAction";
 import EditCorrectiveAction from "@/pages/corrective-actions/EditCorrectiveAction";
 
+import GRCIntelligence from "@/pages/intelligence/GRCIntelligence";
+import Monitoring from "@/pages/monitoring/Monitoring";
+
 import Reports from "@/pages/reports/Reports";
 import RiskReport from "@/pages/reports/RiskReport";
 import AuditReport from "@/pages/reports/AuditReport";
@@ -519,6 +522,39 @@ export default function AppRouter() {
               action="update"
             >
               <EditCorrectiveAction />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* ================================================== */}
+        {/* GRC INTELLIGENCE */}
+        {/* ================================================== */}
+
+        <Route
+          path="/intelligence"
+          element={
+            <ProtectedRoute
+              resource="risks"
+              action="view"
+            >
+              <GRCIntelligence />
+            </ProtectedRoute>
+          }
+        />
+
+
+        {/* ================================================== */}
+        {/* CONTINUOUS MONITORING */}
+        {/* ================================================== */}
+
+        <Route
+          path="/monitoring"
+          element={
+            <ProtectedRoute
+              resource="risks"
+              action="view"
+            >
+              <Monitoring />
             </ProtectedRoute>
           }
         />

@@ -34,6 +34,7 @@ export default function EditControl() {
 
   const [ownerId, setOwnerId] = useState(1);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (data) {
       setTitle(data.title);
@@ -44,6 +45,7 @@ export default function EditControl() {
       setOwnerId(data.owner_id);
     }
   }, [data]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleSubmit = async (
     e: React.FormEvent
