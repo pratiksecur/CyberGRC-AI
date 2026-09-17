@@ -6,6 +6,11 @@ import {
   FileText,
 } from "lucide-react";
 
+import {
+  downloadEvidence,
+  openEvidence,
+} from "@/api/evidence";
+
 interface Evidence {
   id: number;
   title: string;
@@ -28,7 +33,48 @@ export default function EvidenceTable({
   onEdit,
   onDelete,
 }: Props) {
-  const API_BASE_URL = "http://127.0.0.1:8000";
+
+  const handleView = async (
+    id: number
+  ) => {
+    try {
+      await openEvidence(id);
+    } catch {
+      // The API/client layer handles authentication errors.
+    }
+  };
+
+
+  const handleDownload = async (
+    item: Evidence
+  ) => {
+    try {
+      const blob =
+        await downloadEvidence(item.id);
+
+      const objectUrl =
+        URL.createObjectURL(blob);
+
+      const link =
+        document.createElement("a");
+
+      link.href = objectUrl;
+      link.download = item.file_name;
+
+      document.body.appendChild(link);
+
+      link.click();
+
+      document.body.removeChild(link);
+
+      URL.revokeObjectURL(objectUrl);
+
+    } catch {
+      // Keep download failures inside the API
+      // error handling flow.
+    }
+  };
+
 
   return (
     <div className="overflow-hidden rounded-2xl border bg-white">
@@ -153,14 +199,9 @@ export default function EvidenceTable({
 
                     <div className="flex justify-center gap-3">
 
-                      {/* View */}
-
                       <button
                         onClick={() =>
-                          window.open(
-                            `${API_BASE_URL}/${item.file_path}`,
-                            "_blank"
-                          )
+                          handleView(item.id)
                         }
                         className="text-slate-500 hover:text-blue-600"
                         title="View"
@@ -168,35 +209,17 @@ export default function EvidenceTable({
                         <Eye size={18} />
                       </button>
 
-                      {/* Download */}
 
                       <button
-                        onClick={() => {
-                          const link =
-                            document.createElement("a");
-
-                          link.href = `${API_BASE_URL}/${item.file_path}`;
-
-                          link.download =
-                            item.file_name;
-
-                          document.body.appendChild(
-                            link
-                          );
-
-                          link.click();
-
-                          document.body.removeChild(
-                            link
-                          );
-                        }}
+                        onClick={() =>
+                          handleDownload(item)
+                        }
                         className="text-slate-500 hover:text-green-600"
                         title="Download"
                       >
                         <Download size={18} />
                       </button>
 
-                      {/* Edit */}
 
                       <button
                         onClick={() =>
@@ -208,7 +231,6 @@ export default function EvidenceTable({
                         <Pencil size={18} />
                       </button>
 
-                      {/* Delete */}
 
                       <button
                         onClick={() =>

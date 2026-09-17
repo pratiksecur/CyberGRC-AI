@@ -4,7 +4,14 @@ import AppLayout from "@/layouts/AppLayout";
 
 import { useEvidenceItem } from "@/hooks/useEvidenceItem";
 
+import {
+  downloadEvidence,
+  openEvidence,
+} from "@/api/evidence";
+
+
 export default function ViewEvidence() {
+
   const { id } = useParams();
 
   const evidenceId = Number(id);
@@ -17,6 +24,48 @@ export default function ViewEvidence() {
     error,
   } = useEvidenceItem(evidenceId);
 
+
+  const handleView = async () => {
+    try {
+      await openEvidence(evidenceId);
+    } catch {
+      // API authentication/error handling remains
+      // centralized.
+    }
+  };
+
+
+  const handleDownload = async () => {
+    try {
+
+      const blob =
+        await downloadEvidence(
+          evidenceId
+        );
+
+      const objectUrl =
+        URL.createObjectURL(blob);
+
+      const link =
+        document.createElement("a");
+
+      link.href = objectUrl;
+      link.download = data?.file_name || "evidence";
+
+      document.body.appendChild(link);
+
+      link.click();
+
+      document.body.removeChild(link);
+
+      URL.revokeObjectURL(objectUrl);
+
+    } catch {
+      // Keep failure handling inside the API flow.
+    }
+  };
+
+
   if (isLoading) {
     return (
       <AppLayout>
@@ -27,6 +76,7 @@ export default function ViewEvidence() {
     );
   }
 
+
   if (error || !data) {
     return (
       <AppLayout>
@@ -36,6 +86,7 @@ export default function ViewEvidence() {
       </AppLayout>
     );
   }
+
 
   return (
     <AppLayout>
@@ -56,6 +107,7 @@ export default function ViewEvidence() {
 
           </div>
 
+
           <div className="flex gap-3">
 
             <button
@@ -69,6 +121,7 @@ export default function ViewEvidence() {
               Edit
             </button>
 
+
             <button
               onClick={() =>
                 navigate("/evidence")
@@ -81,6 +134,7 @@ export default function ViewEvidence() {
           </div>
 
         </div>
+
 
         <div className="space-y-6 rounded-2xl border bg-white p-8">
 
@@ -96,6 +150,7 @@ export default function ViewEvidence() {
 
           </div>
 
+
           <div>
 
             <h2 className="mb-2 text-sm font-semibold uppercase text-slate-500">
@@ -107,6 +162,7 @@ export default function ViewEvidence() {
             </p>
 
           </div>
+
 
           <div className="grid grid-cols-2 gap-6">
 
@@ -122,6 +178,7 @@ export default function ViewEvidence() {
 
             </div>
 
+
             <div>
 
               <h2 className="mb-2 text-sm font-semibold uppercase text-slate-500">
@@ -135,6 +192,7 @@ export default function ViewEvidence() {
             </div>
 
           </div>
+
 
           <div className="grid grid-cols-2 gap-6">
 
@@ -152,6 +210,7 @@ export default function ViewEvidence() {
 
             </div>
 
+
             <div>
 
               <h2 className="mb-2 text-sm font-semibold uppercase text-slate-500">
@@ -166,20 +225,31 @@ export default function ViewEvidence() {
 
           </div>
 
+
           <div>
 
-            <h2 className="mb-2 text-sm font-semibold uppercase text-slate-500">
-              Download File
+            <h2 className="mb-3 text-sm font-semibold uppercase text-slate-500">
+              Evidence File
             </h2>
 
-            <a
-              href={`http://127.0.0.1:8000/${data.file_path}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex rounded-lg bg-blue-600 px-5 py-3 text-white hover:bg-blue-700"
-            >
-              Open / Download Evidence
-            </a>
+            <div className="flex gap-3">
+
+              <button
+                onClick={handleView}
+                className="rounded-lg bg-blue-600 px-5 py-3 text-white hover:bg-blue-700"
+              >
+                Open Evidence
+              </button>
+
+
+              <button
+                onClick={handleDownload}
+                className="rounded-lg border px-5 py-3 hover:bg-slate-100"
+              >
+                Download Evidence
+              </button>
+
+            </div>
 
           </div>
 
