@@ -1,10 +1,14 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class RiskCreate(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid"
+    )
+
     title: str = Field(
         ...,
         min_length=5,
@@ -32,6 +36,10 @@ class RiskCreate(BaseModel):
 
 
 class RiskUpdate(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid"
+    )
+
     title: Optional[str] = Field(
         None,
         min_length=5,
@@ -63,6 +71,10 @@ class RiskUpdate(BaseModel):
 
 
 class RiskResponse(BaseModel):
+    model_config = ConfigDict(
+        from_attributes=True
+    )
+
     id: int
 
     title: str
@@ -84,7 +96,3 @@ class RiskResponse(BaseModel):
     created_at: datetime
 
     updated_at: datetime
-
-    model_config = {
-        "from_attributes": True
-    }
