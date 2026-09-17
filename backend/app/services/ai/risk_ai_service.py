@@ -1,9 +1,15 @@
 import json
 
 from fastapi import HTTPException
-from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
+from app.ai.governance import (
+    AIGovernanceError,
+    record_ai_event,
+    secure_prompt,
+    validate_ai_model,
+    validate_raw_response,
+)
 from app.ai.provider_factory import get_ai_provider
 from app.ai.prompts import RISK_ANALYSIS_PROMPT
 from app.auth.ai_access import get_authorized_risk
@@ -17,21 +23,21 @@ def analyze_risk(
     current_user: User,
 ) -> RiskAnalysisResponse:
     """
-    Analyze a risk using AI only after applying the same
-    resource-level visibility rules as the GRC API.
+    Analyze a risk through the governed AI boundary.
 
     Security properties:
-    - Authorization occurs before AI provider initialization.
-    - Unauthorized resources never reach the AI provider.
-    - Provider initialization failures do not expose internal
-      exception details.
-    - Provider execution failures do not expose internal
-      exception details.
-    - AI output is validated before being returned.
+    - Resource authorization occurs before provider initialization.
+    - Unauthorized risks never reach the AI provider.
+    - User-controlled GRC text is secured before model invocation.
+    - Provider failures are translated to generic API errors.
+    - Raw provider responses are size-checked before parsing.
+    - Structured AI output is strictly schema validated.
+    - Invalid AI output receives one controlled retry only.
+    - AI governance events never contain raw prompts/responses.
     """
 
     # ==========================================================
-    # AUTHORIZATION
+    # RESOURCE AUTHORIZATION
     # ==========================================================
 
     risk = get_authorized_risk(
@@ -47,60 +53,98 @@ def analyze_risk(
         )
 
     # ==========================================================
-    # AI PROVIDER INITIALIZATION
+    # BUILD PROMPT
+    # ==========================================================
+
+    raw_prompt = RISK_ANALYSIS_PROMPT.format(
+        title=risk.title,
+        description=risk.description,
+    )
+
+    try:
+        prompt = secure_prompt(raw_prompt)
+
+    except AIGovernanceError:
+        record_ai_event(
+            "risk_analysis",
+            model="unknown",
+            outcome="rejected",
+            validation="prompt",
+        )
+
+        raise HTTPException(
+            status_code=503,
+            detail="AI request could not be processed.",
+        )
+
+    # ==========================================================
+    # PROVIDER INITIALIZATION
     # ==========================================================
 
     try:
         provider = get_ai_provider()
 
     except Exception:
-        raise HTTPException(
-            status_code=503,
-            detail=(
-                "AI service is temporarily unavailable."
-            ),
+        record_ai_event(
+            "risk_analysis",
+            model="unknown",
+            outcome="failure",
+            validation="provider_initialization",
         )
 
-    # ==========================================================
-    # PROMPT
-    # ==========================================================
+        raise HTTPException(
+            status_code=503,
+            detail="AI service is temporarily unavailable.",
+        )
 
-    prompt = RISK_ANALYSIS_PROMPT.format(
-        title=risk.title,
-        description=risk.description,
+    model_name = getattr(
+        provider,
+        "model",
+        "unknown",
     )
 
     # ==========================================================
-    # GENERATE + VALIDATE
+    # AI GENERATION + GOVERNED VALIDATION
     # ==========================================================
 
     for attempt in range(2):
 
         try:
-            response = provider.generate(
+            raw_response = provider.generate(
                 prompt
             )
 
+            response = validate_raw_response(
+                raw_response
+            )
+
             response_json = json.loads(
-                response
+                response.strip()
             )
 
-            return RiskAnalysisResponse(
-                **response_json
+            result = validate_ai_model(
+                response_json,
+                RiskAnalysisResponse,
             )
 
-        except (
-            json.JSONDecodeError,
-            ValidationError,
-        ):
+            record_ai_event(
+                "risk_analysis",
+                model=model_name,
+                outcome="success",
+                validation="schema",
+            )
+
+            return result
+
+        except AIGovernanceError:
 
             if attempt == 0:
-
                 prompt += """
 
 IMPORTANT:
 
-Your previous response was invalid.
+Your previous response failed the required
+security validation.
 
 Return ONLY valid JSON.
 
@@ -108,30 +152,71 @@ Do NOT include markdown.
 
 Do NOT include explanations.
 
-Return only the JSON object.
-"""
+Do NOT include additional fields.
 
+Return only the required JSON object.
+"""
                 continue
+
+            record_ai_event(
+                "risk_analysis",
+                model=model_name,
+                outcome="rejected",
+                validation="schema",
+            )
 
             raise HTTPException(
                 status_code=502,
-                detail=(
-                    "AI returned an invalid response "
-                    "after retry."
-                ),
+                detail="AI returned an invalid response after retry.",
+            )
+
+        except json.JSONDecodeError:
+
+            if attempt == 0:
+                prompt += """
+
+IMPORTANT:
+
+Your previous response was not valid JSON.
+
+Return ONLY valid JSON.
+
+Do NOT include markdown.
+
+Do NOT include explanations.
+
+Do NOT include additional fields.
+
+Return only the required JSON object.
+"""
+                continue
+
+            record_ai_event(
+                "risk_analysis",
+                model=model_name,
+                outcome="rejected",
+                validation="json",
+            )
+
+            raise HTTPException(
+                status_code=502,
+                detail="AI returned an invalid response after retry.",
             )
 
         except Exception:
+            record_ai_event(
+                "risk_analysis",
+                model=model_name,
+                outcome="failure",
+                validation="provider",
+            )
+
             raise HTTPException(
                 status_code=503,
-                detail=(
-                    "AI service is temporarily unavailable."
-                ),
+                detail="AI service is temporarily unavailable.",
             )
 
     raise HTTPException(
         status_code=503,
-        detail=(
-            "AI service is temporarily unavailable."
-        ),
+        detail="AI service is temporarily unavailable.",
     )

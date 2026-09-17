@@ -1,9 +1,15 @@
 import json
 
 from fastapi import HTTPException
-from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
+from app.ai.governance import (
+    AIGovernanceError,
+    record_ai_event,
+    secure_prompt,
+    validate_ai_model,
+    validate_raw_response,
+)
 from app.ai.provider_factory import get_ai_provider
 from app.ai.prompts import CONTROL_RECOMMENDATION_PROMPT
 
@@ -44,15 +50,10 @@ def recommend_controls(
     )
 
     if risk is None:
-
         raise HTTPException(
             status_code=404,
             detail="Risk not found.",
         )
-
-    # ------------------------------------------------------
-    # Authorized control library
-    # ------------------------------------------------------
 
     visible_controls = get_authorized_controls(
         db,
@@ -64,10 +65,6 @@ def recommend_controls(
         for control in visible_controls
     }
 
-    # ------------------------------------------------------
-    # Existing controls assigned to the risk
-    # ------------------------------------------------------
-
     existing_controls = [
         control
         for control in get_controls_for_risk(
@@ -78,44 +75,26 @@ def recommend_controls(
     ]
 
     if existing_controls:
-
         existing_controls_text = "\n".join(
-            [
-                f"- {control.title}: {control.description}"
-                for control in existing_controls
-            ]
+            f"- {control.title}: {control.description}"
+            for control in existing_controls
         )
-
     else:
-
         existing_controls_text = (
             "No authorized controls have "
             "been implemented yet."
         )
 
-    # ------------------------------------------------------
-    # Available authorized controls
-    # ------------------------------------------------------
-
     if visible_controls:
-
         available_controls_text = "\n".join(
-            [
-                f"- {control.title}: {control.description}"
-                for control in visible_controls
-            ]
+            f"- {control.title}: {control.description}"
+            for control in visible_controls
         )
-
     else:
-
         available_controls_text = (
             "No authorized controls exist "
             "in the CyberGRC platform."
         )
-
-    # ------------------------------------------------------
-    # Build prompt
-    # ------------------------------------------------------
 
     prompt = CONTROL_RECOMMENDATION_PROMPT.format(
         title=risk.title,
@@ -124,35 +103,65 @@ def recommend_controls(
         available_controls=available_controls_text,
     )
 
-    provider = get_ai_provider()
+    try:
+        prompt = secure_prompt(prompt)
 
-    # ------------------------------------------------------
-    # Generate response
-    # ------------------------------------------------------
+    except AIGovernanceError:
+        raise HTTPException(
+            status_code=503,
+            detail="AI request could not be processed.",
+        )
+
+    try:
+        provider = get_ai_provider()
+
+    except Exception:
+        record_ai_event(
+            "control_recommendations",
+            model="unknown",
+            outcome="failure",
+            validation="provider_initialization",
+        )
+
+        raise HTTPException(
+            status_code=503,
+            detail="AI service is temporarily unavailable.",
+        )
+
+    model_name = getattr(
+        provider,
+        "model",
+        "unknown",
+    )
 
     for attempt in range(2):
 
-        response = provider.generate(
-            prompt
-        )
-
         try:
-
-            response_json = json.loads(
-                response
+            response = validate_raw_response(
+                provider.generate(prompt)
             )
 
-            # --------------------------------------------------
-            # Existing control recommendations
-            # --------------------------------------------------
+            response_json = json.loads(
+                response.strip()
+            )
+
+            if not isinstance(response_json, dict):
+                raise AIGovernanceError(
+                    "AI output must be a JSON object."
+                )
 
             for recommendation in response_json.get(
                 "recommended_existing_controls",
                 [],
             ):
 
+                control_name = recommendation.get(
+                    "control_name",
+                    "",
+                )
+
                 matched_control, confidence = match_control(
-                    recommendation["control_name"],
+                    control_name,
                     visible_controls,
                 )
 
@@ -160,40 +169,31 @@ def recommend_controls(
                     matched_control is not None
                     and confidence >= 0.70
                 ):
-
                     recommendation["control_id"] = (
                         matched_control.id
                     )
-
                     recommendation["already_exists"] = True
-
-                    recommendation["confidence"] = round(
-                        confidence,
-                        2,
-                    )
-
                 else:
-
                     recommendation["control_id"] = None
-
                     recommendation["already_exists"] = False
 
-                    recommendation["confidence"] = round(
-                        confidence,
-                        2,
-                    )
-
-            # --------------------------------------------------
-            # New control recommendations
-            # --------------------------------------------------
+                recommendation["confidence"] = round(
+                    confidence,
+                    2,
+                )
 
             for recommendation in response_json.get(
                 "recommended_new_controls",
                 [],
             ):
 
+                control_name = recommendation.get(
+                    "control_name",
+                    "",
+                )
+
                 matched_control, confidence = match_control(
-                    recommendation["control_name"],
+                    control_name,
                     visible_controls,
                 )
 
@@ -201,40 +201,36 @@ def recommend_controls(
                     matched_control is not None
                     and confidence >= 0.90
                 ):
-
                     recommendation["control_id"] = (
                         matched_control.id
                     )
-
                     recommendation["already_exists"] = True
-
-                    recommendation["confidence"] = round(
-                        confidence,
-                        2,
-                    )
-
                 else:
-
                     recommendation["control_id"] = None
-
                     recommendation["already_exists"] = False
 
-                    recommendation["confidence"] = round(
-                        confidence,
-                        2,
-                    )
+                recommendation["confidence"] = round(
+                    confidence,
+                    2,
+                )
 
-            return ControlRecommendationResponse(
-                **response_json
+            result = validate_ai_model(
+                response_json,
+                ControlRecommendationResponse,
             )
 
-        except (
-            json.JSONDecodeError,
-            ValidationError,
-        ):
+            record_ai_event(
+                "control_recommendations",
+                model=model_name,
+                outcome="success",
+                validation="schema",
+            )
+
+            return result
+
+        except AIGovernanceError:
 
             if attempt == 0:
-
                 prompt += """
 
 IMPORTANT
@@ -249,22 +245,66 @@ Do not include markdown.
 
 Do not include explanations.
 """
-
                 continue
 
-            raise HTTPException(
-                status_code=500,
-                detail=(
-                    "AI returned invalid JSON "
-                    "after retry."
-                ),
+            record_ai_event(
+                "control_recommendations",
+                model=model_name,
+                outcome="rejected",
+                validation="schema",
             )
 
-        except Exception as e:
+            raise HTTPException(
+                status_code=502,
+                detail="AI returned an invalid response after retry.",
+            )
+
+        except json.JSONDecodeError:
+
+            if attempt == 0:
+                prompt += """
+
+IMPORTANT
+
+Your previous response was invalid.
+
+Return ONLY valid JSON.
+
+Return ONLY the required schema.
+
+Do not include markdown.
+
+Do not include explanations.
+"""
+                continue
+
+            record_ai_event(
+                "control_recommendations",
+                model=model_name,
+                outcome="rejected",
+                validation="json",
+            )
 
             raise HTTPException(
-                status_code=500,
-                detail=(
-                    f"AI recommendation failed: {str(e)}"
-                ),
+                status_code=502,
+                detail="AI returned an invalid response after retry.",
             )
+
+        except Exception:
+
+            record_ai_event(
+                "control_recommendations",
+                model=model_name,
+                outcome="failure",
+                validation="provider",
+            )
+
+            raise HTTPException(
+                status_code=503,
+                detail="AI service is temporarily unavailable.",
+            )
+
+    raise HTTPException(
+        status_code=503,
+        detail="AI service is temporarily unavailable.",
+    )

@@ -1,9 +1,15 @@
 import json
 
 from fastapi import HTTPException
-from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
+from app.ai.governance import (
+    AIGovernanceError,
+    record_ai_event,
+    secure_prompt,
+    validate_ai_model,
+    validate_raw_response,
+)
 from app.ai.provider_factory import get_ai_provider
 from app.ai.prompts import EXECUTIVE_DASHBOARD_PROMPT
 
@@ -23,6 +29,29 @@ from app.schemas.ai import (
 )
 
 
+def _clean_json_response(response: str) -> str:
+    """
+    Remove optional Markdown JSON fences while preserving
+    the actual JSON payload.
+    """
+
+    cleaned = response.strip()
+
+    if cleaned.startswith("```json"):
+        cleaned = cleaned[7:].strip()
+
+        if cleaned.endswith("```"):
+            cleaned = cleaned[:-3].strip()
+
+    elif cleaned.startswith("```"):
+        cleaned = cleaned[3:].strip()
+
+        if cleaned.endswith("```"):
+            cleaned = cleaned[:-3].strip()
+
+    return cleaned
+
+
 def generate_executive_dashboard(
     db: Session,
     current_user: User,
@@ -33,8 +62,12 @@ def generate_executive_dashboard(
     Operational records are restricted to the current
     user's appropriate visibility scope.
 
-    Corrective actions require BOTH the assigned user
-    and parent audit to be within the user's scope.
+    Corrective actions require BOTH:
+    - assigned user within scope
+    - parent audit within scope
+
+    All numerical metrics are calculated by the application
+    and are supplied to the AI as factual context.
     """
 
     # ==================================================
@@ -125,14 +158,6 @@ def generate_executive_dashboard(
     # CORRECTIVE ACTIONS
     # ==================================================
 
-    # A corrective action is visible only when:
-    #
-    #   assigned_to ∈ action scope
-    #   AND
-    #   parent audit auditor ∈ action scope
-    #
-    # This mirrors the API authorization boundary.
-
     corrective_actions = (
         db.query(CorrectiveAction)
         .join(
@@ -180,10 +205,10 @@ def generate_executive_dashboard(
         1
         for action in corrective_actions
         if str(action.status).lower()
-        not in (
+        not in {
             "completed",
             "closed",
-        )
+        }
     )
 
     # ==================================================
@@ -201,20 +226,50 @@ def generate_executive_dashboard(
     )
 
     # ==================================================
+    # SECURE PROMPT
+    # ==================================================
+
+    try:
+        prompt = secure_prompt(prompt)
+
+    except AIGovernanceError:
+        record_ai_event(
+            "executive_dashboard",
+            model="unknown",
+            outcome="rejected",
+            validation="prompt",
+        )
+
+        raise HTTPException(
+            status_code=503,
+            detail="AI request could not be processed.",
+        )
+
+    # ==================================================
     # AI PROVIDER
     # ==================================================
 
     try:
         provider = get_ai_provider()
 
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=(
-                "AI provider initialization failed: "
-                f"{str(e)}"
-            ),
+    except Exception:
+        record_ai_event(
+            "executive_dashboard",
+            model="unknown",
+            outcome="failure",
+            validation="provider_initialization",
         )
+
+        raise HTTPException(
+            status_code=503,
+            detail="AI service is temporarily unavailable.",
+        )
+
+    model_name = getattr(
+        provider,
+        "model",
+        "unknown",
+    )
 
     # ==================================================
     # GENERATE RESPONSE
@@ -223,66 +278,49 @@ def generate_executive_dashboard(
     for attempt in range(2):
 
         try:
-            response = provider.generate(
-                prompt
+
+            response = validate_raw_response(
+                provider.generate(prompt)
             )
 
-            cleaned_response = response.strip()
-
-            # --------------------------------------------------
-            # Remove JSON markdown fences
-            # --------------------------------------------------
-
-            if cleaned_response.startswith(
-                "```json"
-            ):
-                cleaned_response = (
-                    cleaned_response[7:]
-                    .strip()
-                )
-
-                if cleaned_response.endswith(
-                    "```"
-                ):
-                    cleaned_response = (
-                        cleaned_response[:-3]
-                        .strip()
-                    )
-
-            elif cleaned_response.startswith(
-                "```"
-            ):
-                cleaned_response = (
-                    cleaned_response[3:]
-                    .strip()
-                )
-
-                if cleaned_response.endswith(
-                    "```"
-                ):
-                    cleaned_response = (
-                        cleaned_response[:-3]
-                        .strip()
-                    )
+            cleaned_response = _clean_json_response(
+                response
+            )
 
             response_json = json.loads(
                 cleaned_response
             )
 
-            return ExecutiveDashboardResponse(
-                **response_json
+            if not isinstance(
+                response_json,
+                dict,
+            ):
+                raise AIGovernanceError(
+                    "AI output must be a JSON object."
+                )
+
+            result = validate_ai_model(
+                response_json,
+                ExecutiveDashboardResponse,
             )
 
-        except (
-            json.JSONDecodeError,
-            ValidationError,
-        ):
+            record_ai_event(
+                "executive_dashboard",
+                model=model_name,
+                outcome="success",
+                validation="schema",
+            )
+
+            return result
+
+        except AIGovernanceError:
 
             if attempt == 0:
-
                 prompt += """
 
 IMPORTANT
+
+Your previous response was invalid.
 
 Return ONLY valid JSON.
 
@@ -293,30 +331,67 @@ the JSON object.
 
 Return ONLY the required JSON object.
 """
-
                 continue
 
-            raise HTTPException(
-                status_code=500,
-                detail=(
-                    "AI returned invalid JSON "
-                    "after retry."
-                ),
+            record_ai_event(
+                "executive_dashboard",
+                model=model_name,
+                outcome="rejected",
+                validation="governance",
             )
 
-        except Exception as e:
+            raise HTTPException(
+                status_code=502,
+                detail="AI returned an invalid response after retry.",
+            )
+
+        except json.JSONDecodeError:
+
+            if attempt == 0:
+                prompt += """
+
+IMPORTANT
+
+Your previous response was invalid.
+
+Return ONLY valid JSON.
+
+Do not use markdown.
+
+Do not include explanations outside
+the JSON object.
+
+Return ONLY the required JSON object.
+"""
+                continue
+
+            record_ai_event(
+                "executive_dashboard",
+                model=model_name,
+                outcome="rejected",
+                validation="json",
+            )
 
             raise HTTPException(
-                status_code=500,
-                detail=(
-                    "AI executive summary failed: "
-                    f"{str(e)}"
-                ),
+                status_code=502,
+                detail="AI returned invalid JSON after retry.",
+            )
+
+        except Exception:
+
+            record_ai_event(
+                "executive_dashboard",
+                model=model_name,
+                outcome="failure",
+                validation="provider",
+            )
+
+            raise HTTPException(
+                status_code=503,
+                detail="AI service is temporarily unavailable.",
             )
 
     raise HTTPException(
-        status_code=500,
-        detail=(
-            "Unable to generate executive summary."
-        ),
+        status_code=503,
+        detail="Unable to generate executive summary.",
     )

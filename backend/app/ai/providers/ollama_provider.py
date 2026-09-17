@@ -1,8 +1,16 @@
+"""Ollama AI provider with security and governance controls."""
+
 import logging
 import os
 
 import httpx
 
+from app.ai.governance import (
+    AIGovernanceError,
+    record_ai_event,
+    secure_prompt,
+    validate_raw_response,
+)
 from app.ai.providers.base import AIProvider
 
 
@@ -10,66 +18,115 @@ logger = logging.getLogger(__name__)
 
 
 class OllamaProvider(AIProvider):
-    """
-    Ollama AI Provider.
-    Handles communication with the local Ollama server.
-    """
+    """Ollama provider protected by the AI governance boundary."""
 
-    BASE_URL = os.getenv(
-        "OLLAMA_BASE_URL",
-        "http://localhost:11434/api/generate"
-    )
+    def __init__(self):
+        self.base_url = os.getenv(
+            "OLLAMA_BASE_URL",
+            "http://localhost:11434/api/generate",
+        )
 
-    MODEL = os.getenv(
-        "OLLAMA_MODEL",
-        "mistral"
-    )
+        self.model = os.getenv(
+            "OLLAMA_MODEL",
+            "mistral",
+        )
+
+        try:
+            self.timeout = float(
+                os.getenv(
+                    "OLLAMA_TIMEOUT",
+                    "120",
+                )
+            )
+        except ValueError:
+            self.timeout = 120.0
 
     def generate(
         self,
         prompt: str,
         temperature: float = 0.2,
     ) -> str:
-        """
-        Send a prompt to the Ollama API and return the generated response.
-        """
+        try:
+            secured_prompt = secure_prompt(prompt)
+
+        except AIGovernanceError:
+            record_ai_event(
+                "generate",
+                model=self.model,
+                outcome="rejected",
+                validation="prompt",
+            )
+            raise
 
         payload = {
-            "model": self.MODEL,
-            "prompt": prompt,
+            "model": self.model,
+            "prompt": secured_prompt,
             "stream": False,
             "options": {
-                "temperature": temperature
-            }
+                "temperature": temperature,
+            },
         }
 
         logger.info(
-            "Sending request to Ollama model '%s'",
-            self.MODEL
+            "AI request started provider=ollama model=%s",
+            self.model,
         )
 
         try:
             response = httpx.post(
-                self.BASE_URL,
+                self.base_url,
                 json=payload,
-                timeout=120,
+                timeout=self.timeout,
             )
 
             response.raise_for_status()
 
-            logger.info(
-                "Received successful response from Ollama."
+            body = response.json()
+
+            if not isinstance(body, dict):
+                raise AIGovernanceError(
+                    "AI provider returned an invalid response."
+                )
+
+            generated = validate_raw_response(
+                body.get("response")
             )
 
-            return response.json()["response"]
+            record_ai_event(
+                "generate",
+                model=self.model,
+                outcome="success",
+                validation="provider_response",
+            )
 
-        except httpx.HTTPError as e:
+            return generated
+
+        except AIGovernanceError:
+            record_ai_event(
+                "generate",
+                model=self.model,
+                outcome="rejected",
+                validation="provider_response",
+            )
+            raise
+
+        except (
+            httpx.HTTPError,
+            ValueError,
+            KeyError,
+            TypeError,
+        ):
+            record_ai_event(
+                "generate",
+                model=self.model,
+                outcome="failure",
+                validation="provider_response",
+            )
 
             logger.error(
-                "Failed to communicate with Ollama: %s",
-                e
+                "Ollama request failed without exposing provider details"
             )
 
             raise RuntimeError(
-                f"Failed to communicate with Ollama: {e}"
-            )
+                "AI provider request failed."
+            ) from None
