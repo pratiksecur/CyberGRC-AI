@@ -42,6 +42,9 @@ from app.api.v1.routes.notifications import (
 
 from app.exceptions.handlers import register_exception_handlers
 
+from app.api.v1.routes.intelligence import (
+    router as intelligence_router,
+)
 
 # ==========================================================
 # APPLICATION LIFESPAN
@@ -221,6 +224,10 @@ app.include_router(
     prefix="/api/v1",
 )
 
+app.include_router(
+    intelligence_router,
+    prefix="/api/v1",
+)
 
 # ==========================================================
 # ROOT
