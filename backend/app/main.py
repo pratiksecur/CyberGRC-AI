@@ -1,64 +1,104 @@
 import asyncio
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import (
+    FastAPI,
+    Request,
+)
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
+from fastapi.responses import JSONResponse
 
-# Import the notification event listeners so SQLAlchemy
-# registers the event-driven notification system when the
-# application starts.
 import app.services.notification_events
 
+from app.api.v1.routes.activity import (
+    router as activity_router,
+)
+from app.api.v1.routes.ai import (
+    router as ai_router,
+)
+from app.api.v1.routes.audit_findings import (
+    router as audit_findings_router,
+)
+from app.api.v1.routes.audits import (
+    router as audits_router,
+)
+from app.api.v1.routes.auth import (
+    router as auth_router,
+)
+from app.api.v1.routes.control_framework_controls import (
+    router as control_framework_controls_router,
+)
+from app.api.v1.routes.controls import (
+    router as controls_router,
+)
+from app.api.v1.routes.corrective_action_report import (
+    router as corrective_action_report_router,
+)
+from app.api.v1.routes.corrective_actions import (
+    router as corrective_actions_router,
+)
+from app.api.v1.routes.dashboard import (
+    router as dashboard_router,
+)
+from app.api.v1.routes.evidence import (
+    router as evidence_router,
+)
+from app.api.v1.routes.framework_controls import (
+    router as framework_controls_router,
+)
+from app.api.v1.routes.frameworks import (
+    router as frameworks_router,
+)
+from app.api.v1.routes.health import (
+    router as health_router,
+)
+from app.api.v1.routes.intelligence import (
+    router as intelligence_router,
+)
+from app.api.v1.routes.monitoring import (
+    router as monitoring_router,
+)
+from app.api.v1.routes.notifications import (
+    router as notifications_router,
+)
+from app.api.v1.routes.reports import (
+    router as reports_router,
+)
+from app.api.v1.routes.risk_controls import (
+    router as risk_controls_router,
+)
+from app.api.v1.routes.risk_trend import (
+    router as risk_trend_router,
+)
+from app.api.v1.routes.risks import (
+    router as risks_router,
+)
+from app.api.v1.routes.users import (
+    router as users_router,
+)
+
+from app.core.config import (
+    CORS_ORIGINS,
+    MAX_REQUEST_BODY_BYTES,
+)
+from app.exceptions.handlers import (
+    register_exception_handlers,
+)
 from app.services.notification_scheduler import (
     notification_scheduler_loop,
 )
 
-from app.api.v1.routes.health import router as health_router
-from app.api.v1.routes.auth import router as auth_router
-from app.api.v1.routes.users import router as users_router
-from app.api.v1.routes.risks import router as risks_router
-from app.api.v1.routes.controls import router as controls_router
-from app.api.v1.routes.risk_controls import router as risk_controls_router
-from app.api.v1.routes.frameworks import router as frameworks_router
-from app.api.v1.routes.framework_controls import router as framework_controls_router
-from app.api.v1.routes.control_framework_controls import router as control_framework_controls_router
-from app.api.v1.routes.evidence import router as evidence_router
-from app.api.v1.routes.audits import router as audits_router
-from app.api.v1.routes.audit_findings import router as audit_findings_router
-from app.api.v1.routes.corrective_actions import router as corrective_actions_router
-from app.api.v1.routes.ai import router as ai_router
-from app.api.v1.routes.dashboard import router as dashboard_router
-from app.api.v1.routes.activity import router as activity_router
-from app.api.v1.routes.risk_trend import router as risk_trend_router
-from app.api.v1.routes.reports import router as reports_router
-from app.api.v1.routes.corrective_action_report import (
-    router as corrective_action_report_router,
-)
-
-from app.api.v1.routes.notifications import (
-    router as notifications_router,
-)
-
-from app.exceptions.handlers import register_exception_handlers
-
-from app.api.v1.routes.intelligence import (
-    router as intelligence_router,
-)
-
-from app.api.v1.routes.monitoring import (
-    router as monitoring_router,
-)
 
 # ==========================================================
 # APPLICATION LIFESPAN
 # ==========================================================
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
-    Start the notification scheduler when FastAPI starts
-    and stop it cleanly when FastAPI shuts down.
+    Start background services when the application starts
+    and stop them cleanly during shutdown.
     """
 
     scheduler_task = asyncio.create_task(
@@ -82,38 +122,151 @@ async def lifespan(app: FastAPI):
 # APPLICATION
 # ==========================================================
 
+
 app = FastAPI(
     title="CyberGRC AI",
-    description="AI-Powered Governance, Risk & Compliance Platform",
+    description=(
+        "AI-Powered Governance, Risk & "
+        "Compliance Platform"
+    ),
     version="1.0.0",
     lifespan=lifespan,
 )
 
 
 # ==========================================================
-# STATIC FILES
+# REQUEST SIZE LIMIT
 # ==========================================================
 
-app.mount(
-    "/uploads",
-    StaticFiles(directory="uploads"),
-    name="uploads",
-)
+
+@app.middleware("http")
+async def request_size_limit_middleware(
+    request: Request,
+    call_next,
+):
+    """
+    Reject requests whose declared Content-Length exceeds
+    the configured application-wide request limit.
+
+    Individual file uploads also enforce their own streaming
+    limit in the evidence route.
+    """
+
+    content_length = request.headers.get(
+        "content-length"
+    )
+
+    if content_length:
+
+        try:
+            content_length_int = int(
+                content_length
+            )
+
+        except ValueError:
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "detail": (
+                        "Invalid Content-Length."
+                    )
+                },
+            )
+
+        if (
+            content_length_int
+            > MAX_REQUEST_BODY_BYTES
+        ):
+            return JSONResponse(
+                status_code=413,
+                content={
+                    "detail": (
+                        "Request body exceeds "
+                        "the maximum allowed size."
+                    )
+                },
+            )
+
+    return await call_next(request)
+
+
+# ==========================================================
+# SECURITY HEADERS
+# ==========================================================
+
+
+@app.middleware("http")
+async def security_headers_middleware(
+    request: Request,
+    call_next,
+):
+    """
+    Apply baseline browser security headers to all
+    application responses.
+    """
+
+    response = await call_next(request)
+
+    response.headers[
+        "X-Content-Type-Options"
+    ] = "nosniff"
+
+    response.headers[
+        "X-Frame-Options"
+    ] = "DENY"
+
+    response.headers[
+        "Referrer-Policy"
+    ] = "no-referrer"
+
+    response.headers[
+        "Permissions-Policy"
+    ] = (
+        "camera=(), microphone=(), "
+        "geolocation=()"
+    )
+
+    response.headers[
+        "Content-Security-Policy"
+    ] = (
+        "default-src 'self'; "
+        "img-src 'self' data: blob:; "
+        "style-src 'self' 'unsafe-inline'; "
+        "script-src 'self'; "
+        "font-src 'self' data:; "
+        "connect-src 'self' "
+        "http://localhost:8000 "
+        "http://127.0.0.1:8000; "
+        "frame-ancestors 'none'; "
+        "base-uri 'self'; "
+        "form-action 'self';"
+    )
+
+    return response
 
 
 # ==========================================================
 # CORS
 # ==========================================================
 
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-    ],
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=[
+        "GET",
+        "POST",
+        "PUT",
+        "PATCH",
+        "DELETE",
+        "OPTIONS",
+    ],
+    allow_headers=[
+        "Authorization",
+        "Content-Type",
+        "Accept",
+    ],
 )
 
 
@@ -121,12 +274,14 @@ app.add_middleware(
 # EXCEPTION HANDLERS
 # ==========================================================
 
+
 register_exception_handlers(app)
 
 
 # ==========================================================
 # API ROUTES
 # ==========================================================
+
 
 app.include_router(
     health_router,
@@ -238,9 +393,11 @@ app.include_router(
     prefix="/api/v1",
 )
 
+
 # ==========================================================
 # ROOT
 # ==========================================================
+
 
 @app.get("/")
 def root():

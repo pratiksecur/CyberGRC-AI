@@ -68,3 +68,36 @@ export async function deleteEvidence(
 ) {
   await api.delete(`/evidence/${id}`);
 }
+
+
+export async function downloadEvidence(
+  id: number
+): Promise<Blob> {
+  const response = await api.get(
+    `/evidence/${id}/file`,
+    {
+      responseType: "blob",
+    }
+  );
+
+  return response.data;
+}
+
+
+export async function openEvidence(
+  id: number
+): Promise<void> {
+  const blob = await downloadEvidence(id);
+
+  const objectUrl = URL.createObjectURL(blob);
+
+  window.open(
+    objectUrl,
+    "_blank",
+    "noopener,noreferrer"
+  );
+
+  setTimeout(() => {
+    URL.revokeObjectURL(objectUrl);
+  }, 60_000);
+}
