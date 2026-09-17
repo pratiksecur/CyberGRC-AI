@@ -727,7 +727,8 @@ def test_ai_output_cannot_add_arbitrary_response_fields(
             "impact": "High",
             "risk_score": 20,
             "summary": (
-                "Valid security response."
+                "This is a valid security response used to verify "
+                "that arbitrary fields are rejected."
             ),
             "recommended_controls": [
                 "Access control",
@@ -752,16 +753,19 @@ def test_ai_output_cannot_add_arbitrary_response_fields(
 
     risk = resource_data["risks"]["analyst"]
 
-    result = analyze_risk(
-        db,
-        risk.id,
-        users["manager"],
-    )
+    with pytest.raises(HTTPException) as exc:
+        analyze_risk(
+            db,
+            risk.id,
+            users["manager"],
+        )
 
-    assert not hasattr(
-        result,
-        "secret_data",
-    )
+    # The AI response contains an unauthorized field.
+    # Strict schema validation must reject the response.
+    assert exc.value.status_code == 502
+
+    # The service retries once after invalid AI output.
+    assert provider.calls == 2
 
 
 def test_ai_malformed_output_never_becomes_successful_response(

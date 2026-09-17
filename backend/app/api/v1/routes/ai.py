@@ -133,6 +133,9 @@ def summarize_existing_audit(
     """
     Summarize an audit only when it is within
     the authenticated user's audit scope.
+
+    Authorization is also enforced inside the service
+    layer as defense-in-depth.
     """
 
     audit = get_authorized_audit(
@@ -150,6 +153,7 @@ def summarize_existing_audit(
     return summarize_audit(
         db=db,
         audit_id=audit_id,
+        current_user=current_user,
     )
 
 
