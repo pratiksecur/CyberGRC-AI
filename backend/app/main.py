@@ -46,6 +46,10 @@ from app.api.v1.routes.intelligence import (
     router as intelligence_router,
 )
 
+from app.api.v1.routes.monitoring import (
+    router as monitoring_router,
+)
+
 # ==========================================================
 # APPLICATION LIFESPAN
 # ==========================================================
@@ -226,6 +230,11 @@ app.include_router(
 
 app.include_router(
     intelligence_router,
+    prefix="/api/v1",
+)
+
+app.include_router(
+    monitoring_router,
     prefix="/api/v1",
 )
 
