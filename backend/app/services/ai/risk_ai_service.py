@@ -19,7 +19,20 @@ def analyze_risk(
     """
     Analyze a risk using AI only after applying the same
     resource-level visibility rules as the GRC API.
+
+    Security properties:
+    - Authorization occurs before AI provider initialization.
+    - Unauthorized resources never reach the AI provider.
+    - Provider initialization failures do not expose internal
+      exception details.
+    - Provider execution failures do not expose internal
+      exception details.
+    - AI output is validated before being returned.
     """
+
+    # ==========================================================
+    # AUTHORIZATION
+    # ==========================================================
 
     risk = get_authorized_risk(
         db,
@@ -33,20 +46,40 @@ def analyze_risk(
             detail="Risk not found.",
         )
 
-    provider = get_ai_provider()
+    # ==========================================================
+    # AI PROVIDER INITIALIZATION
+    # ==========================================================
+
+    try:
+        provider = get_ai_provider()
+
+    except Exception:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "AI service is temporarily unavailable."
+            ),
+        )
+
+    # ==========================================================
+    # PROMPT
+    # ==========================================================
 
     prompt = RISK_ANALYSIS_PROMPT.format(
         title=risk.title,
         description=risk.description,
     )
 
+    # ==========================================================
+    # GENERATE + VALIDATE
+    # ==========================================================
+
     for attempt in range(2):
 
-        response = provider.generate(
-            prompt
-        )
-
         try:
+            response = provider.generate(
+                prompt
+            )
 
             response_json = json.loads(
                 response
@@ -81,18 +114,24 @@ Return only the JSON object.
                 continue
 
             raise HTTPException(
-                status_code=500,
+                status_code=502,
                 detail=(
-                    "AI returned invalid JSON "
+                    "AI returned an invalid response "
                     "after retry."
                 ),
             )
 
-        except Exception as e:
-
+        except Exception:
             raise HTTPException(
-                status_code=500,
+                status_code=503,
                 detail=(
-                    f"AI analysis failed: {str(e)}"
+                    "AI service is temporarily unavailable."
                 ),
             )
+
+    raise HTTPException(
+        status_code=503,
+        detail=(
+            "AI service is temporarily unavailable."
+        ),
+    )
