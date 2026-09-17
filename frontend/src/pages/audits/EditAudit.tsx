@@ -42,6 +42,7 @@ export default function EditAudit() {
   const [endDate, setEndDate] =
     useState("");
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!audit) return;
 
@@ -53,6 +54,7 @@ export default function EditAudit() {
     setStartDate(audit.start_date);
     setEndDate(audit.end_date);
   }, [audit]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   if (isLoading) {
     return (

@@ -1,5 +1,7 @@
 import { useNavigate, useParams } from "react-router-dom";
 
+import { AxiosError } from "axios";
+
 import AppLayout from "@/layouts/AppLayout";
 
 import AuditFindingForm from "@/components/audit-findings/AuditFindingForm";
@@ -59,18 +61,25 @@ export default function EditAuditFinding() {
         "/audit-findings"
       );
 
-    } catch (error: any) {
+    } catch (error: unknown) {
 
       console.error(
         "Failed to update audit finding:",
         error
       );
 
+      const axiosError =
+        error instanceof AxiosError
+          ? error
+          : null;
+
+      const detail =
+        axiosError?.response?.data?.detail;
 
       const message =
-        error?.response?.data?.detail ||
-        "Failed to update audit finding.";
-
+        typeof detail === "string"
+          ? detail
+          : "Failed to update audit finding.";
 
       alert(message);
 

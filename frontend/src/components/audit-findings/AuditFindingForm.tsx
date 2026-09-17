@@ -86,25 +86,19 @@ export default function AuditFindingForm({
   });
 
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
-
     if (!finding) return;
 
     setAuditId(finding.audit_id);
     setControlId(finding.control_id);
-
     setTitle(finding.title);
     setDescription(finding.description);
-
     setSeverity(finding.severity);
-
     setStatus(finding.status);
-
-    setRecommendation(
-      finding.recommendation
-    );
-
+    setRecommendation(finding.recommendation);
   }, [finding]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
 
   function handleSubmit(

@@ -4,7 +4,9 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { Shield } from "lucide-react";
 
 import { register } from "@/api/auth";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/useAuth";
+
+import { AxiosError } from "axios";
 
 export default function Register() {
   const navigate = useNavigate();
@@ -61,9 +63,14 @@ export default function Register() {
       setTimeout(() => {
         navigate("/login");
       }, 1500);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const axiosError =
+        error instanceof AxiosError
+          ? error
+          : null;
+
       const detail =
-        error?.response?.data?.detail;
+        axiosError?.response?.data?.detail;
 
       if (typeof detail === "string") {
         setError(detail);

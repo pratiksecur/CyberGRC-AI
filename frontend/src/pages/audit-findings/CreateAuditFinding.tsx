@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { AxiosError } from "axios";
 
 import AppLayout from "@/layouts/AppLayout";
 
@@ -30,16 +31,20 @@ export default function CreateAuditFinding() {
 
       navigate("/audit-findings");
 
-    } catch (error: any) {
+    } catch (error: unknown) {
 
-      console.error(
-        "Failed to create audit finding:",
-        error
-      );
+      const axiosError =
+        error instanceof AxiosError
+          ? error
+          : null;
+
+      const detail =
+        axiosError?.response?.data?.detail;
 
       const message =
-        error?.response?.data?.detail ||
-        "Failed to create audit finding.";
+        typeof detail === "string"
+          ? detail
+          : "Failed to create audit finding.";
 
       alert(message);
 

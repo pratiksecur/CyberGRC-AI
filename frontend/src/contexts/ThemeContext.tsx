@@ -1,39 +1,35 @@
 import {
-  createContext,
-  useContext,
   useEffect,
   useState,
   type ReactNode,
 } from "react";
 
-type Theme = "light" | "dark";
-
-interface ThemeContextType {
-  theme: Theme;
-  toggleTheme: () => void;
-}
-
-const ThemeContext = createContext<ThemeContextType | undefined>(
-  undefined
-);
+import { ThemeContext } from "./theme-context";
 
 export function ThemeProvider({
   children,
 }: {
   children: ReactNode;
 }) {
-  const [theme, setTheme] = useState<Theme>(() => {
-    const savedTheme = localStorage.getItem("cybergrc-theme");
+  const [theme, setTheme] = useState<"light" | "dark">(
+    () => {
+      const savedTheme =
+        localStorage.getItem("cybergrc-theme");
 
-    if (savedTheme === "dark" || savedTheme === "light") {
-      return savedTheme;
+      if (
+        savedTheme === "dark" ||
+        savedTheme === "light"
+      ) {
+        return savedTheme;
+      }
+
+      return "light";
     }
-
-    return "light";
-  });
+  );
 
   useEffect(() => {
-    const root = document.documentElement;
+    const root =
+      document.documentElement;
 
     if (theme === "dark") {
       root.classList.add("dark");
@@ -41,12 +37,17 @@ export function ThemeProvider({
       root.classList.remove("dark");
     }
 
-    localStorage.setItem("cybergrc-theme", theme);
+    localStorage.setItem(
+      "cybergrc-theme",
+      theme
+    );
   }, [theme]);
 
   const toggleTheme = () => {
     setTheme((currentTheme) =>
-      currentTheme === "light" ? "dark" : "light"
+      currentTheme === "light"
+        ? "dark"
+        : "light"
     );
   };
 
@@ -60,16 +61,4 @@ export function ThemeProvider({
       {children}
     </ThemeContext.Provider>
   );
-}
-
-export function useTheme() {
-  const context = useContext(ThemeContext);
-
-  if (!context) {
-    throw new Error(
-      "useTheme must be used inside ThemeProvider"
-    );
-  }
-
-  return context;
 }

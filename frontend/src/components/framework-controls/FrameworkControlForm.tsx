@@ -51,6 +51,7 @@ export default function FrameworkControlForm({
       initialValues?.description ?? ""
     );
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!initialValues) return;
 
@@ -59,19 +60,15 @@ export default function FrameworkControlForm({
         ? String(initialValues.framework_id)
         : ""
     );
-
     setControlCode(
       initialValues.control_code ?? ""
     );
-
-    setTitle(
-      initialValues.title ?? ""
-    );
-
+    setTitle(initialValues.title ?? "");
     setDescription(
       initialValues.description ?? ""
     );
   }, [initialValues]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   function handleSubmit(
     event: React.FormEvent

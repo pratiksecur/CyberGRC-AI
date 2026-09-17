@@ -9,7 +9,7 @@ import { useAnalyzeRisk } from "@/hooks/useAnalyzeRisk";
 import { useRecommendControls } from "@/hooks/useRecommendControls";
 import { useAuditAISummary } from "@/hooks/useAuditAISummary";
 
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/useAuth";
 
 import {
   hasPermission,

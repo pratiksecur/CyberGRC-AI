@@ -596,9 +596,9 @@ def test_executive_ai_context_does_not_include_out_of_scope_actions(
 
             return (
                 '{"organization_risk_level":"Moderate",'
-                '"executive_summary":"Scoped summary",'
-                '"top_priorities":[],'
-                '"recommended_next_steps":[]}'
+                '"executive_summary":"Scoped executive summary for testing",'
+                '"top_priorities":["Review scoped risk posture"],'
+                '"recommended_next_steps":["Review pending corrective actions"]}'
             )
 
     monkeypatch.setattr(
