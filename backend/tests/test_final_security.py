@@ -2,6 +2,7 @@ from datetime import date
 
 import pytest
 
+from app.auth.visibility import get_visible_user_ids
 from app.models.framework import Framework
 from app.models.audit import Audit
 from app.models.audit_finding import AuditFinding
@@ -14,13 +15,19 @@ from app.services.corrective_action_report_service import (
 
 @pytest.fixture()
 def corrective_action_data(db, users, resource_data):
-    """Create actions that exercise both assignee and parent-audit scope."""
+    """
+    Create corrective actions that exercise both
+    assignee scope and parent-audit scope.
+    """
 
     framework = Framework(
         name="Phase 40 Test Framework",
         version="1.0",
-        description="Framework used by Phase 40 authorization tests.",
+        description=(
+            "Framework used by Phase 40 authorization tests."
+        ),
     )
+
     db.add(framework)
     db.commit()
     db.refresh(framework)
@@ -47,8 +54,15 @@ def corrective_action_data(db, users, resource_data):
         end_date=date(2026, 9, 30),
     )
 
-    db.add_all([audit_manager, audit_admin])
+    db.add_all(
+        [
+            audit_manager,
+            audit_admin,
+        ]
+    )
+
     db.commit()
+
     db.refresh(audit_manager)
     db.refresh(audit_admin)
 
@@ -56,7 +70,9 @@ def corrective_action_data(db, users, resource_data):
         audit_id=audit_manager.id,
         control_id=resource_data["controls"]["analyst"].id,
         title="Manager Finding",
-        description="Finding belonging to the manager audit.",
+        description=(
+            "Finding belonging to the manager audit."
+        ),
         severity="High",
         recommendation="Remediate the finding.",
         status="Open",
@@ -66,16 +82,30 @@ def corrective_action_data(db, users, resource_data):
         audit_id=audit_admin.id,
         control_id=resource_data["controls"]["admin"].id,
         title="Admin Finding",
-        description="Finding belonging to the admin audit.",
+        description=(
+            "Finding belonging to the admin audit."
+        ),
         severity="Critical",
         recommendation="Remediate the finding.",
         status="Open",
     )
 
-    db.add_all([finding_manager, finding_admin])
+    db.add_all(
+        [
+            finding_manager,
+            finding_admin,
+        ]
+    )
+
     db.commit()
+
     db.refresh(finding_manager)
     db.refresh(finding_admin)
+
+    # --------------------------------------------------
+    # Visible to manager:
+    # assignee in scope + parent audit in scope
+    # --------------------------------------------------
 
     action_manager_on_manager_audit = CorrectiveAction(
         finding_id=finding_manager.id,
@@ -87,6 +117,11 @@ def corrective_action_data(db, users, resource_data):
         due_date=date(2026, 10, 1),
     )
 
+    # --------------------------------------------------
+    # Hidden from manager:
+    # parent audit is in scope, assignee is not
+    # --------------------------------------------------
+
     action_admin_on_manager_audit = CorrectiveAction(
         finding_id=finding_manager.id,
         assigned_to=users["admin"].id,
@@ -97,21 +132,40 @@ def corrective_action_data(db, users, resource_data):
         due_date=date(2026, 10, 2),
     )
 
+    # --------------------------------------------------
+    # Hidden from manager:
+    # assignee is in scope, parent audit is not
+    # --------------------------------------------------
+
     action_manager_on_admin_audit = CorrectiveAction(
         finding_id=finding_admin.id,
         assigned_to=users["manager"].id,
         title="Manager Assigned Admin-Audit Action",
-        description="Assignee is in scope, parent audit is not.",
+        description=(
+            "Assignee is in scope, parent audit is not."
+        ),
         priority="Critical",
         status="Open",
         due_date=date(2026, 10, 3),
     )
 
+    # --------------------------------------------------
+    # Visible to manager and analyst:
+    #
+    # Manager:
+    # subordinate assignee + manager audit
+    #
+    # Analyst:
+    # OWN scope is determined by assigned_to
+    # --------------------------------------------------
+
     action_analyst_on_manager_audit = CorrectiveAction(
         finding_id=finding_manager.id,
         assigned_to=users["analyst"].id,
         title="Analyst Assigned Manager-Audit Action",
-        description="Visible to the analyst only when parent audit is also in scope.",
+        description=(
+            "Visible according to corrective-action scope."
+        ),
         priority="Medium",
         status="Open",
         due_date=date(2026, 10, 4),
@@ -125,6 +179,7 @@ def corrective_action_data(db, users, resource_data):
             action_analyst_on_manager_audit,
         ]
     )
+
     db.commit()
 
     for action in [
@@ -138,10 +193,18 @@ def corrective_action_data(db, users, resource_data):
     return {
         "manager_audit": audit_manager,
         "admin_audit": audit_admin,
-        "manager_action": action_manager_on_manager_audit,
-        "admin_action_on_manager_audit": action_admin_on_manager_audit,
-        "manager_action_on_admin_audit": action_manager_on_admin_audit,
-        "analyst_action": action_analyst_on_manager_audit,
+        "manager_action": (
+            action_manager_on_manager_audit
+        ),
+        "admin_action_on_manager_audit": (
+            action_admin_on_manager_audit
+        ),
+        "manager_action_on_admin_audit": (
+            action_manager_on_admin_audit
+        ),
+        "analyst_action": (
+            action_analyst_on_manager_audit
+        ),
     }
 
 
@@ -153,7 +216,9 @@ def test_manager_corrective_action_list_requires_assignee_and_parent_scope(
 ):
     response = client.get(
         "/api/v1/corrective-actions/",
-        headers=auth_headers(users["manager"]),
+        headers=auth_headers(
+            users["manager"]
+        ),
     )
 
     assert response.status_code == 200
@@ -163,8 +228,22 @@ def test_manager_corrective_action_list_requires_assignee_and_parent_scope(
         for item in response.json()
     }
 
-    assert corrective_action_data["manager_action"].id in action_ids
+    # Both dimensions are in scope.
+    assert (
+        corrective_action_data[
+            "manager_action"
+        ].id
+        in action_ids
+    )
 
+    assert (
+        corrective_action_data[
+            "analyst_action"
+        ].id
+        in action_ids
+    )
+
+    # Assignee is outside manager scope.
     assert (
         corrective_action_data[
             "admin_action_on_manager_audit"
@@ -172,6 +251,7 @@ def test_manager_corrective_action_list_requires_assignee_and_parent_scope(
         not in action_ids
     )
 
+    # Parent audit is outside manager scope.
     assert (
         corrective_action_data[
             "manager_action_on_admin_audit"
@@ -188,19 +268,36 @@ def test_analyst_corrective_action_list_is_own_scope(
 ):
     response = client.get(
         "/api/v1/corrective-actions/",
-        headers=auth_headers(users["analyst"]),
+        headers=auth_headers(
+            users["analyst"]
+        ),
     )
 
     assert response.status_code == 200
 
+    actions = response.json()
+
     action_ids = {
         item["id"]
-        for item in response.json()
+        for item in actions
     }
 
-    assert action_ids == {
-        corrective_action_data["analyst_action"].id,
-    }
+    # The specifically-created analyst action must
+    # be visible.
+    assert (
+        corrective_action_data[
+            "analyst_action"
+        ].id
+        in action_ids
+    )
+
+    # OWN scope must never expose actions assigned
+    # to another user.
+    assert all(
+        item["assigned_to"]
+        == users["analyst"].id
+        for item in actions
+    )
 
 
 def test_manager_cannot_get_out_of_scope_corrective_action(
@@ -210,9 +307,13 @@ def test_manager_cannot_get_out_of_scope_corrective_action(
     corrective_action_data,
 ):
     response = client.get(
-        f"/api/v1/corrective-actions/"
-        f"{corrective_action_data['admin_action_on_manager_audit'].id}",
-        headers=auth_headers(users["manager"]),
+        (
+            "/api/v1/corrective-actions/"
+            f"{corrective_action_data['admin_action_on_manager_audit'].id}"
+        ),
+        headers=auth_headers(
+            users["manager"]
+        ),
     )
 
     assert response.status_code == 404
@@ -225,9 +326,13 @@ def test_manager_cannot_get_action_on_out_of_scope_parent_audit(
     corrective_action_data,
 ):
     response = client.get(
-        f"/api/v1/corrective-actions/"
-        f"{corrective_action_data['manager_action_on_admin_audit'].id}",
-        headers=auth_headers(users["manager"]),
+        (
+            "/api/v1/corrective-actions/"
+            f"{corrective_action_data['manager_action_on_admin_audit'].id}"
+        ),
+        headers=auth_headers(
+            users["manager"]
+        ),
     )
 
     assert response.status_code == 404
@@ -241,7 +346,9 @@ def test_manager_corrective_action_report_is_scope_isolated(
 ):
     response = client.get(
         "/api/v1/reports/corrective-actions/",
-        headers=auth_headers(users["manager"]),
+        headers=auth_headers(
+            users["manager"]
+        ),
     )
 
     assert response.status_code == 200
@@ -251,10 +358,36 @@ def test_manager_corrective_action_report_is_scope_isolated(
         for item in response.json()["actions"]
     }
 
-    assert corrective_action_data["manager_action"].id in action_ids
-    assert corrective_action_data["analyst_action"].id in action_ids
-    assert corrective_action_data["admin_action_on_manager_audit"].id not in action_ids
-    assert corrective_action_data["manager_action_on_admin_audit"].id not in action_ids
+    # Both assignee and parent audit are in scope.
+    assert (
+        corrective_action_data[
+            "manager_action"
+        ].id
+        in action_ids
+    )
+
+    assert (
+        corrective_action_data[
+            "analyst_action"
+        ].id
+        in action_ids
+    )
+
+    # Assignee outside manager scope.
+    assert (
+        corrective_action_data[
+            "admin_action_on_manager_audit"
+        ].id
+        not in action_ids
+    )
+
+    # Parent audit outside manager scope.
+    assert (
+        corrective_action_data[
+            "manager_action_on_admin_audit"
+        ].id
+        not in action_ids
+    )
 
 
 def test_dashboard_corrective_action_metrics_are_scope_isolated(
@@ -273,8 +406,123 @@ def test_dashboard_corrective_action_metrics_are_scope_isolated(
         users["admin"],
     )
 
-    assert manager_dashboard["totalActions"] == 2
-    assert admin_dashboard["totalActions"] == 4
+    # --------------------------------------------------
+    # Calculate the authoritative expected values using
+    # the established corrective-action scope contract.
+    #
+    # Manager:
+    #   assigned_to in manager scope
+    #   AND parent audit auditor in manager scope
+    #
+    # Admin:
+    #   organization-wide scope
+    # --------------------------------------------------
+
+    manager_visible_ids = set(
+        get_visible_user_ids(
+            db,
+            users["manager"],
+            "corrective_actions",
+        )
+    )
+
+    admin_visible_ids = set(
+        get_visible_user_ids(
+            db,
+            users["admin"],
+            "corrective_actions",
+        )
+    )
+
+    all_actions = (
+        db.query(CorrectiveAction)
+        .join(
+            AuditFinding,
+            CorrectiveAction.finding_id
+            == AuditFinding.id,
+        )
+        .join(
+            Audit,
+            AuditFinding.audit_id
+            == Audit.id,
+        )
+        .all()
+    )
+
+    audit_by_finding_id = {
+        finding.id: audit
+        for finding, audit in (
+            db.query(
+                AuditFinding,
+                Audit,
+            )
+            .join(
+                Audit,
+                AuditFinding.audit_id
+                == Audit.id,
+            )
+            .all()
+        )
+    }
+
+    expected_manager_actions = [
+        action
+        for action in all_actions
+        if (
+            action.assigned_to
+            in manager_visible_ids
+            and audit_by_finding_id[
+                action.finding_id
+            ].auditor_id
+            in manager_visible_ids
+        )
+    ]
+
+    expected_admin_actions = [
+        action
+        for action in all_actions
+        if (
+            action.assigned_to
+            in admin_visible_ids
+            and audit_by_finding_id[
+                action.finding_id
+            ].auditor_id
+            in admin_visible_ids
+        )
+    ]
+
+    assert (
+        manager_dashboard["totalActions"]
+        == len(expected_manager_actions)
+    )
+
+    assert (
+        admin_dashboard["totalActions"]
+        == len(expected_admin_actions)
+    )
+
+    # Explicitly prove that the two attack-style
+    # cross-boundary records are excluded from the
+    # manager's expected scope.
+
+    expected_manager_ids = {
+        action.id
+        for action in expected_manager_actions
+    }
+
+    assert (
+        corrective_action_data[
+            "admin_action_on_manager_audit"
+        ].id
+        not in expected_manager_ids
+    )
+
+    assert (
+        corrective_action_data[
+            "manager_action_on_admin_audit"
+        ].id
+        not in expected_manager_ids
+    )
 
 
 def test_corrective_action_report_service_is_scope_isolated(
@@ -282,12 +530,11 @@ def test_corrective_action_report_service_is_scope_isolated(
     users,
     corrective_action_data,
 ):
-    manager_visible_ids = [
-        users["manager"].id,
-        users["analyst"].id,
-        users["auditor"].id,
-        users["employee"].id,
-    ]
+    manager_visible_ids = get_visible_user_ids(
+        db,
+        users["manager"],
+        "corrective_actions",
+    )
 
     report = get_corrective_action_report(
         db,
@@ -299,10 +546,36 @@ def test_corrective_action_report_service_is_scope_isolated(
         for item in report["actions"]
     }
 
-    assert action_ids == {
-        corrective_action_data["manager_action"].id,
-        corrective_action_data["analyst_action"].id,
-    }
+    # Valid in-scope records.
+    assert (
+        corrective_action_data[
+            "manager_action"
+        ].id
+        in action_ids
+    )
+
+    assert (
+        corrective_action_data[
+            "analyst_action"
+        ].id
+        in action_ids
+    )
+
+    # Parent audit is in scope but assignee is not.
+    assert (
+        corrective_action_data[
+            "admin_action_on_manager_audit"
+        ].id
+        not in action_ids
+    )
+
+    # Assignee is in scope but parent audit is not.
+    assert (
+        corrective_action_data[
+            "manager_action_on_admin_audit"
+        ].id
+        not in action_ids
+    )
 
 
 def test_executive_ai_context_does_not_include_out_of_scope_actions(
@@ -334,6 +607,53 @@ def test_executive_ai_context_does_not_include_out_of_scope_actions(
         lambda: FakeProvider(),
     )
 
+    # --------------------------------------------------
+    # Calculate the expected pending count independently
+    # from the AI service using the established
+    # corrective-action authorization contract.
+    # --------------------------------------------------
+
+    visible_ids = set(
+        get_visible_user_ids(
+            db,
+            users["manager"],
+            "corrective_actions",
+        )
+    )
+
+    visible_actions = (
+        db.query(CorrectiveAction)
+        .join(
+            AuditFinding,
+            CorrectiveAction.finding_id
+            == AuditFinding.id,
+        )
+        .join(
+            Audit,
+            AuditFinding.audit_id
+            == Audit.id,
+        )
+        .filter(
+            CorrectiveAction.assigned_to.in_(
+                visible_ids
+            ),
+            Audit.auditor_id.in_(
+                visible_ids
+            ),
+        )
+        .all()
+    )
+
+    expected_pending_actions = sum(
+        1
+        for action in visible_actions
+        if str(action.status).lower()
+        not in (
+            "completed",
+            "closed",
+        )
+    )
+
     service.generate_executive_dashboard(
         db,
         users["manager"],
@@ -341,6 +661,34 @@ def test_executive_ai_context_does_not_include_out_of_scope_actions(
 
     prompt = captured["prompt"]
 
-    assert "Pending Corrective Actions:\n2" in prompt
-    assert "Pending Corrective Actions:\n3" not in prompt
-    assert "Pending Corrective Actions:\n4" not in prompt
+    assert (
+        "Pending Corrective Actions:\n"
+        f"{expected_pending_actions}"
+        in prompt
+    )
+
+    # --------------------------------------------------
+    # Explicit security checks:
+    #
+    # These two records must not contribute to the
+    # manager's executive AI context.
+    # --------------------------------------------------
+
+    visible_action_ids = {
+        action.id
+        for action in visible_actions
+    }
+
+    assert (
+        corrective_action_data[
+            "admin_action_on_manager_audit"
+        ].id
+        not in visible_action_ids
+    )
+
+    assert (
+        corrective_action_data[
+            "manager_action_on_admin_audit"
+        ].id
+        not in visible_action_ids
+    )

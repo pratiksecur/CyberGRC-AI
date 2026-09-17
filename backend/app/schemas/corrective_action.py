@@ -13,6 +13,14 @@ class PriorityLevel(str, Enum):
 
 
 class ActionStatus(str, Enum):
+    """
+    Valid lifecycle states for a corrective action.
+
+    PENDING is retained because existing corrective-action
+    records may legitimately use this state.
+    """
+
+    PENDING = "Pending"
     OPEN = "Open"
     IN_PROGRESS = "In Progress"
     COMPLETED = "Completed"
@@ -27,12 +35,12 @@ class CorrectiveActionCreate(BaseModel):
     title: str = Field(
         ...,
         min_length=5,
-        max_length=255
+        max_length=255,
     )
 
     description: str = Field(
         ...,
-        min_length=10
+        min_length=10,
     )
 
     priority: PriorityLevel
@@ -62,12 +70,12 @@ class CorrectiveActionUpdate(BaseModel):
     title: Optional[str] = Field(
         None,
         min_length=5,
-        max_length=255
+        max_length=255,
     )
 
     description: Optional[str] = Field(
         None,
-        min_length=10
+        min_length=10,
     )
 
     priority: Optional[PriorityLevel] = None

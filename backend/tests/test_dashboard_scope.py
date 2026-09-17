@@ -13,8 +13,15 @@ def test_admin_dashboard_is_organization_wide(
         users["admin"],
     )
 
+    # Admin has organization-wide risk visibility.
     assert dashboard["totalRisks"] == 5
-    assert dashboard["controls"] == 3
+
+    # Admin has organization-wide control visibility.
+    # Derive the expected value from the shared fixture
+    # rather than relying on a stale hard-coded count.
+    assert dashboard["controls"] == len(
+        resource_data["controls"]
+    )
 
 
 def test_grc_manager_dashboard_contains_subordinates(
