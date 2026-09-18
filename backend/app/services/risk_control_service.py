@@ -8,7 +8,7 @@ from app.models.risk_control import RiskControl
 def assign_control_to_risk(
     db: Session,
     risk_id: int,
-    control_id: int
+    control_id: int,
 ):
     """
     Assign a control to a risk.
@@ -36,7 +36,7 @@ def assign_control_to_risk(
         db.query(RiskControl)
         .filter(
             RiskControl.risk_id == risk_id,
-            RiskControl.control_id == control_id
+            RiskControl.control_id == control_id,
         )
         .first()
     )
@@ -46,7 +46,7 @@ def assign_control_to_risk(
 
     mapping = RiskControl(
         risk_id=risk_id,
-        control_id=control_id
+        control_id=control_id,
     )
 
     db.add(mapping)
@@ -60,20 +60,27 @@ def assign_control_to_risk(
 
 def get_controls_for_risk(
     db: Session,
-    risk_id: int
+    risk_id: int,
+    visible_user_ids: list[int],
 ):
     """
-    Get all controls assigned to a risk.
+    Get Controls assigned to a Risk, restricted to Controls
+    whose owners are within the authenticated user's visibility
+    scope.
+
+    This prevents a relationship from becoming a side channel
+    around resource-level authorization.
     """
 
     return (
         db.query(Control)
         .join(
             RiskControl,
-            Control.id == RiskControl.control_id
+            Control.id == RiskControl.control_id,
         )
         .filter(
-            RiskControl.risk_id == risk_id
+            RiskControl.risk_id == risk_id,
+            Control.owner_id.in_(visible_user_ids),
         )
         .all()
     )
@@ -81,20 +88,27 @@ def get_controls_for_risk(
 
 def get_risks_for_control(
     db: Session,
-    control_id: int
+    control_id: int,
+    visible_user_ids: list[int],
 ):
     """
-    Get all risks assigned to a control.
+    Get Risks assigned to a Control, restricted to Risks
+    whose owners are within the authenticated user's visibility
+    scope.
+
+    This prevents a relationship from becoming a side channel
+    around resource-level authorization.
     """
 
     return (
         db.query(Risk)
         .join(
             RiskControl,
-            Risk.id == RiskControl.risk_id
+            Risk.id == RiskControl.risk_id,
         )
         .filter(
-            RiskControl.control_id == control_id
+            RiskControl.control_id == control_id,
+            Risk.owner_id.in_(visible_user_ids),
         )
         .all()
     )
@@ -102,16 +116,16 @@ def get_risks_for_control(
 
 def remove_control_from_risk(
     db: Session,
-    mapping_id: int
+    mapping_id: int,
 ):
     """
-    Remove a control-risk mapping.
+    Remove a Risk-Control mapping.
     """
 
     mapping = (
         db.query(RiskControl)
         .filter(
-            RiskControl.id == mapping_id
+            RiskControl.id == mapping_id,
         )
         .first()
     )
