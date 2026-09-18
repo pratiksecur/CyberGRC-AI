@@ -70,8 +70,8 @@ def recommend_controls(
         for control in get_controls_for_risk(
             db,
             risk_id,
+            list(visible_control_ids),
         )
-        if control.id in visible_control_ids
     ]
 
     if existing_controls:

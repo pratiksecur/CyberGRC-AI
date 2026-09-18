@@ -219,6 +219,7 @@ def get_controls(
     return get_controls_for_risk(
         db,
         risk_id,
+        visible_user_ids,
     )
 
 
@@ -287,6 +288,7 @@ def get_risks(
     return get_risks_for_control(
         db,
         control_id,
+        visible_user_ids,
     )
 
 
