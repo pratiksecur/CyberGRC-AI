@@ -1,3 +1,5 @@
+import Can from "@/components/auth/Can";
+
 interface Props {
   search: string;
   onSearchChange: (value: string) => void;
@@ -50,17 +52,22 @@ export default function AuditFilters({
           <option value="Completed">
             Completed
           </option>
-
         </select>
 
       </div>
 
-      <button
-        onClick={onCreate}
-        className="rounded-lg bg-blue-600 px-6 py-3 text-white hover:bg-blue-700"
+      <Can
+        resource="audits"
+        action="create"
       >
-        New Audit
-      </button>
+        <button
+          type="button"
+          onClick={onCreate}
+          className="rounded-lg bg-blue-600 px-6 py-3 text-white hover:bg-blue-700"
+        >
+          New Audit
+        </button>
+      </Can>
 
     </div>
   );

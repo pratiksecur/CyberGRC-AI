@@ -4,6 +4,8 @@ import {
   Trash2,
 } from "lucide-react";
 
+import Can from "@/components/auth/Can";
+
 import type { CorrectiveAction } from "@/api/correctiveActions";
 
 interface Props {
@@ -74,10 +76,15 @@ export default function CorrectiveActionTable({
 }: Props) {
   return (
     <div className="overflow-hidden rounded-xl border bg-white shadow-sm">
+
       <div className="overflow-x-auto">
+
         <table className="min-w-full">
+
           <thead className="border-b bg-slate-50">
+
             <tr>
+
               <th className="px-6 py-4 text-left text-sm font-semibold">
                 Corrective Action
               </th>
@@ -105,10 +112,13 @@ export default function CorrectiveActionTable({
               <th className="px-6 py-4 text-right text-sm font-semibold">
                 Actions
               </th>
+
             </tr>
+
           </thead>
 
           <tbody>
+
             {actions.map((action) => {
               const overdue =
                 isOverdue(action);
@@ -118,7 +128,6 @@ export default function CorrectiveActionTable({
                   key={action.id}
                   className="border-b transition hover:bg-slate-50 last:border-0"
                 >
-                  {/* Action */}
 
                   <td className="px-6 py-5">
                     <div className="font-semibold text-slate-900">
@@ -130,8 +139,6 @@ export default function CorrectiveActionTable({
                     </div>
                   </td>
 
-                  {/* Finding */}
-
                   <td className="px-6 py-5">
                     <div className="max-w-xs truncate text-sm text-slate-700">
                       {action.finding_title}
@@ -142,15 +149,11 @@ export default function CorrectiveActionTable({
                     </div>
                   </td>
 
-                  {/* Assignee */}
-
                   <td className="px-6 py-5">
                     <div className="text-sm font-medium text-slate-800">
                       {action.assignee_name}
                     </div>
                   </td>
-
-                  {/* Priority */}
 
                   <td className="px-6 py-5">
                     <span
@@ -162,8 +165,6 @@ export default function CorrectiveActionTable({
                     </span>
                   </td>
 
-                  {/* Status */}
-
                   <td className="px-6 py-5">
                     <span
                       className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${statusClass(
@@ -173,8 +174,6 @@ export default function CorrectiveActionTable({
                       {action.status}
                     </span>
                   </td>
-
-                  {/* Due Date */}
 
                   <td className="px-6 py-5">
                     {action.due_date ? (
@@ -204,44 +203,62 @@ export default function CorrectiveActionTable({
                     )}
                   </td>
 
-                  {/* Actions */}
-
                   <td className="px-6 py-5 text-right">
+
                     <div className="flex justify-end gap-1">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          onView(action.id)
-                        }
-                        title="View Action"
-                        className="rounded-lg p-2 text-slate-600 transition hover:bg-blue-100 hover:text-blue-600"
-                      >
-                        <Eye size={18} />
-                      </button>
 
-                      <button
-                        type="button"
-                        onClick={() =>
-                          onEdit(action.id)
-                        }
-                        title="Edit Action"
-                        className="rounded-lg p-2 text-slate-600 transition hover:bg-amber-100 hover:text-amber-600"
+                      <Can
+                        resource="corrective_actions"
+                        action="view"
                       >
-                        <Pencil size={18} />
-                      </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onView(action.id)
+                          }
+                          title="View Action"
+                          className="rounded-lg p-2 text-slate-600 transition hover:bg-blue-100 hover:text-blue-600"
+                        >
+                          <Eye size={18} />
+                        </button>
+                      </Can>
 
-                      <button
-                        type="button"
-                        onClick={() =>
-                          onDelete(action.id)
-                        }
-                        title="Delete Action"
-                        className="rounded-lg p-2 text-slate-600 transition hover:bg-red-100 hover:text-red-600"
+                      <Can
+                        resource="corrective_actions"
+                        action="update"
                       >
-                        <Trash2 size={18} />
-                      </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onEdit(action.id)
+                          }
+                          title="Edit Action"
+                          className="rounded-lg p-2 text-slate-600 transition hover:bg-amber-100 hover:text-amber-600"
+                        >
+                          <Pencil size={18} />
+                        </button>
+                      </Can>
+
+                      <Can
+                        resource="corrective_actions"
+                        action="delete"
+                      >
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onDelete(action.id)
+                          }
+                          title="Delete Action"
+                          className="rounded-lg p-2 text-slate-600 transition hover:bg-red-100 hover:text-red-600"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </Can>
+
                     </div>
+
                   </td>
+
                 </tr>
               );
             })}
@@ -262,9 +279,13 @@ export default function CorrectiveActionTable({
                 </td>
               </tr>
             )}
+
           </tbody>
+
         </table>
+
       </div>
+
     </div>
   );
 }

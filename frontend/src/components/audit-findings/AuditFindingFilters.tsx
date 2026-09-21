@@ -1,3 +1,5 @@
+import Can from "@/components/auth/Can";
+
 import { Filter, Plus, Search, X } from "lucide-react";
 
 interface AuditOption {
@@ -69,14 +71,20 @@ export default function AuditFindingFilters({
           />
 
         </div>
-
-        <button
-          onClick={onCreate}
-          className="flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 font-medium text-white transition hover:bg-indigo-700"
+        
+        <Can
+          resource="audit_findings"
+          action="create"
         >
-          <Plus size={18} />
-          New Finding
-        </button>
+          <button
+            type="button"
+            onClick={onCreate}
+            className="flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 font-medium text-white transition hover:bg-indigo-700"
+          >
+            <Plus size={18} />
+            New Finding
+          </button>
+        </Can>
 
       </div>
 

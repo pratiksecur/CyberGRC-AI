@@ -6,6 +6,8 @@ import {
   FileText,
 } from "lucide-react";
 
+import Can from "@/components/auth/Can";
+
 import {
   downloadEvidence,
   openEvidence,
@@ -40,10 +42,10 @@ export default function EvidenceTable({
     try {
       await openEvidence(id);
     } catch {
-      // The API/client layer handles authentication errors.
+      // The API/client layer handles
+      // authentication and authorization errors.
     }
   };
-
 
   const handleDownload = async (
     item: Evidence
@@ -70,11 +72,10 @@ export default function EvidenceTable({
       URL.revokeObjectURL(objectUrl);
 
     } catch {
-      // Keep download failures inside the API
-      // error handling flow.
+      // Keep download failures inside the
+      // API error handling flow.
     }
   };
-
 
   return (
     <div className="overflow-hidden rounded-2xl border bg-white">
@@ -156,9 +157,7 @@ export default function EvidenceTable({
                     <div className="flex items-center gap-3">
 
                       <div className="rounded-lg bg-blue-100 p-2">
-
                         <FileText className="h-5 w-5 text-blue-600" />
-
                       </div>
 
                       <div>
@@ -167,7 +166,7 @@ export default function EvidenceTable({
                           {item.title}
                         </div>
 
-                        <div className="text-sm text-slate-500 line-clamp-1">
+                        <div className="line-clamp-1 text-sm text-slate-500">
                           {item.description}
                         </div>
 
@@ -199,48 +198,66 @@ export default function EvidenceTable({
 
                     <div className="flex justify-center gap-3">
 
-                      <button
-                        onClick={() =>
-                          handleView(item.id)
-                        }
-                        className="text-slate-500 hover:text-blue-600"
-                        title="View"
+                      <Can
+                        resource="evidence"
+                        action="view"
                       >
-                        <Eye size={18} />
-                      </button>
+                        <>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleView(item.id)
+                            }
+                            className="text-slate-500 hover:text-blue-600"
+                            title="View"
+                          >
+                            <Eye size={18} />
+                          </button>
 
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleDownload(item)
+                            }
+                            className="text-slate-500 hover:text-green-600"
+                            title="Download"
+                          >
+                            <Download size={18} />
+                          </button>
+                        </>
+                      </Can>
 
-                      <button
-                        onClick={() =>
-                          handleDownload(item)
-                        }
-                        className="text-slate-500 hover:text-green-600"
-                        title="Download"
+                      <Can
+                        resource="evidence"
+                        action="update"
                       >
-                        <Download size={18} />
-                      </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onEdit?.(item.id)
+                          }
+                          className="text-slate-500 hover:text-amber-600"
+                          title="Edit"
+                        >
+                          <Pencil size={18} />
+                        </button>
+                      </Can>
 
-
-                      <button
-                        onClick={() =>
-                          onEdit?.(item.id)
-                        }
-                        className="text-slate-500 hover:text-amber-600"
-                        title="Edit"
+                      <Can
+                        resource="evidence"
+                        action="delete"
                       >
-                        <Pencil size={18} />
-                      </button>
-
-
-                      <button
-                        onClick={() =>
-                          onDelete?.(item.id)
-                        }
-                        className="text-slate-500 hover:text-red-600"
-                        title="Delete"
-                      >
-                        <Trash2 size={18} />
-                      </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onDelete?.(item.id)
+                          }
+                          className="text-slate-500 hover:text-red-600"
+                          title="Delete"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </Can>
 
                     </div>
 

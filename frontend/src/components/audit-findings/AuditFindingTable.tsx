@@ -4,11 +4,12 @@ import {
   Trash2,
 } from "lucide-react";
 
+import Can from "@/components/auth/Can";
+
 import type { AuditFinding } from "@/api/auditFindings";
 
 interface Props {
   findings: AuditFinding[];
-
   onView: (id: number) => void;
   onEdit: (id: number) => void;
   onDelete: (id: number) => void;
@@ -167,35 +168,53 @@ export default function AuditFindingTable({
 
                   <div className="flex justify-center gap-1">
 
-                    <button
-                      onClick={() =>
-                        onView(finding.id)
-                      }
-                      title="View Finding"
-                      className="rounded-lg p-2 text-slate-500 transition hover:bg-blue-100 hover:text-blue-600"
+                    <Can
+                      resource="audit_findings"
+                      action="view"
                     >
-                      <Eye size={18} />
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onView(finding.id)
+                        }
+                        title="View Finding"
+                        className="rounded-lg p-2 text-slate-500 transition hover:bg-blue-100 hover:text-blue-600"
+                      >
+                        <Eye size={18} />
+                      </button>
+                    </Can>
 
-                    <button
-                      onClick={() =>
-                        onEdit(finding.id)
-                      }
-                      title="Edit Finding"
-                      className="rounded-lg p-2 text-slate-500 transition hover:bg-amber-100 hover:text-amber-600"
+                    <Can
+                      resource="audit_findings"
+                      action="update"
                     >
-                      <Pencil size={18} />
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onEdit(finding.id)
+                        }
+                        title="Edit Finding"
+                        className="rounded-lg p-2 text-slate-500 transition hover:bg-amber-100 hover:text-amber-600"
+                      >
+                        <Pencil size={18} />
+                      </button>
+                    </Can>
 
-                    <button
-                      onClick={() =>
-                        onDelete(finding.id)
-                      }
-                      title="Delete Finding"
-                      className="rounded-lg p-2 text-slate-500 transition hover:bg-red-100 hover:text-red-600"
+                    <Can
+                      resource="audit_findings"
+                      action="delete"
                     >
-                      <Trash2 size={18} />
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onDelete(finding.id)
+                        }
+                        title="Delete Finding"
+                        className="rounded-lg p-2 text-slate-500 transition hover:bg-red-100 hover:text-red-600"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </Can>
 
                   </div>
 
