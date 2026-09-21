@@ -1,3 +1,5 @@
+import Can from "@/components/auth/Can";
+
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -157,18 +159,23 @@ export default function CorrectiveActions() {
               Track and manage remediation activities resulting from audit findings.
             </p>
           </div>
-
-          <Button
-            onClick={() =>
-                navigate(
-                "/corrective-actions/new"
-                )
-            }
-            className="bg-blue-600 text-white shadow-sm hover:bg-blue-700"
-            >
-            <Plus className="mr-2 h-4 w-4" />
-            New Action
+          
+          <Can
+            resource="corrective_actions"
+            action="create"
+          >
+            <Button
+              onClick={() =>
+                  navigate(
+                  "/corrective-actions/new"
+                  )
+              }
+              className="bg-blue-600 text-white shadow-sm hover:bg-blue-700"
+              >
+              <Plus className="mr-2 h-4 w-4" />
+              New Action
             </Button>
+          </Can>
         </div>
 
         {/* Overview */}

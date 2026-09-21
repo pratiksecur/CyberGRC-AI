@@ -4,6 +4,8 @@ import {
   Trash2,
 } from "lucide-react";
 
+import Can from "@/components/auth/Can";
+
 interface Audit {
   id: number;
   name: string;
@@ -125,8 +127,8 @@ export default function AuditTable({
                         audit.status === "Completed"
                           ? "bg-green-100 text-green-700"
                           : audit.status === "In Progress"
-                          ? "bg-yellow-100 text-yellow-700"
-                          : "bg-blue-100 text-blue-700"
+                            ? "bg-yellow-100 text-yellow-700"
+                            : "bg-blue-100 text-blue-700"
                       }`}
                     >
                       {audit.status}
@@ -150,32 +152,53 @@ export default function AuditTable({
 
                     <div className="flex justify-center gap-3">
 
-                      <button
-                        onClick={() =>
-                          onView?.(audit.id)
-                        }
-                        className="text-slate-500 hover:text-blue-600"
+                      <Can
+                        resource="audits"
+                        action="view"
                       >
-                        <Eye size={18} />
-                      </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onView?.(audit.id)
+                          }
+                          title="View Audit"
+                          className="text-slate-500 hover:text-blue-600"
+                        >
+                          <Eye size={18} />
+                        </button>
+                      </Can>
 
-                      <button
-                        onClick={() =>
-                          onEdit?.(audit.id)
-                        }
-                        className="text-slate-500 hover:text-amber-600"
+                      <Can
+                        resource="audits"
+                        action="update"
                       >
-                        <Pencil size={18} />
-                      </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onEdit?.(audit.id)
+                          }
+                          title="Edit Audit"
+                          className="text-slate-500 hover:text-amber-600"
+                        >
+                          <Pencil size={18} />
+                        </button>
+                      </Can>
 
-                      <button
-                        onClick={() =>
-                          onDelete?.(audit.id)
-                        }
-                        className="text-slate-500 hover:text-red-600"
+                      <Can
+                        resource="audits"
+                        action="delete"
                       >
-                        <Trash2 size={18} />
-                      </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onDelete?.(audit.id)
+                          }
+                          title="Delete Audit"
+                          className="text-slate-500 hover:text-red-600"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </Can>
 
                     </div>
 

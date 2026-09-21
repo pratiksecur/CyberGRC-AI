@@ -1,5 +1,7 @@
 import { Search, Plus } from "lucide-react";
 
+import Can from "@/components/auth/Can";
+
 interface Props {
   search: string;
   onSearchChange: (value: string) => void;
@@ -30,13 +32,19 @@ export default function EvidenceFilters({
 
       </div>
 
-      <button
-        onClick={onCreate}
-        className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+      <Can
+        resource="evidence"
+        action="create"
       >
-        <Plus size={18} />
-        Upload Evidence
-      </button>
+        <button
+          type="button"
+          onClick={onCreate}
+          className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+        >
+          <Plus size={18} />
+          Upload Evidence
+        </button>
+      </Can>
 
     </div>
   );

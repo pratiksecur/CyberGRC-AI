@@ -13,21 +13,44 @@ import {
 
 import { AuthContext } from "./auth-context";
 
+
 interface Props {
   children: ReactNode;
 }
 
+
 export function AuthProvider({
   children,
 }: Props) {
-  const [token, setToken] =
-    useState<string | null>(null);
+  const [
+    token,
+    setToken,
+  ] = useState<string | null>(null);
 
-  const [user, setUser] =
-    useState<CurrentUser | null>(null);
+  const [
+    user,
+    setUser,
+  ] = useState<CurrentUser | null>(null);
 
-  const [isLoading, setIsLoading] =
-    useState(true);
+  const [
+    isLoading,
+    setIsLoading,
+  ] = useState(true);
+
+
+  // ==================================================
+  // CLEAR SESSION
+  // ==================================================
+
+  function clearSession() {
+    localStorage.removeItem(
+      "access_token"
+    );
+
+    setToken(null);
+    setUser(null);
+  }
+
 
   // ==================================================
   // RESTORE SESSION
@@ -36,7 +59,9 @@ export function AuthProvider({
   useEffect(() => {
     async function restoreSession() {
       const savedToken =
-        localStorage.getItem("access_token");
+        localStorage.getItem(
+          "access_token"
+        );
 
       if (!savedToken) {
         setIsLoading(false);
@@ -50,13 +75,10 @@ export function AuthProvider({
           await getCurrentUser();
 
         setUser(currentUser);
-      } catch {
-        localStorage.removeItem(
-          "access_token"
-        );
 
-        setToken(null);
-        setUser(null);
+      } catch {
+        clearSession();
+
       } finally {
         setIsLoading(false);
       }
@@ -64,6 +86,31 @@ export function AuthProvider({
 
     restoreSession();
   }, []);
+
+
+  // ==================================================
+  // HANDLE CENTRAL 401 EVENTS
+  // ==================================================
+
+  useEffect(() => {
+    const handleUnauthorized =
+      () => {
+        clearSession();
+      };
+
+    window.addEventListener(
+      "auth:unauthorized",
+      handleUnauthorized
+    );
+
+    return () => {
+      window.removeEventListener(
+        "auth:unauthorized",
+        handleUnauthorized
+      );
+    };
+  }, []);
+
 
   // ==================================================
   // LOGIN
@@ -79,6 +126,10 @@ export function AuthProvider({
         password
       );
 
+    /*
+     * Store the token temporarily so the authenticated
+     * /auth/me request can use the normal Axios interceptor.
+     */
     localStorage.setItem(
       "access_token",
       response.access_token
@@ -88,26 +139,36 @@ export function AuthProvider({
       response.access_token
     );
 
-    const currentUser =
-      await getCurrentUser();
+    try {
+      const currentUser =
+        await getCurrentUser();
 
-    setUser(currentUser);
+      setUser(currentUser);
+
+    } catch (error) {
+      /*
+       * If authentication succeeds but the user session
+       * cannot be established, do not leave a stale token
+       * behind.
+       */
+      clearSession();
+
+      throw error;
+    }
   }
+
 
   // ==================================================
   // LOGOUT
   // ==================================================
 
   function logout() {
-    localStorage.removeItem(
-      "access_token"
-    );
+    clearSession();
 
-    setToken(null);
-    setUser(null);
-
-    window.location.href = "/login";
+    window.location.href =
+      "/login";
   }
+
 
   // ==================================================
   // PROVIDER
@@ -118,7 +179,8 @@ export function AuthProvider({
       value={{
         token,
         user,
-        isAuthenticated: !!token && !!user,
+        isAuthenticated:
+          !!token && !!user,
         isLoading,
         login,
         logout,
