@@ -496,7 +496,24 @@ export default function ComplianceReport() {
 
                     <tr
                       key={framework.id}
-                      className="transition hover:bg-slate-50"
+                      role="button"
+                      tabIndex={0}
+                      onClick={() =>
+                        navigate(`/frameworks/${framework.id}`)
+                      }
+                      onKeyDown={(event) => {
+                        if (
+                          event.key === "Enter" ||
+                          event.key === " "
+                        ) {
+                          event.preventDefault();
+
+                          navigate(
+                            `/frameworks/${framework.id}`
+                          );
+                        }
+                      }}
+                      className="cursor-pointer transition hover:bg-slate-50"
                     >
 
                       {/* Framework */}
@@ -505,7 +522,7 @@ export default function ComplianceReport() {
 
                         <div>
 
-                          <p className="font-semibold text-slate-900">
+                          <p className="font-semibold text-indigo-600">
                             {framework.name}
                           </p>
 

@@ -1,16 +1,16 @@
 import { useNavigate, useParams } from "react-router-dom";
-
-import AppLayout from "@/layouts/AppLayout";
-
-import { useCorrectiveAction } from "@/hooks/useCorrectiveAction";
-
 import {
   ArrowLeft,
   CalendarDays,
   ClipboardCheck,
+  Eye,
   Pencil,
   User,
 } from "lucide-react";
+
+import AppLayout from "@/layouts/AppLayout";
+
+import { useCorrectiveAction } from "@/hooks/useCorrectiveAction";
 
 function priorityClass(priority: string) {
   switch (priority) {
@@ -41,6 +41,7 @@ function statusClass(status: string) {
       return "bg-yellow-100 text-yellow-700";
 
     case "Open":
+    case "Pending":
       return "bg-blue-100 text-blue-700";
 
     default:
@@ -50,16 +51,13 @@ function statusClass(status: string) {
 
 export default function ViewCorrectiveAction() {
   const { id } = useParams();
-
   const navigate = useNavigate();
 
   const {
     data,
     isLoading,
     error,
-  } = useCorrectiveAction(
-    Number(id)
-  );
+  } = useCorrectiveAction(Number(id));
 
   if (isLoading) {
     return (
@@ -74,8 +72,27 @@ export default function ViewCorrectiveAction() {
   if (error || !data) {
     return (
       <AppLayout>
-        <div className="p-10 text-center text-red-500">
-          Corrective action not found.
+        <div className="mx-auto max-w-4xl p-10">
+          <div className="rounded-xl border border-red-200 bg-red-50 p-6">
+            <h2 className="font-semibold text-red-700">
+              Corrective Action Not Found
+            </h2>
+
+            <p className="mt-1 text-sm text-red-600">
+              The requested corrective action could not be found within your access scope.
+            </p>
+
+            <button
+              type="button"
+              onClick={() =>
+                navigate("/corrective-actions")
+              }
+              className="mt-4 flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700"
+            >
+              <ArrowLeft size={16} />
+              Back to Corrective Actions
+            </button>
+          </div>
         </div>
       </AppLayout>
     );
@@ -84,20 +101,15 @@ export default function ViewCorrectiveAction() {
   return (
     <AppLayout>
       <div className="mx-auto max-w-4xl space-y-6">
-
         {/* Header */}
-
-        <div className="flex items-start justify-between">
-
+        <div className="flex items-start justify-between gap-4">
           <div>
             <button
               type="button"
               onClick={() =>
-                navigate(
-                  "/corrective-actions"
-                )
+                navigate("/corrective-actions")
               }
-              className="mb-4 flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900"
+              className="mb-4 flex items-center gap-2 text-sm text-slate-500 transition hover:text-slate-900"
             >
               <ArrowLeft size={16} />
               Back to Corrective Actions
@@ -119,20 +131,16 @@ export default function ViewCorrectiveAction() {
                 `/corrective-actions/${data.id}/edit`
               )
             }
-            className="flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-3 font-medium text-white transition hover:bg-blue-700"
+            className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-indigo-700"
           >
             <Pencil size={16} />
-            Edit
+            Edit Action
           </button>
-
         </div>
 
         {/* Main Card */}
-
         <div className="rounded-xl border bg-white p-8 shadow-sm">
-
           {/* Status */}
-
           <div className="mb-8 flex flex-wrap gap-3">
             <span
               className={`rounded-full px-3 py-1 text-xs font-semibold ${priorityClass(
@@ -152,9 +160,7 @@ export default function ViewCorrectiveAction() {
           </div>
 
           {/* Information */}
-
           <div className="grid gap-6 md:grid-cols-2">
-
             <div className="flex gap-3">
               <ClipboardCheck
                 className="mt-1 text-slate-400"
@@ -173,6 +179,19 @@ export default function ViewCorrectiveAction() {
                 <p className="text-xs text-slate-400">
                   Finding #{data.finding_id}
                 </p>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    navigate(
+                      `/audit-findings/${data.finding_id}`
+                    )
+                  }
+                  className="mt-3 inline-flex items-center gap-2 text-sm font-medium text-indigo-600 transition hover:text-indigo-800"
+                >
+                  <Eye size={15} />
+                  View Finding
+                </button>
               </div>
             </div>
 
@@ -225,13 +244,10 @@ export default function ViewCorrectiveAction() {
                 ).toLocaleString()}
               </p>
             </div>
-
           </div>
 
           {/* Description */}
-
           <div className="mt-8 border-t pt-8">
-
             <h3 className="font-semibold text-slate-900">
               Description
             </h3>
@@ -239,14 +255,11 @@ export default function ViewCorrectiveAction() {
             <p className="mt-3 whitespace-pre-wrap leading-7 text-slate-600">
               {data.description}
             </p>
-
           </div>
 
           {/* Comments */}
-
           {data.comments && (
             <div className="mt-8 border-t pt-8">
-
               <h3 className="font-semibold text-slate-900">
                 Comments
               </h3>
@@ -254,15 +267,12 @@ export default function ViewCorrectiveAction() {
               <p className="mt-3 whitespace-pre-wrap leading-7 text-slate-600">
                 {data.comments}
               </p>
-
             </div>
           )}
 
           {/* Completed */}
-
           {data.completed_at && (
             <div className="mt-8 border-t pt-8">
-
               <h3 className="font-semibold text-slate-900">
                 Completed At
               </h3>
@@ -272,12 +282,9 @@ export default function ViewCorrectiveAction() {
                   data.completed_at
                 ).toLocaleString()}
               </p>
-
             </div>
           )}
-
         </div>
-
       </div>
     </AppLayout>
   );

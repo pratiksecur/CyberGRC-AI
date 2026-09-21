@@ -8,6 +8,7 @@ from fastapi import (
     File,
     Form,
     HTTPException,
+    Query,
     UploadFile,
 )
 from fastapi.responses import FileResponse
@@ -206,7 +207,7 @@ def create_new_evidence(
 
     Uploaded files are stored using server-generated names
     and can only be retrieved through the authorized
-    evidence download endpoint.
+    evidence file endpoint.
     """
 
     control = (
@@ -365,6 +366,13 @@ def get_evidence(
 )
 def download_evidence_file(
     evidence_id: int,
+    download: bool = Query(
+        True,
+        description=(
+            "Download the file when true; "
+            "render inline when false."
+        ),
+    ),
     db: Session = Depends(get_db),
     current_user: User = Depends(
         require_permission(
@@ -376,8 +384,15 @@ def download_evidence_file(
     """
     Securely retrieve an evidence file.
 
-    The file is returned only after the evidence resource
-    itself has passed the user's visibility check.
+    The evidence resource must first pass the user's
+    visibility check.
+
+    download=true:
+        Forces a browser download.
+
+    download=false:
+        Allows supported file types such as PDF and images
+        to render in a new browser tab.
     """
 
     visible_user_ids = get_visible_user_ids(
@@ -440,11 +455,48 @@ def download_evidence_file(
             detail="Evidence file not found.",
         )
 
+    extension = (
+        resolved_path.suffix.lower()
+    )
+
+    media_type_map = {
+        ".pdf": "application/pdf",
+        ".png": "image/png",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".txt": "text/plain",
+        ".csv": "text/csv",
+        ".doc": "application/msword",
+        ".docx": (
+            "application/vnd.openxmlformats-officedocument."
+            "wordprocessingml.document"
+        ),
+        ".xls": "application/vnd.ms-excel",
+        ".xlsx": (
+            "application/vnd.openxmlformats-officedocument."
+            "spreadsheetml.sheet"
+        ),
+        ".zip": "application/zip",
+    }
+
+    media_type = media_type_map.get(
+        extension,
+        "application/octet-stream",
+    )
+
+    content_disposition_type = (
+        "attachment"
+        if download
+        else "inline"
+    )
+
     return FileResponse(
         path=resolved_path,
         filename=evidence.file_name,
-        media_type="application/octet-stream",
-        content_disposition_type="attachment",
+        media_type=media_type,
+        content_disposition_type=(
+            content_disposition_type
+        ),
         headers={
             "X-Content-Type-Options": "nosniff",
             "Cache-Control": (
@@ -497,8 +549,6 @@ def update_existing_evidence(
             detail="Evidence not found.",
         )
 
-    # Do not allow an API client to change the
-    # server-managed physical path.
     update_data = evidence_data.model_dump(
         exclude_unset=True
     )
