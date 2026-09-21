@@ -1,5 +1,6 @@
 import api from "./axios";
 
+
 export interface Evidence {
   id: number;
   control_id: number;
@@ -11,6 +12,7 @@ export interface Evidence {
   uploaded_at: string;
 }
 
+
 export interface CreateEvidenceRequest {
   control_id: number;
   title: string;
@@ -20,10 +22,15 @@ export interface CreateEvidenceRequest {
   uploaded_by: number;
 }
 
+
 export async function getEvidence(): Promise<Evidence[]> {
-  const response = await api.get("/evidence/");
+  const response = await api.get(
+    "/evidence/"
+  );
+
   return response.data;
 }
+
 
 export async function getEvidenceById(
   id: number
@@ -35,21 +42,18 @@ export async function getEvidenceById(
   return response.data;
 }
 
+
 export async function createEvidence(
   data: FormData
 ): Promise<Evidence> {
   const response = await api.post(
     "/evidence/",
-    data,
-    {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    }
+    data
   );
 
   return response.data;
 }
+
 
 export async function updateEvidence(
   id: number,
@@ -63,10 +67,13 @@ export async function updateEvidence(
   return response.data;
 }
 
+
 export async function deleteEvidence(
   id: number
-) {
-  await api.delete(`/evidence/${id}`);
+): Promise<void> {
+  await api.delete(
+    `/evidence/${id}`
+  );
 }
 
 
@@ -76,6 +83,9 @@ export async function downloadEvidence(
   const response = await api.get(
     `/evidence/${id}/file`,
     {
+      params: {
+        download: true,
+      },
       responseType: "blob",
     }
   );
@@ -87,15 +97,32 @@ export async function downloadEvidence(
 export async function openEvidence(
   id: number
 ): Promise<void> {
-  const blob = await downloadEvidence(id);
+  const response = await api.get(
+    `/evidence/${id}/file`,
+    {
+      params: {
+        download: false,
+      },
+      responseType: "blob",
+    }
+  );
 
-  const objectUrl = URL.createObjectURL(blob);
+  const objectUrl =
+    URL.createObjectURL(response.data);
 
-  window.open(
+  const newWindow = window.open(
     objectUrl,
     "_blank",
     "noopener,noreferrer"
   );
+
+  if (!newWindow) {
+    URL.revokeObjectURL(objectUrl);
+
+    throw new Error(
+      "Unable to open the evidence file. Please allow pop-ups for this site."
+    );
+  }
 
   setTimeout(() => {
     URL.revokeObjectURL(objectUrl);

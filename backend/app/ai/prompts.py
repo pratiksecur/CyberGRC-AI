@@ -75,29 +75,63 @@ IMPORTANT RULES:
 2. Do NOT return Markdown.
 3. Do NOT include explanations outside the JSON.
 4. Do NOT wrap the response inside code fences.
-5. Prefer controls that already exist in the organization's control library.
-6. Only recommend new controls if no suitable existing control is available.
+5. Do NOT add fields that are not shown in the required structure.
+6. Every required string field must contain meaningful natural-language text.
+7. Do NOT use placeholders such as "...", "N/A", "None", "Unknown", or empty strings.
+8. "overall_assessment" MUST contain at least 20 words.
+9. "existing_controls_assessment" MUST contain at least 20 words.
+10. Every "reason" MUST contain at least 10 words.
+11. Use the exact priority values: Low, Medium, High, Critical.
+12. If there are no suitable existing controls, return an empty array for "recommended_existing_controls".
+13. If the existing control library is sufficient, return an empty array for "recommended_new_controls".
 
 Return EXACTLY this JSON structure:
 
 {{
-    "overall_assessment": "...",
-    "existing_controls_assessment": "...",
+    "overall_assessment": "A meaningful assessment of the overall security posture, including whether the current controls sufficiently address the identified risk.",
+    "existing_controls_assessment": "A meaningful assessment explaining how the controls already assigned to the risk address the identified threat and where coverage may remain incomplete.",
     "recommended_existing_controls": [
         {{
-            "control_name": "...",
+            "control_name": "Name of an existing control from the supplied CyberGRC control library",
             "priority": "High",
-            "reason": "..."
+            "reason": "Explain why this existing control is relevant to the identified risk and what security gap it addresses."
         }}
     ],
     "recommended_new_controls": [
         {{
-            "control_name": "...",
+            "control_name": "Name of a genuinely new control that is not adequately represented in the supplied control library",
             "priority": "Medium",
-            "reason": "..."
+            "reason": "Explain why the existing control library is insufficient and why a new control is required."
         }}
     ]
 }}
+
+FIELD REQUIREMENTS:
+
+overall_assessment:
+- Must be a meaningful natural-language assessment.
+- Minimum 20 words.
+- Do not use placeholders.
+
+existing_controls_assessment:
+- Must be a meaningful natural-language assessment.
+- Minimum 20 words.
+- Do not use placeholders.
+
+recommended_existing_controls:
+- Use only controls that already exist in the supplied control library.
+- If no suitable control exists, return [].
+
+recommended_new_controls:
+- Recommend new controls only when the supplied control library is insufficient.
+- If no new control is required, return [].
+
+Each recommendation must contain:
+- control_name
+- priority
+- reason
+
+Each "reason" must be meaningful and contain at least 10 words.
 
 Risk Title:
 {title}

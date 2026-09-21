@@ -182,12 +182,26 @@ def validate_ai_model(
     try:
         return schema.model_validate(data)
 
-    except ValidationError:
-        # Do not log validation payloads because they may contain
-        # attacker-controlled or sensitive information.
+    except ValidationError as exc:
+        # Do not log validation payloads or invalid values because
+        # they may contain attacker-controlled or sensitive information.
+        # Pydantic validation locations are schema-defined field paths,
+        # so they provide safe diagnostic information without exposing
+        # the actual AI response.
+        locations = [
+            ".".join(
+                str(part)
+                for part in error.get("loc", ())
+            )
+            for error in exc.errors()
+        ]
+
         logger.warning(
-            "AI output validation failed schema=%s",
+            "AI output validation failed schema=%s "
+            "error_count=%s locations=%s",
             schema.__name__,
+            len(locations),
+            locations,
         )
 
         raise AIGovernanceError(

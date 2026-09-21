@@ -1,14 +1,91 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { type ComponentType } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+
+import {
+  AlertTriangle,
+  ArrowLeft,
+  CheckCircle2,
+  ClipboardCheck,
+  FileCheck2,
+  Pencil,
+  ShieldAlert,
+  Target,
+} from "lucide-react";
 
 import AppLayout from "@/layouts/AppLayout";
 
+import { Button } from "@/components/ui/button";
+import Can from "@/components/auth/Can";
+
 import { useControl } from "@/hooks/useControl";
+import { useEvidence } from "@/hooks/useEvidence";
 import { useFrameworkControls } from "@/hooks/useFrameworkControls";
 import { useFrameworks } from "@/hooks/useFrameworks";
 import { useFrameworkControlsForControl } from "@/hooks/useFrameworkControlsForControl";
 import { useCreateControlFrameworkMapping } from "@/hooks/useCreateControlFrameworkMapping";
+import { useRisksForControl } from "@/hooks/useRisksForControl";
 
-import Can from "@/components/auth/Can";
+
+// ==========================================================
+// Helpers
+// ==========================================================
+
+function effectivenessClass(
+  effectiveness: number
+) {
+  if (effectiveness >= 80) {
+    return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  }
+
+  if (effectiveness >= 50) {
+    return "border-orange-200 bg-orange-50 text-orange-700";
+  }
+
+  return "border-red-200 bg-red-50 text-red-700";
+}
+
+
+function statusClass(status: string) {
+  const normalized = status.toLowerCase();
+
+  if (
+    normalized === "active" ||
+    normalized === "effective"
+  ) {
+    return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  }
+
+  if (
+    normalized === "inactive" ||
+    normalized === "ineffective"
+  ) {
+    return "border-red-200 bg-red-50 text-red-700";
+  }
+
+  return "border-slate-200 bg-slate-50 text-slate-700";
+}
+
+
+function riskScoreClass(score: number) {
+  if (score >= 20) {
+    return "border-red-200 bg-red-50 text-red-700";
+  }
+
+  if (score >= 15) {
+    return "border-orange-200 bg-orange-50 text-orange-700";
+  }
+
+  if (score >= 8) {
+    return "border-yellow-200 bg-yellow-50 text-yellow-700";
+  }
+
+  return "border-emerald-200 bg-emerald-50 text-emerald-700";
+}
+
+
+// ==========================================================
+// Page
+// ==========================================================
 
 export default function ViewControl() {
   const { id } = useParams();
@@ -23,6 +100,18 @@ export default function ViewControl() {
   } = useControl(controlId);
 
   const {
+    data: risks,
+    isLoading: risksLoading,
+    error: risksError,
+  } = useRisksForControl(controlId);
+
+  const {
+    data: evidence,
+    isLoading: evidenceLoading,
+    error: evidenceError,
+  } = useEvidence();
+
+  const {
     data: frameworkControls,
     isLoading: frameworkControlsLoading,
   } = useFrameworkControls();
@@ -35,34 +124,47 @@ export default function ViewControl() {
   const {
     data: mappedFrameworkControls,
     isLoading: mappingsLoading,
-  } =
-    useFrameworkControlsForControl(
-      controlId
-    );
+  } = useFrameworkControlsForControl(
+    controlId
+  );
 
   const mappingMutation =
     useCreateControlFrameworkMapping();
 
+
+  // ========================================================
+  // Loading
+  // ========================================================
+
   if (
     isLoading ||
+    risksLoading ||
+    evidenceLoading ||
     frameworkControlsLoading ||
     frameworksLoading ||
     mappingsLoading
   ) {
     return (
       <AppLayout>
-        <div className="p-10">
+        <div className="p-10 text-center">
           Loading control...
         </div>
       </AppLayout>
     );
   }
 
+
+  // ========================================================
+  // Error
+  // ========================================================
+
   if (
     error ||
     !data ||
     !frameworkControls ||
-    !frameworks
+    !frameworks ||
+    !risks ||
+    !evidence
   ) {
     return (
       <AppLayout>
@@ -72,6 +174,22 @@ export default function ViewControl() {
       </AppLayout>
     );
   }
+
+
+  // ========================================================
+  // Derived data
+  // ========================================================
+
+  const controlEvidence =
+    evidence.filter(
+      (item) =>
+        item.control_id === controlId
+    );
+
+  const evidenceCoverage =
+    controlEvidence.length > 0
+      ? 100
+      : 0;
 
   const mappedIds = new Set(
     (mappedFrameworkControls ?? []).map(
@@ -92,130 +210,156 @@ export default function ViewControl() {
       ])
     );
 
+
   return (
     <AppLayout>
 
-      <div className="mx-auto max-w-4xl space-y-6">
+      <div className="mx-auto max-w-7xl space-y-6">
 
-        {/* Header */}
+        {/* ==================================================
+            Header
+        ================================================== */}
 
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
 
           <div>
 
-            <h1 className="text-3xl font-bold">
-              {data.title}
-            </h1>
+            <div className="flex flex-wrap items-center gap-3">
 
-            <p className="text-slate-500">
-              View cybersecurity control
+              <h1 className="text-3xl font-bold text-slate-900">
+                {data.title}
+              </h1>
+
+              <span
+                className={`rounded-full border px-3 py-1 text-xs font-semibold ${effectivenessClass(
+                  data.effectiveness
+                )}`}
+              >
+                {data.effectiveness}% effective
+              </span>
+
+            </div>
+
+            <p className="mt-2 text-slate-500">
+              Control Details and GRC Posture
             </p>
 
           </div>
 
-          <button
-            type="button"
-            onClick={() =>
-              navigate("/controls")
-            }
-            className="rounded-lg border px-4 py-2 hover:bg-slate-100"
-          >
-            Back
-          </button>
+
+          <div className="flex flex-wrap gap-3">
+
+            <Button
+              variant="outline"
+              onClick={() =>
+                navigate("/controls")
+              }
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back
+            </Button>
+
+
+            <Can
+              resource="controls"
+              action="update"
+            >
+              <Button
+                onClick={() =>
+                  navigate(
+                    `/controls/${data.id}/edit`
+                  )
+                }
+              >
+                <Pencil className="mr-2 h-4 w-4" />
+                Edit Control
+              </Button>
+            </Can>
+
+          </div>
 
         </div>
 
-        {/* Details */}
 
-        <div className="space-y-8 rounded-2xl border bg-white p-8">
+        {/* ==================================================
+            Control Information
+        ================================================== */}
 
-          <div>
+        <div className="grid gap-6 md:grid-cols-2">
 
-            <h2 className="mb-2 text-lg font-semibold">
-              Description
+          <div className="rounded-2xl border bg-white p-6 shadow-sm">
+
+            <h2 className="mb-4 text-lg font-semibold">
+              Control Information
             </h2>
 
-            <p className="text-slate-600">
-              {data.description}
-            </p>
+            <div>
+
+              <p className="mb-2 text-sm font-medium text-slate-500">
+                Description
+              </p>
+
+              <p className="leading-7 text-slate-600">
+                {data.description}
+              </p>
+
+            </div>
 
           </div>
 
-          <div className="grid gap-6 md:grid-cols-2">
 
-            <div>
+          <div className="rounded-2xl border bg-white p-6 shadow-sm">
 
-              <p className="text-sm text-slate-500">
-                Control Type
-              </p>
+            <h2 className="mb-4 text-lg font-semibold">
+              Assessment
+            </h2>
 
-              <p className="font-medium">
-                {data.control_type}
-              </p>
+            <div className="space-y-4">
 
-            </div>
+              <DetailRow
+                label="Control Type"
+                value={data.control_type}
+              />
 
-            <div>
+              <div className="flex items-center justify-between gap-4">
 
-              <p className="text-sm text-slate-500">
-                Status
-              </p>
+                <span className="text-sm text-slate-500">
+                  Status
+                </span>
 
-              <p className="font-medium">
-                {data.status}
-              </p>
+                <span
+                  className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${statusClass(
+                    data.status
+                  )}`}
+                >
+                  {data.status}
+                </span>
 
-            </div>
+              </div>
 
-            <div>
+              <DetailRow
+                label="Effectiveness"
+                value={`${data.effectiveness}%`}
+              />
 
-              <p className="text-sm text-slate-500">
-                Effectiveness
-              </p>
+              <DetailRow
+                label="Owner"
+                value={`User #${data.owner_id}`}
+              />
 
-              <p className="font-medium">
-                {data.effectiveness}%
-              </p>
-
-            </div>
-
-            <div>
-
-              <p className="text-sm text-slate-500">
-                Owner
-              </p>
-
-              <p className="font-medium">
-                User #{data.owner_id}
-              </p>
-
-            </div>
-
-            <div>
-
-              <p className="text-sm text-slate-500">
-                Created
-              </p>
-
-              <p className="font-medium">
-                {new Date(
+              <DetailRow
+                label="Created"
+                value={new Date(
                   data.created_at
                 ).toLocaleString()}
-              </p>
+              />
 
-            </div>
-
-            <div>
-
-              <p className="text-sm text-slate-500">
-                Updated
-              </p>
-
-              <p className="font-medium">
-                {new Date(
+              <DetailRow
+                label="Updated"
+                value={new Date(
                   data.updated_at
                 ).toLocaleString()}
-              </p>
+              />
 
             </div>
 
@@ -223,21 +367,386 @@ export default function ViewControl() {
 
         </div>
 
-        {/* Framework Mapping */}
 
-        <div className="rounded-2xl border bg-white">
+        {/* ==================================================
+            GRC Posture
+        ================================================== */}
+
+        <section className="rounded-2xl border bg-white shadow-sm">
 
           <div className="border-b p-6">
 
-            <h2 className="text-lg font-semibold">
-              Framework Requirements
-            </h2>
+            <div className="flex items-start gap-3">
 
-            <p className="text-sm text-slate-500">
-              Compliance requirements mapped to this control.
-            </p>
+              <div className="rounded-xl bg-indigo-50 p-3">
+                <Target className="h-6 w-6 text-indigo-600" />
+              </div>
+
+              <div>
+
+                <h2 className="text-lg font-semibold">
+                  GRC Posture
+                </h2>
+
+                <p className="mt-1 text-sm text-slate-500">
+                  Connected risks, evidence, and compliance
+                  requirements for this control.
+                </p>
+
+              </div>
+
+            </div>
 
           </div>
+
+
+          <div className="grid gap-4 p-6 sm:grid-cols-2 lg:grid-cols-4">
+
+            <PostureMetric
+              label="Associated Risks"
+              value={risks.length}
+              icon={ShieldAlert}
+              emphasis={
+                risks.some(
+                  (risk) =>
+                    risk.risk_score >= 20
+                )
+                  ? "critical"
+                  : undefined
+              }
+            />
+
+            <PostureMetric
+              label="Evidence"
+              value={controlEvidence.length}
+              icon={FileCheck2}
+            />
+
+            <PostureMetric
+              label="Evidence Coverage"
+              value={`${evidenceCoverage}%`}
+              icon={CheckCircle2}
+              emphasis={
+                evidenceCoverage === 0
+                  ? "critical"
+                  : undefined
+              }
+            />
+
+            <PostureMetric
+              label="Framework Requirements"
+              value={
+                mappedFrameworkControls?.length ?? 0
+              }
+              icon={ClipboardCheck}
+            />
+
+          </div>
+
+        </section>
+
+
+        {/* ==================================================
+            Associated Risks
+        ================================================== */}
+
+        <section className="rounded-2xl border bg-white shadow-sm">
+
+          <div className="border-b p-6">
+
+            <div className="flex items-start gap-3">
+
+              <div className="rounded-xl bg-red-50 p-3">
+                <ShieldAlert className="h-6 w-6 text-red-600" />
+              </div>
+
+              <div>
+
+                <h2 className="text-lg font-semibold">
+                  Associated Risks
+                </h2>
+
+                <p className="mt-1 text-sm text-slate-500">
+                  Risks currently mapped to this control.
+                </p>
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <div className="p-6">
+
+            {risksError ? (
+
+              <div className="rounded-xl border border-red-200 bg-red-50 p-5">
+
+                <div className="flex items-start gap-3">
+
+                  <AlertTriangle className="mt-0.5 h-5 w-5 text-red-600" />
+
+                  <div>
+
+                    <h3 className="font-semibold text-red-700">
+                      Risks unavailable
+                    </h3>
+
+                    <p className="mt-1 text-sm text-red-600">
+                      The associated risks could not be loaded.
+                    </p>
+
+                  </div>
+
+                </div>
+
+              </div>
+
+            ) : risks.length === 0 ? (
+
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-5">
+
+                <div className="flex items-start gap-3">
+
+                  <CheckCircle2 className="mt-0.5 h-5 w-5 text-emerald-600" />
+
+                  <div>
+
+                    <h3 className="font-semibold text-emerald-700">
+                      No risks mapped
+                    </h3>
+
+                    <p className="mt-1 text-sm text-emerald-600">
+                      This control is not currently associated
+                      with any visible risks.
+                    </p>
+
+                  </div>
+
+                </div>
+
+              </div>
+
+            ) : (
+
+              <div className="space-y-3">
+
+                {risks.map((risk) => (
+
+                  <button
+                    key={risk.id}
+                    type="button"
+                    onClick={() =>
+                      navigate(
+                        `/risks/${risk.id}`
+                      )
+                    }
+                    className="flex w-full items-center justify-between rounded-xl border p-4 text-left transition hover:bg-slate-50"
+                  >
+
+                    <div className="min-w-0">
+
+                      <div className="flex flex-wrap items-center gap-2">
+
+                        <span className="font-mono text-xs text-slate-400">
+                          Risk #{risk.id}
+                        </span>
+
+                        <span
+                          className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold ${riskScoreClass(
+                            risk.risk_score
+                          )}`}
+                        >
+                          Score {risk.risk_score}
+                        </span>
+
+                      </div>
+
+                      <p className="mt-1 font-medium text-slate-900">
+                        {risk.title}
+                      </p>
+
+                      <p className="mt-1 text-sm text-slate-500">
+                        {risk.status}
+                      </p>
+
+                    </div>
+
+                    <span className="shrink-0 text-sm font-medium text-blue-600">
+                      View Risk →
+                    </span>
+
+                  </button>
+
+                ))}
+
+              </div>
+
+            )}
+
+          </div>
+
+        </section>
+
+
+        {/* ==================================================
+            Evidence
+        ================================================== */}
+
+        <section className="rounded-2xl border bg-white shadow-sm">
+
+          <div className="border-b p-6">
+
+            <div className="flex items-start gap-3">
+
+              <div className="rounded-xl bg-emerald-50 p-3">
+                <FileCheck2 className="h-6 w-6 text-emerald-600" />
+              </div>
+
+              <div>
+
+                <h2 className="text-lg font-semibold">
+                  Evidence
+                </h2>
+
+                <p className="mt-1 text-sm text-slate-500">
+                  Evidence currently associated with this control.
+                </p>
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <div className="p-6">
+
+            {evidenceError ? (
+
+              <div className="rounded-xl border border-red-200 bg-red-50 p-5">
+
+                <div className="flex items-start gap-3">
+
+                  <AlertTriangle className="mt-0.5 h-5 w-5 text-red-600" />
+
+                  <div>
+
+                    <h3 className="font-semibold text-red-700">
+                      Evidence unavailable
+                    </h3>
+
+                    <p className="mt-1 text-sm text-red-600">
+                      Evidence could not be loaded.
+                    </p>
+
+                  </div>
+
+                </div>
+
+              </div>
+
+            ) : controlEvidence.length === 0 ? (
+
+              <div className="rounded-xl border border-orange-200 bg-orange-50 p-5">
+
+                <div className="flex items-start gap-3">
+
+                  <AlertTriangle className="mt-0.5 h-5 w-5 text-orange-600" />
+
+                  <div>
+
+                    <h3 className="font-semibold text-orange-700">
+                      No evidence available
+                    </h3>
+
+                    <p className="mt-1 text-sm text-orange-700">
+                      This control currently has no visible evidence.
+                    </p>
+
+                  </div>
+
+                </div>
+
+              </div>
+
+            ) : (
+
+              <div className="space-y-3">
+
+                {controlEvidence.map((item) => (
+
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() =>
+                      navigate(
+                        `/evidence/${item.id}`
+                      )
+                    }
+                    className="flex w-full items-center justify-between rounded-xl border p-4 text-left transition hover:bg-slate-50"
+                  >
+
+                    <div className="min-w-0">
+
+                      <p className="font-medium text-slate-900">
+                        {item.title}
+                      </p>
+
+                      <p className="mt-1 text-sm text-slate-500">
+                        {item.file_name}
+                      </p>
+
+                    </div>
+
+                    <span className="shrink-0 text-sm font-medium text-blue-600">
+                      View Evidence →
+                    </span>
+
+                  </button>
+
+                ))}
+
+              </div>
+
+            )}
+
+          </div>
+
+        </section>
+
+
+        {/* ==================================================
+            Framework Requirements
+        ================================================== */}
+
+        <section className="rounded-2xl border bg-white shadow-sm">
+
+          <div className="border-b p-6">
+
+            <div className="flex items-start gap-3">
+
+              <div className="rounded-xl bg-indigo-50 p-3">
+                <ClipboardCheck className="h-6 w-6 text-indigo-600" />
+              </div>
+
+              <div>
+
+                <h2 className="text-lg font-semibold">
+                  Framework Requirements
+                </h2>
+
+                <p className="mt-1 text-sm text-slate-500">
+                  Compliance requirements mapped to this control.
+                </p>
+
+              </div>
+
+            </div>
+
+          </div>
+
 
           <div className="space-y-4 p-6">
 
@@ -255,7 +764,7 @@ export default function ViewControl() {
                         `/framework-controls/${frameworkControl.id}`
                       )
                     }
-                    className="flex w-full items-center justify-between rounded-lg border p-4 text-left hover:bg-slate-50"
+                    className="flex w-full items-center justify-between rounded-xl border p-4 text-left transition hover:bg-slate-50"
                   >
 
                     <div>
@@ -264,7 +773,7 @@ export default function ViewControl() {
                         {frameworkControl.control_code}
                       </p>
 
-                      <p className="font-medium">
+                      <p className="font-medium text-slate-900">
                         {frameworkControl.title}
                       </p>
 
@@ -277,8 +786,8 @@ export default function ViewControl() {
 
                     </div>
 
-                    <span className="text-sm text-blue-600">
-                      View
+                    <span className="text-sm font-medium text-blue-600">
+                      View →
                     </span>
 
                   </button>
@@ -295,6 +804,7 @@ export default function ViewControl() {
             )}
 
           </div>
+
 
           {/* Create Mapping */}
 
@@ -315,12 +825,14 @@ export default function ViewControl() {
                   defaultValue=""
                   className="flex-1 rounded-lg border px-4 py-2"
                 >
+
                   <option value="">
                     Select framework requirement
                   </option>
 
                   {availableFrameworkControls.map(
                     (frameworkControl) => (
+
                       <option
                         key={frameworkControl.id}
                         value={frameworkControl.id}
@@ -328,10 +840,12 @@ export default function ViewControl() {
                         {frameworkControl.control_code} —{" "}
                         {frameworkControl.title}
                       </option>
+
                     )
                   )}
 
                 </select>
+
 
                 <button
                   type="button"
@@ -340,6 +854,7 @@ export default function ViewControl() {
                     availableFrameworkControls.length === 0
                   }
                   onClick={async () => {
+
                     const select =
                       document.getElementById(
                         "framework-control"
@@ -348,9 +863,7 @@ export default function ViewControl() {
                     const frameworkControlId =
                       Number(select.value);
 
-                    if (
-                      !frameworkControlId
-                    ) {
+                    if (!frameworkControlId) {
                       alert(
                         "Please select a framework requirement."
                       );
@@ -358,6 +871,7 @@ export default function ViewControl() {
                     }
 
                     try {
+
                       await mappingMutation.mutateAsync({
                         control_id:
                           controlId,
@@ -366,12 +880,17 @@ export default function ViewControl() {
                       });
 
                       select.value = "";
+
                     } catch (error) {
+
                       console.error(error);
+
                       alert(
                         "Failed to create framework mapping."
                       );
+
                     }
+
                   }}
                   className="rounded-lg bg-blue-600 px-5 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
                 >
@@ -385,10 +904,132 @@ export default function ViewControl() {
             </div>
           </Can>
 
-        </div>
+        </section>
+
+
+        {/* ==================================================
+            Connected GRC Lifecycle
+        ================================================== */}
+
+        <section className="rounded-2xl border border-slate-700 bg-slate-900 p-6">
+
+          <div className="flex items-start gap-3">
+
+            <div className="rounded-lg bg-slate-950 p-2">
+
+              <Target className="h-5 w-5 text-indigo-400" />
+
+            </div>
+
+            <div>
+
+              <h2 className="text-sm font-semibold text-white">
+                Connected GRC Lifecycle
+              </h2>
+
+              <p className="mt-1 text-sm leading-6 text-slate-300">
+                This control connects organizational risks with
+                supporting evidence and compliance framework
+                requirements. Relationship results are limited to
+                resources within the current user's authorization scope.
+              </p>
+
+            </div>
+
+          </div>
+
+        </section>
 
       </div>
 
     </AppLayout>
+  );
+}
+
+
+// ==========================================================
+// Detail Row
+// ==========================================================
+
+interface DetailRowProps {
+  label: string;
+  value: string;
+}
+
+function DetailRow({
+  label,
+  value,
+}: DetailRowProps) {
+  return (
+    <div className="flex items-center justify-between gap-4">
+
+      <span className="text-sm text-slate-500">
+        {label}
+      </span>
+
+      <span className="text-right font-medium text-slate-900">
+        {value}
+      </span>
+
+    </div>
+  );
+}
+
+
+// ==========================================================
+// Posture Metric
+// ==========================================================
+
+interface PostureMetricProps {
+  label: string;
+  value: number | string;
+  icon: ComponentType<{
+    className?: string;
+  }>;
+  emphasis?: "critical";
+}
+
+function PostureMetric({
+  label,
+  value,
+  icon: Icon,
+  emphasis,
+}: PostureMetricProps) {
+  return (
+    <div
+      className={`rounded-xl border p-4 ${
+        emphasis === "critical"
+          ? "border-red-200 bg-red-50"
+          : "bg-slate-50"
+      }`}
+    >
+
+      <div className="flex items-center justify-between">
+
+        <span className="text-sm text-slate-500">
+          {label}
+        </span>
+
+        <Icon
+          className={`h-5 w-5 ${
+            emphasis === "critical"
+              ? "text-red-600"
+              : "text-slate-400"
+          }`}
+        />
+
+      </div>
+
+      <p
+        className={`mt-2 text-2xl font-bold ${
+          emphasis === "critical"
+            ? "text-red-700"
+            : "text-slate-900"
+        }`}
+      >
+        {value}
+      </p>
+
+    </div>
   );
 }
