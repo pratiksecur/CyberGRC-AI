@@ -1,5 +1,8 @@
 import asyncio
+import logging
+import time
 from contextlib import asynccontextmanager
+from uuid import uuid4
 
 from fastapi import (
     FastAPI,
@@ -81,12 +84,20 @@ from app.core.config import (
     CORS_ORIGINS,
     MAX_REQUEST_BODY_BYTES,
 )
+from app.database.database import engine
 from app.exceptions.handlers import (
     register_exception_handlers,
 )
 from app.services.notification_scheduler import (
     notification_scheduler_loop,
 )
+
+
+logger = logging.getLogger(
+    "cybergrc.application"
+)
+
+logger.setLevel(logging.INFO)
 
 
 # ==========================================================
@@ -97,9 +108,13 @@ from app.services.notification_scheduler import (
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
-    Start background services when the application starts
-    and stop them cleanly during shutdown.
+    Start background services during application startup
+    and cleanly stop them during application shutdown.
     """
+
+    logger.info(
+        "application_startup"
+    )
 
     scheduler_task = asyncio.create_task(
         notification_scheduler_loop()
@@ -109,13 +124,26 @@ async def lifespan(app: FastAPI):
         yield
 
     finally:
+        logger.info(
+            "application_shutdown_started"
+        )
+
         scheduler_task.cancel()
 
         try:
             await scheduler_task
 
         except asyncio.CancelledError:
-            pass
+            logger.info(
+                "notification_scheduler_cancelled"
+            )
+
+        finally:
+            engine.dispose()
+
+        logger.info(
+            "application_shutdown_completed"
+        )
 
 
 # ==========================================================
@@ -188,6 +216,87 @@ async def request_size_limit_middleware(
             )
 
     return await call_next(request)
+
+
+# ==========================================================
+# REQUEST CONTEXT + LOGGING
+# ==========================================================
+
+
+@app.middleware("http")
+async def request_context_middleware(
+    request: Request,
+    call_next,
+):
+    """
+    Generate a server-side request ID and log the final
+    outcome of each request.
+
+    Only safe request metadata is logged:
+
+    - request ID
+    - HTTP method
+    - URL path
+    - HTTP status
+    - request duration
+
+    Query-string values are intentionally excluded because
+    URLs may contain sensitive information.
+    """
+
+    request_id = str(uuid4())
+
+    request.state.request_id = request_id
+
+    start_time = time.perf_counter()
+
+    try:
+        response = await call_next(request)
+
+    except Exception as exc:
+        duration_ms = (
+            time.perf_counter() - start_time
+        ) * 1000
+
+        logger.error(
+            "request_failed "
+            "request_id=%s "
+            "method=%s "
+            "path=%s "
+            "exception_type=%s "
+            "duration_ms=%.2f",
+            request_id,
+            request.method,
+            request.url.path,
+            type(exc).__name__,
+            duration_ms,
+        )
+
+        raise
+
+    duration_ms = (
+        time.perf_counter() - start_time
+    ) * 1000
+
+    response.headers[
+        "X-Request-ID"
+    ] = request_id
+
+    logger.info(
+        "request_completed "
+        "request_id=%s "
+        "method=%s "
+        "path=%s "
+        "status_code=%s "
+        "duration_ms=%.2f",
+        request_id,
+        request.method,
+        request.url.path,
+        response.status_code,
+        duration_ms,
+    )
+
+    return response
 
 
 # ==========================================================
@@ -266,6 +375,9 @@ app.add_middleware(
         "Authorization",
         "Content-Type",
         "Accept",
+    ],
+    expose_headers=[
+        "X-Request-ID",
     ],
 )
 

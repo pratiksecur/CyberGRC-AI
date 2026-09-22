@@ -25,7 +25,11 @@ from app.services.notification_service import (
 )
 
 
-logger = logging.getLogger("uvicorn")
+logger = logging.getLogger(
+    "cybergrc.notifications.scheduler"
+)
+
+logger.setLevel(logging.INFO)
 
 
 # ==========================================================
@@ -38,6 +42,7 @@ SCHEDULER_INTERVAL_SECONDS = 15 * 60
 # ==========================================================
 # SINGLE SCHEDULER RUN
 # ==========================================================
+
 
 def run_notification_scheduler():
     """
@@ -62,26 +67,30 @@ def run_notification_scheduler():
                     action,
                 )
 
-            except Exception:
-                logger.exception(
-                    "Failed to process scheduled notification "
-                    "for Corrective Action #%s.",
+            except Exception as exc:
+                logger.error(
+                    "scheduled_notification_failed "
+                    "corrective_action_id=%s "
+                    "exception_type=%s",
                     action.id,
+                    type(exc).__name__,
                 )
 
         db.commit()
 
         logger.info(
-            "Notification scheduler completed. "
-            "Processed %s corrective actions.",
+            "notification_scheduler_completed "
+            "processed_corrective_actions=%s",
             len(actions),
         )
 
-    except Exception:
+    except Exception as exc:
         db.rollback()
 
-        logger.exception(
-            "Notification scheduler run failed."
+        logger.error(
+            "notification_scheduler_run_failed "
+            "exception_type=%s",
+            type(exc).__name__,
         )
 
     finally:
@@ -92,6 +101,7 @@ def run_notification_scheduler():
 # BACKGROUND LOOP
 # ==========================================================
 
+
 async def notification_scheduler_loop():
     """
     Run the notification scheduler continuously.
@@ -101,8 +111,8 @@ async def notification_scheduler_loop():
     """
 
     logger.info(
-        "Notification scheduler started. "
-        "Interval: %s seconds.",
+        "notification_scheduler_started "
+        "interval_seconds=%s",
         SCHEDULER_INTERVAL_SECONDS,
     )
 
@@ -114,13 +124,15 @@ async def notification_scheduler_loop():
 
         except asyncio.CancelledError:
             logger.info(
-                "Notification scheduler stopped."
+                "notification_scheduler_stopped"
             )
             raise
 
-        except Exception:
-            logger.exception(
-                "Unexpected notification scheduler error."
+        except Exception as exc:
+            logger.error(
+                "notification_scheduler_unexpected_error "
+                "exception_type=%s",
+                type(exc).__name__,
             )
 
         await asyncio.sleep(
