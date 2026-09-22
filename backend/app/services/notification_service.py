@@ -20,6 +20,7 @@ from app.services.notification_recipient_service import (
 # INTERNAL HELPERS
 # ==========================================================
 
+
 def _notification_exists(
     db: Session,
     user_id: int,
@@ -111,6 +112,7 @@ def _create_for_recipients(
 # RISK EVENT
 # ==========================================================
 
+
 def notify_risk_event(
     db: Session,
     risk: Risk,
@@ -148,6 +150,7 @@ def notify_risk_event(
 # AUDIT EVENT
 # ==========================================================
 
+
 def notify_audit_event(
     db: Session,
     audit: Audit,
@@ -178,6 +181,7 @@ def notify_audit_event(
 # ==========================================================
 # AUDIT FINDING EVENT
 # ==========================================================
+
 
 def notify_finding_event(
     db: Session,
@@ -212,6 +216,7 @@ def notify_finding_event(
 # ==========================================================
 # CORRECTIVE ACTION EVENT
 # ==========================================================
+
 
 def notify_corrective_action_event(
     db: Session,
@@ -340,6 +345,7 @@ def notify_corrective_action_event(
 # READ NOTIFICATIONS
 # ==========================================================
 
+
 def get_notifications(
     db: Session,
     user_id: int,
@@ -349,7 +355,7 @@ def get_notifications(
 
     IMPORTANT:
 
-    This function is now read-only.
+    This function is read-only.
 
     Opening the notification panel no longer scans the entire
     GRC database and does not generate notifications.
@@ -371,6 +377,7 @@ def get_notifications(
 # ==========================================================
 # UNREAD COUNT
 # ==========================================================
+
 
 def get_unread_count(
     db: Session,
@@ -395,6 +402,7 @@ def get_unread_count(
 # ==========================================================
 # MARK ONE AS READ
 # ==========================================================
+
 
 def mark_notification_read(
     db: Session,
@@ -424,6 +432,7 @@ def mark_notification_read(
 # ==========================================================
 # MARK ALL AS READ
 # ==========================================================
+
 
 def mark_all_notifications_read(
     db: Session,

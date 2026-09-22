@@ -9,6 +9,8 @@ __pycache__/
 *.egg
 
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
 # ==========================
 # Build & Distribution
@@ -27,12 +29,26 @@ backend/venv/
 # Environment Variables
 # ==========================
 .env
+.env.*
+!.env.example
+
 backend/.env
+backend/.env.*
+!backend/.env.example
 
 # ==========================
-# VS Code
+# Secrets / Certificates
+# ==========================
+.secrets/
+*.secret
+*.pem
+*.key
+
+# ==========================
+# VS Code / IDE
 # ==========================
 .vscode/
+.idea/
 
 # ==========================
 # Logs
@@ -49,6 +65,8 @@ htmlcov/
 # Database
 # ==========================
 *.db
+*.sqlite
+*.sqlite3
 
 # PostgreSQL backups
 *.dump
@@ -81,4 +99,4 @@ uploads/
 # Local project backups / archives
 # ==========================
 *.zip
-*.docx
+*.bak
