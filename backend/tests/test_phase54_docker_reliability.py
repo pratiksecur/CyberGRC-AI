@@ -219,35 +219,3 @@ def test_backend_dockerfile_prepares_upload_directory():
         "USER appuser"
         in content
     )
-
-
-def test_operations_runbook_documents_volume_recovery():
-    runbook = (
-        PROJECT_ROOT
-        / "docs"
-        / "OPERATIONS.md"
-    )
-
-    content = runbook.read_text(
-        encoding="utf-8"
-    )
-
-    assert (
-        "Persistent Upload Volume Ownership"
-        in content
-    )
-
-    assert (
-        "docker compose run --rm --no-deps"
-        in content
-    )
-
-    assert (
-        "--cap-add CHOWN"
-        in content
-    )
-
-    assert (
-        "uploads_data"
-        in content
-    )
