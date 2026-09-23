@@ -16,6 +16,12 @@ class RiskReportSummary(BaseModel):
 
     average_risk_score: float
 
+    average_treatment_aware_residual_risk: float = 0.0
+    total_treatments: int = 0
+    risks_with_effective_treatment: int = 0
+    pending_acceptances: int = 0
+    approved_acceptances: int = 0
+
 
 class RiskReportItem(BaseModel):
     id: int
@@ -26,6 +32,16 @@ class RiskReportItem(BaseModel):
     likelihood: int
     impact: int
     risk_score: int
+
+    treatment_count: int = 0
+    effective_treatment_count: int = 0
+    treatment_residual_risk: int | None = None
+    treatment_aware_residual_risk: float = 0.0
+    control_estimated_residual_risk: float = 0.0
+    selected_treatment_id: int | None = None
+    selected_treatment_strategy: str | None = None
+    selected_treatment_status: str | None = None
+    selected_treatment_acceptance_status: str | None = None
 
     status: str
 

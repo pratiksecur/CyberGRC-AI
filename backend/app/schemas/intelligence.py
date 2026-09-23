@@ -114,7 +114,34 @@ class RiskIntelligenceMetrics(BaseModel):
 
     remediation_completion_percent: float
 
+    # ------------------------------------------------------
+    # Residual risk
+    # ------------------------------------------------------
+
+    # Backward-compatible public field.
+    #
+    # This represents the treatment-aware residual risk when
+    # an eligible treatment assessment exists. Otherwise it
+    # falls back to the existing control-based estimate.
     estimated_residual_risk: float
+
+    # Existing control-based calculation, preserved separately
+    # so the intelligence result remains explainable.
+    control_estimated_residual_risk: float
+
+    # ------------------------------------------------------
+    # Risk treatment intelligence
+    # ------------------------------------------------------
+
+    treatment_count: int
+
+    effective_treatment_count: int
+
+    treatment_residual_risk: float | None
+
+    treatment_aware_residual_risk: float
+
+    selected_treatment_id: int | None
 
 
 # ==========================================================

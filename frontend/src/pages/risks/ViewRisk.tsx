@@ -4,6 +4,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import AppLayout from "@/layouts/AppLayout";
 import RiskAIInsights from "@/components/ai/RiskAIInsights";
 
+import RiskTreatmentSection from "@/components/risk-treatments/RiskTreatmentSection";
+
 import { Button } from "@/components/ui/button";
 
 import {
@@ -360,6 +362,18 @@ export default function ViewRisk() {
 
         </div>
 
+        {/* ==================================================
+            Risk Treatment
+        ================================================== */}
+
+        <Can
+          resource="risk_treatments"
+          action="view"
+        >
+          <RiskTreatmentSection
+            riskId={data.id}
+          />
+        </Can>
 
         {/* ==================================================
             GRC Intelligence

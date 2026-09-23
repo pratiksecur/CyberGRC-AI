@@ -11,6 +11,7 @@ from app.database.database import Base
 from app.models import (
     user,
     risk,
+    risk_treatment,
     control,
     framework,
     evidence,
@@ -54,7 +55,6 @@ if not DATABASE_URL:
         "DATABASE_URL environment variable is not set."
     )
 
-# Override the URL from alembic.ini
 config.set_main_option(
     "sqlalchemy.url",
     DATABASE_URL.replace("%", "%%")
@@ -84,7 +84,6 @@ def run_migrations_offline() -> None:
     )
 
     with context.begin_transaction():
-
         context.run_migrations()
 
 
@@ -114,7 +113,6 @@ def run_migrations_online() -> None:
         )
 
         with context.begin_transaction():
-
             context.run_migrations()
 
 
@@ -123,9 +121,6 @@ def run_migrations_online() -> None:
 # ----------------------------------------------------------
 
 if context.is_offline_mode():
-
     run_migrations_offline()
-
 else:
-
     run_migrations_online()

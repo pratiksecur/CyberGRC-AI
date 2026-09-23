@@ -70,6 +70,9 @@ from app.api.v1.routes.reports import (
 from app.api.v1.routes.risk_controls import (
     router as risk_controls_router,
 )
+from app.api.v1.routes.risk_treatments import (
+    router as risk_treatments_router,
+)
 from app.api.v1.routes.risk_trend import (
     router as risk_trend_router,
 )
@@ -422,6 +425,11 @@ app.include_router(
 
 app.include_router(
     risk_controls_router,
+    prefix="/api/v1",
+)
+
+app.include_router(
+    risk_treatments_router,
     prefix="/api/v1",
 )
 

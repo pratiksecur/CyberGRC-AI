@@ -15,6 +15,7 @@ ROLE_PERMISSIONS = {
     UserRole.ADMIN.value: {
         "users": {"view", "create", "update", "delete"},
         "risks": {"view", "create", "update", "delete"},
+        "risk_treatments": {"view", "create", "update", "delete"},
         "controls": {"view", "create", "update", "delete"},
         "frameworks": {"view", "create", "update", "delete"},
         "framework_controls": {"view", "create", "update", "delete"},
@@ -30,6 +31,7 @@ ROLE_PERMISSIONS = {
     UserRole.GRC_MANAGER.value: {
         "users": {"view"},
         "risks": {"view", "create", "update"},
+        "risk_treatments": {"view", "create", "update"},
         "controls": {"view", "create", "update"},
         "frameworks": {"view", "create", "update", "delete"},
         "framework_controls": {"view", "create", "update", "delete"},
@@ -49,6 +51,7 @@ ROLE_PERMISSIONS = {
 
     UserRole.RISK_ANALYST.value: {
         "risks": {"view", "create", "update"},
+        "risk_treatments": {"view", "create", "update"},
         "controls": {"view", "create", "update"},
         "frameworks": {"view"},
         "framework_controls": {"view"},
@@ -62,6 +65,7 @@ ROLE_PERMISSIONS = {
 
     UserRole.AUDITOR.value: {
         "risks": {"view"},
+        "risk_treatments": {"view"},
         "controls": {"view"},
         "frameworks": {"view"},
         "framework_controls": {"view"},
@@ -76,6 +80,7 @@ ROLE_PERMISSIONS = {
 
     UserRole.EMPLOYEE.value: {
         "risks": {"view", "create", "update"},
+        "risk_treatments": {"view", "create", "update"},
         "controls": {"view"},
         "frameworks": {"view"},
         "framework_controls": {"view"},
@@ -97,6 +102,7 @@ ROLE_SCOPES = {
     UserRole.ADMIN.value: {
         "users": AccessScope.ORGANIZATION,
         "risks": AccessScope.ORGANIZATION,
+        "risk_treatments": AccessScope.ORGANIZATION,
         "controls": AccessScope.ORGANIZATION,
         "frameworks": AccessScope.ORGANIZATION,
         "framework_controls": AccessScope.ORGANIZATION,
@@ -112,6 +118,7 @@ ROLE_SCOPES = {
     UserRole.GRC_MANAGER.value: {
         "users": AccessScope.SUBORDINATES,
         "risks": AccessScope.SUBORDINATES,
+        "risk_treatments": AccessScope.SUBORDINATES,
         "controls": AccessScope.SUBORDINATES,
         "frameworks": AccessScope.ORGANIZATION,
         "framework_controls": AccessScope.ORGANIZATION,
@@ -127,6 +134,7 @@ ROLE_SCOPES = {
 
     UserRole.RISK_ANALYST.value: {
         "risks": AccessScope.OWN,
+        "risk_treatments": AccessScope.OWN,
         "controls": AccessScope.OWN,
         "frameworks": AccessScope.ORGANIZATION,
         "framework_controls": AccessScope.ORGANIZATION,
@@ -140,6 +148,7 @@ ROLE_SCOPES = {
 
     UserRole.AUDITOR.value: {
         "risks": AccessScope.ORGANIZATION,
+        "risk_treatments": AccessScope.ORGANIZATION,
         "controls": AccessScope.ORGANIZATION,
         "frameworks": AccessScope.ORGANIZATION,
         "framework_controls": AccessScope.ORGANIZATION,
@@ -154,6 +163,7 @@ ROLE_SCOPES = {
 
     UserRole.EMPLOYEE.value: {
         "risks": AccessScope.OWN,
+        "risk_treatments": AccessScope.OWN,
         "controls": AccessScope.ORGANIZATION,
         "frameworks": AccessScope.ORGANIZATION,
         "framework_controls": AccessScope.ORGANIZATION,

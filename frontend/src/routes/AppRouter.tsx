@@ -56,6 +56,10 @@ import AuditReport from "@/pages/reports/AuditReport";
 import ComplianceReport from "@/pages/reports/ComplianceReport";
 import CorrectiveActionsReport from "@/pages/reports/CorrectiveActionsReport";
 
+import CreateRiskTreatment from "@/pages/risk-treatments/CreateRiskTreatment";
+import ViewRiskTreatment from "@/pages/risk-treatments/ViewRiskTreatment";
+import EditRiskTreatment from "@/pages/risk-treatments/EditRiskTreatment";
+
 import AI from "@/pages/ai/AI";
 import Settings from "@/pages/settings/Settings";
 
@@ -158,6 +162,46 @@ export default function AppRouter() {
               action="update"
             >
               <EditRisk />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* ================================================== */}
+        {/* RISK TREATMENTS */}
+        {/* ================================================== */}
+
+        <Route
+          path="/risk-treatments/new"
+          element={
+            <ProtectedRoute
+              resource="risk_treatments"
+              action="create"
+            >
+              <CreateRiskTreatment />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/risk-treatments/:id"
+          element={
+            <ProtectedRoute
+              resource="risk_treatments"
+              action="view"
+            >
+              <ViewRiskTreatment />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/risk-treatments/:id/edit"
+          element={
+            <ProtectedRoute
+              resource="risk_treatments"
+              action="update"
+            >
+              <EditRiskTreatment />
             </ProtectedRoute>
           }
         />

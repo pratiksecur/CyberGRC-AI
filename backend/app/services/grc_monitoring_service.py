@@ -10,8 +10,13 @@ from app.models.control import Control
 from app.models.corrective_action import CorrectiveAction
 from app.models.evidence import Evidence
 from app.models.risk import Risk
+from app.models.risk_treatment import RiskTreatment
 from app.models.risk_control import RiskControl
 from app.models.user import User
+
+from app.services.risk_treatment_residual_service import (
+    select_authoritative_treatment,
+)
 
 from app.schemas.monitoring import (
     MonitoringAlert,
@@ -32,6 +37,10 @@ CRITICAL_RISK_NOTIFICATION_THRESHOLD = 20
 INEFFECTIVE_CONTROL_THRESHOLD = 50
 
 STALE_EVIDENCE_DAYS = 90
+
+TREATMENT_STUCK_DAYS = 30
+
+TREATMENT_RESIDUAL_THRESHOLD = 15
 
 OPEN_FINDING_STATUSES = {
     "Open",
@@ -119,6 +128,277 @@ def _get_visible_risk_controls(
 
 
 # ==========================================================
+# RISK TREATMENT MONITORING
+# ==========================================================
+
+def _get_visible_risk_treatments(
+    db: Session,
+    risk: Risk,
+    visible_treatment_owners: set[int],
+):
+    """
+    Return treatments for a visible risk whose treatment owners are
+    also visible to the current user.
+
+    Treatment visibility is intentionally evaluated independently from
+    risk visibility to preserve the Phase 55 object-level authorization
+    boundary.
+    """
+
+    return (
+        db.query(RiskTreatment)
+        .filter(
+            RiskTreatment.risk_id == risk.id,
+            RiskTreatment.owner_id.in_(
+                visible_treatment_owners
+            ),
+        )
+        .order_by(
+            RiskTreatment.updated_at.desc(),
+            RiskTreatment.created_at.desc(),
+            RiskTreatment.id.desc(),
+        )
+        .all()
+    )
+
+
+def _monitor_risk_treatments(
+    db: Session,
+    risk: Risk,
+    visible_treatment_owners: set[int],
+) -> list[MonitoringAlert]:
+    """
+    Evaluate treatment lifecycle state for one visible risk.
+
+    Alerts are deterministic and derived from current database state.
+    No treatment data outside the caller's treatment visibility scope is
+    included.
+
+    Authoritative treatment selection is delegated to the centralized
+    Phase 55 residual-risk service so Monitoring uses the exact same
+    treatment semantics as Intelligence and Reports.
+    """
+
+    alerts: list[MonitoringAlert] = []
+
+    treatments = _get_visible_risk_treatments(
+        db,
+        risk,
+        visible_treatment_owners,
+    )
+
+    if not treatments:
+        return alerts
+
+    now = _utc_now()
+    today = now.date()
+
+    # ------------------------------------------------------
+    # AUTHORITATIVE TREATMENT
+    # ------------------------------------------------------
+
+    effective_treatment = select_authoritative_treatment(
+        treatments
+    )
+
+    # ------------------------------------------------------
+    # TREATMENT LIFECYCLE SIGNALS
+    # ------------------------------------------------------
+
+    for treatment in treatments:
+
+        if (
+            treatment.status not in {
+                "Completed",
+                "Cancelled",
+            }
+            and treatment.target_date is not None
+            and treatment.target_date < today
+        ):
+            severity = (
+                "CRITICAL"
+                if risk.risk_score >= CRITICAL_RISK_NOTIFICATION_THRESHOLD
+                else "HIGH"
+            )
+
+            alerts.append(
+                _alert(
+                    alert_type="OVERDUE_RISK_TREATMENT",
+                    severity=severity,
+                    resource_type="risk_treatment",
+                    resource_id=treatment.id,
+                    title="Risk Treatment Is Overdue",
+                    message=(
+                        f"Treatment #{treatment.id} for {risk.title} "
+                        f"was due on {treatment.target_date.isoformat()}."
+                    ),
+                    risk_id=risk.id,
+                )
+            )
+
+        if treatment.status == "In Progress":
+            updated_at = treatment.updated_at
+
+            if updated_at is not None:
+                if updated_at.tzinfo is None:
+                    updated_at = updated_at.replace(
+                        tzinfo=timezone.utc
+                    )
+
+                if updated_at <= now - timedelta(
+                    days=TREATMENT_STUCK_DAYS
+                ):
+                    alerts.append(
+                        _alert(
+                            alert_type="STUCK_RISK_TREATMENT",
+                            severity=(
+                                "HIGH"
+                                if risk.risk_score > CRITICAL_RISK_THRESHOLD
+                                else "MEDIUM"
+                            ),
+                            resource_type="risk_treatment",
+                            resource_id=treatment.id,
+                            title="Risk Treatment Has Stalled",
+                            message=(
+                                f"Treatment #{treatment.id} for {risk.title} "
+                                f"has remained In Progress for at least "
+                                f"{TREATMENT_STUCK_DAYS} days."
+                            ),
+                            risk_id=risk.id,
+                        )
+                    )
+
+        if (
+            treatment.status == "Planned"
+            and risk.risk_score > CRITICAL_RISK_THRESHOLD
+        ):
+            alerts.append(
+                _alert(
+                    alert_type="PLANNED_HIGH_RISK_TREATMENT",
+                    severity=(
+                        "CRITICAL"
+                        if risk.risk_score >= CRITICAL_RISK_NOTIFICATION_THRESHOLD
+                        else "HIGH"
+                    ),
+                    resource_type="risk_treatment",
+                    resource_id=treatment.id,
+                    title="High-Risk Treatment Is Still Planned",
+                    message=(
+                        f"Treatment #{treatment.id} for {risk.title} "
+                        f"is still Planned while the risk score is "
+                        f"{risk.risk_score}."
+                    ),
+                    risk_id=risk.id,
+                )
+            )
+
+        if (
+            treatment.strategy == "Accept"
+            and treatment.acceptance_status == "Pending"
+        ):
+            alerts.append(
+                _alert(
+                    alert_type="PENDING_RISK_ACCEPTANCE",
+                    severity=(
+                        "HIGH"
+                        if risk.risk_score > CRITICAL_RISK_THRESHOLD
+                        else "MEDIUM"
+                    ),
+                    resource_type="risk_treatment",
+                    resource_id=treatment.id,
+                    title="Risk Acceptance Is Pending",
+                    message=(
+                        f"Treatment #{treatment.id} for {risk.title} "
+                        "requires risk-acceptance approval."
+                    ),
+                    risk_id=risk.id,
+                )
+            )
+
+        if (
+            treatment.strategy == "Accept"
+            and treatment.acceptance_status == "Approved"
+        ):
+            alerts.append(
+                _alert(
+                    alert_type="APPROVED_RISK_ACCEPTANCE",
+                    severity="LOW",
+                    resource_type="risk_treatment",
+                    resource_id=treatment.id,
+                    title="Risk Acceptance Approved",
+                    message=(
+                        f"Treatment #{treatment.id} for {risk.title} "
+                        "has an approved risk acceptance decision."
+                    ),
+                    risk_id=risk.id,
+                )
+            )
+
+    # ------------------------------------------------------
+    # CANCELLED WITHOUT EFFECTIVE REPLACEMENT
+    # ------------------------------------------------------
+
+    has_cancelled_treatment = any(
+        treatment.status == "Cancelled"
+        for treatment in treatments
+    )
+
+    if has_cancelled_treatment and effective_treatment is None:
+        alerts.append(
+            _alert(
+                alert_type="CANCELLED_TREATMENT_WITHOUT_REPLACEMENT",
+                severity=(
+                    "CRITICAL"
+                    if risk.risk_score >= CRITICAL_RISK_NOTIFICATION_THRESHOLD
+                    else "HIGH"
+                ),
+                resource_type="risk",
+                resource_id=risk.id,
+                title="Cancelled Treatment Has No Effective Replacement",
+                message=(
+                    f"{risk.title} has cancelled risk treatment activity "
+                    "without an effective treatment residual assessment."
+                ),
+                risk_id=risk.id,
+            )
+        )
+
+    # ------------------------------------------------------
+    # ELEVATED TREATMENT RESIDUAL RISK
+    # ------------------------------------------------------
+
+    if effective_treatment is not None:
+        residual_score = (
+            effective_treatment.residual_risk_score
+        )
+
+        if (
+            residual_score is not None
+            and residual_score > TREATMENT_RESIDUAL_THRESHOLD
+        ):
+            alerts.append(
+                _alert(
+                    alert_type="ELEVATED_TREATMENT_RESIDUAL_RISK",
+                    severity=(
+                        "CRITICAL"
+                        if residual_score >= CRITICAL_RISK_NOTIFICATION_THRESHOLD
+                        else "HIGH"
+                    ),
+                    resource_type="risk_treatment",
+                    resource_id=effective_treatment.id,
+                    title="Treatment Residual Risk Remains Elevated",
+                    message=(
+                        f"The authoritative treatment for {risk.title} "
+                        f"has a residual risk score of {residual_score}."
+                    ),
+                    risk_id=risk.id,
+                )
+            )
+
+    return alerts
+
+
+# ==========================================================
 # RISK MONITORING
 # ==========================================================
 
@@ -132,6 +412,22 @@ def _monitor_risk(
     """
 
     alerts: list[MonitoringAlert] = []
+
+    # Treatment lifecycle is evaluated within the same risk and treatment
+    # visibility boundaries as the API.
+    alerts.extend(
+        _monitor_risk_treatments(
+            db,
+            risk,
+            set(
+                get_visible_user_ids(
+                    db,
+                    current_user,
+                    "risk_treatments",
+                )
+            ),
+        )
+    )
 
     # ------------------------------------------------------
     # RESOURCE-SPECIFIC VISIBILITY
@@ -733,6 +1029,58 @@ def get_monitoring_overview(
         == "STALE_EVIDENCE"
     )
 
+    treatment_alerts = sum(
+        1
+        for alert in alerts
+        if alert.resource_type == "risk_treatment"
+        or alert.alert_type
+        in {
+            "CANCELLED_TREATMENT_WITHOUT_REPLACEMENT",
+        }
+    )
+
+    overdue_treatments = sum(
+        1
+        for alert in alerts
+        if alert.alert_type == "OVERDUE_RISK_TREATMENT"
+    )
+
+    stuck_treatments = sum(
+        1
+        for alert in alerts
+        if alert.alert_type == "STUCK_RISK_TREATMENT"
+    )
+
+    planned_high_risk_treatments = sum(
+        1
+        for alert in alerts
+        if alert.alert_type == "PLANNED_HIGH_RISK_TREATMENT"
+    )
+
+    pending_acceptances = sum(
+        1
+        for alert in alerts
+        if alert.alert_type == "PENDING_RISK_ACCEPTANCE"
+    )
+
+    elevated_residual_risks = sum(
+        1
+        for alert in alerts
+        if alert.alert_type == "ELEVATED_TREATMENT_RESIDUAL_RISK"
+    )
+
+    cancelled_without_replacement = sum(
+        1
+        for alert in alerts
+        if alert.alert_type == "CANCELLED_TREATMENT_WITHOUT_REPLACEMENT"
+    )
+
+    approved_acceptances = sum(
+        1
+        for alert in alerts
+        if alert.alert_type == "APPROVED_RISK_ACCEPTANCE"
+    )
+
     # ------------------------------------------------------
     # SORT ALERTS
     # ------------------------------------------------------
@@ -789,6 +1137,15 @@ def get_monitoring_overview(
         critical_actions=critical_actions,
 
         stale_evidence=stale_evidence,
+
+        treatment_alerts=treatment_alerts,
+        overdue_treatments=overdue_treatments,
+        stuck_treatments=stuck_treatments,
+        planned_high_risk_treatments=planned_high_risk_treatments,
+        pending_acceptances=pending_acceptances,
+        elevated_residual_risks=elevated_residual_risks,
+        cancelled_without_replacement=cancelled_without_replacement,
+        approved_acceptances=approved_acceptances,
     )
 
     return MonitoringOverviewResponse(
