@@ -177,44 +177,34 @@ async def request_size_limit_middleware(
 ):
     """
     Reject requests whose declared Content-Length exceeds
-    the configured application-wide request limit.
+    the configured maximum request body size.
 
-    Individual file uploads also enforce their own streaming
-    limit in the evidence route.
+    Requests without Content-Length are allowed through because
+    the body may be streamed or transferred using chunked
+    encoding.
     """
 
     content_length = request.headers.get(
         "content-length"
     )
 
-    if content_length:
-
+    if content_length is not None:
         try:
-            content_length_int = int(
-                content_length
-            )
+            request_size = int(content_length)
 
         except ValueError:
             return JSONResponse(
                 status_code=400,
                 content={
-                    "detail": (
-                        "Invalid Content-Length."
-                    )
+                    "detail": "Invalid Content-Length header"
                 },
             )
 
-        if (
-            content_length_int
-            > MAX_REQUEST_BODY_BYTES
-        ):
+        if request_size > MAX_REQUEST_BODY_BYTES:
             return JSONResponse(
                 status_code=413,
                 content={
-                    "detail": (
-                        "Request body exceeds "
-                        "the maximum allowed size."
-                    )
+                    "detail": "Request body too large"
                 },
             )
 
@@ -315,6 +305,15 @@ async def security_headers_middleware(
     """
     Apply baseline browser security headers to all
     application responses.
+
+    The normal application uses a strict CSP.
+
+    FastAPI's Swagger UI and ReDoc pages require narrowly
+    scoped documentation assets from jsDelivr, so those
+    documentation routes receive a dedicated CSP exception.
+
+    The exception is limited to /docs and /redoc and does not
+    weaken the CSP used by the application's API or frontend.
     """
 
     response = await call_next(request)
@@ -338,21 +337,79 @@ async def security_headers_middleware(
         "geolocation=()"
     )
 
-    response.headers[
-        "Content-Security-Policy"
-    ] = (
-        "default-src 'self'; "
-        "img-src 'self' data: blob:; "
-        "style-src 'self' 'unsafe-inline'; "
-        "script-src 'self'; "
-        "font-src 'self' data:; "
-        "connect-src 'self' "
-        "http://localhost:8000 "
-        "http://127.0.0.1:8000; "
-        "frame-ancestors 'none'; "
-        "base-uri 'self'; "
-        "form-action 'self';"
-    )
+    # ------------------------------------------------------
+    # Swagger UI
+    # ------------------------------------------------------
+
+    if request.url.path == "/docs":
+
+        response.headers[
+            "Content-Security-Policy"
+        ] = (
+            "default-src 'self'; "
+            "img-src 'self' data: blob: "
+            "https://fastapi.tiangolo.com; "
+            "style-src 'self' 'unsafe-inline' "
+            "https://cdn.jsdelivr.net; "
+            "script-src 'self' 'unsafe-inline' "
+            "https://cdn.jsdelivr.net; "
+            "font-src 'self' data: "
+            "https://cdn.jsdelivr.net; "
+            "connect-src 'self' "
+            "http://localhost:8000 "
+            "http://127.0.0.1:8000; "
+            "frame-ancestors 'none'; "
+            "base-uri 'self'; "
+            "form-action 'self';"
+        )
+
+    # ------------------------------------------------------
+    # ReDoc
+    # ------------------------------------------------------
+
+    elif request.url.path == "/redoc":
+
+        response.headers[
+            "Content-Security-Policy"
+        ] = (
+            "default-src 'self'; "
+            "img-src 'self' data: blob: "
+            "https://fastapi.tiangolo.com; "
+            "style-src 'self' 'unsafe-inline' "
+            "https://cdn.jsdelivr.net; "
+            "script-src 'self' 'unsafe-inline' "
+            "https://cdn.jsdelivr.net; "
+            "font-src 'self' data: "
+            "https://cdn.jsdelivr.net; "
+            "connect-src 'self' "
+            "http://localhost:8000 "
+            "http://127.0.0.1:8000; "
+            "frame-ancestors 'none'; "
+            "base-uri 'self'; "
+            "form-action 'self';"
+        )
+
+    # ------------------------------------------------------
+    # Normal application/API
+    # ------------------------------------------------------
+
+    else:
+
+        response.headers[
+            "Content-Security-Policy"
+        ] = (
+            "default-src 'self'; "
+            "img-src 'self' data: blob:; "
+            "style-src 'self' 'unsafe-inline'; "
+            "script-src 'self'; "
+            "font-src 'self' data:; "
+            "connect-src 'self' "
+            "http://localhost:8000 "
+            "http://127.0.0.1:8000; "
+            "frame-ancestors 'none'; "
+            "base-uri 'self'; "
+            "form-action 'self';"
+        )
 
     return response
 
