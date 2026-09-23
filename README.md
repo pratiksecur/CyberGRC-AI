@@ -582,17 +582,207 @@ The test suite covers areas including:
 
 # 📸 Screenshots
 
-Screenshots will be added to this section as the project documentation evolves.
+The screenshots below document the current CyberGRC-AI interface and its connected GRC workflow.
 
-Recommended documentation views include:
+> **Screenshot assets:** `assests/screenshots/`  
+> **Documented screenshots:** 24 interface captures from the uploaded screenshot set.
 
-1. Dashboard / Command Center
-2. GRC Intelligence
-3. Risk Treatment & Residual Risk
-4. Risk Intelligence
-5. AI-Assisted Analysis & Continuous Monitoring
+## Command Center
+
+<p align="center">
+  <img src="assests/screenshots/dashboard.png.png" alt="Command Center / Dashboard" width="900">
+</p>
+
+<p align="center"><strong>Command Center / Dashboard</strong></p>
 
 ---
+
+## Risk Management
+
+<p align="center">
+  <img src="assests/screenshots/risks%201.png" alt="Risk Management" width="900">
+</p>
+
+<p align="center"><strong>Risk Management</strong></p>
+
+<p align="center">
+  <img src="assests/screenshots/risk%202.png" alt="SQL Injection Risk — GRC Intelligence" width="900">
+</p>
+
+<p align="center"><strong>SQL Injection Risk — GRC Intelligence</strong></p>
+
+<p align="center">
+  <img src="assests/screenshots/risk%203.png" alt="Risk Management — Recent Risks & Highest Risk" width="900">
+</p>
+
+<p align="center"><strong>Risk Management — Recent Risks & Highest Risk</strong></p>
+
+<p align="center">
+  <img src="assests/screenshots/risk%204.png" alt="Security Monitoring & Incident Detection Gap — Risk Treatment" width="900">
+</p>
+
+<p align="center"><strong>Security Monitoring & Incident Detection Gap — Risk Treatment</strong></p>
+
+---
+
+## Control Management
+
+<p align="center">
+  <img src="assests/screenshots/controls.png" alt="Control Management" width="900">
+</p>
+
+<p align="center"><strong>Control Management</strong></p>
+
+<p align="center">
+  <img src="assests/screenshots/controls%201.png" alt="Control Management — Control List" width="900">
+</p>
+
+<p align="center"><strong>Control Management — Control List</strong></p>
+
+<p align="center">
+  <img src="assests/screenshots/controls%202.png" alt="Security Monitoring & Incident Detection — Control Details" width="900">
+</p>
+
+<p align="center"><strong>Security Monitoring & Incident Detection — Control Details</strong></p>
+
+<p align="center">
+  <img src="assests/screenshots/controls_1.png" alt="Control Details — Framework Requirements & Connected GRC Lifecycle" width="900">
+</p>
+
+<p align="center"><strong>Control Details — Framework Requirements & Connected GRC Lifecycle</strong></p>
+
+---
+
+## Framework Management
+
+<p align="center">
+  <img src="assests/screenshots/frameworks.png" alt="Framework Management" width="900">
+</p>
+
+<p align="center"><strong>Framework Management</strong></p>
+
+<p align="center">
+  <img src="assests/screenshots/frameworks%201.png" alt="Framework Management — Framework Versions" width="900">
+</p>
+
+<p align="center"><strong>Framework Management — Framework Versions</strong></p>
+
+---
+
+## Evidence Management
+
+<p align="center">
+  <img src="assests/screenshots/evidence.png" alt="Evidence Management" width="900">
+</p>
+
+<p align="center"><strong>Evidence Management</strong></p>
+
+<p align="center">
+  <img src="assests/screenshots/evidence_1.png" alt="Evidence Management — Evidence Details" width="900">
+</p>
+
+<p align="center"><strong>Evidence Management — Evidence Details</strong></p>
+
+---
+
+## Audit Management
+
+<p align="center">
+  <img src="assests/screenshots/audits.png" alt="Audit Management" width="900">
+</p>
+
+<p align="center"><strong>Audit Management</strong></p>
+
+<p align="center">
+  <img src="assests/screenshots/audits%201.png" alt="Audit Management — Audit Details" width="900">
+</p>
+
+<p align="center"><strong>Audit Management — Audit Details</strong></p>
+
+<p align="center">
+  <img src="assests/screenshots/audits_1.png" alt="Audit Management — Audit Scope & Findings" width="900">
+</p>
+
+<p align="center"><strong>Audit Management — Audit Scope & Findings</strong></p>
+
+---
+
+## Audit Findings
+
+<p align="center">
+  <img src="assests/screenshots/audit%20findings.png" alt="Audit Findings" width="900">
+</p>
+
+<p align="center"><strong>Audit Findings</strong></p>
+
+<p align="center">
+  <img src="assests/screenshots/audit%20findings%201.png" alt="Audit Findings — Finding Details" width="900">
+</p>
+
+<p align="center"><strong>Audit Findings — Finding Details</strong></p>
+
+---
+
+## Corrective Actions
+
+<p align="center">
+  <img src="assests/screenshots/corrective%20actions.png" alt="Corrective Actions" width="900">
+</p>
+
+<p align="center"><strong>Corrective Actions</strong></p>
+
+<p align="center">
+  <img src="assests/screenshots/corrective%20actions%201.png" alt="Corrective Actions — Action Details" width="900">
+</p>
+
+<p align="center"><strong>Corrective Actions — Action Details</strong></p>
+
+---
+
+## GRC Intelligence
+
+<p align="center">
+  <img src="assests/screenshots/GRC%20Intelligence.png" alt="GRC Intelligence" width="900">
+</p>
+
+<p align="center"><strong>GRC Intelligence</strong></p>
+
+The GRC Intelligence view connects risks with controls, evidence, findings, corrective actions, frameworks and residual risk.
+
+---
+
+## AI Intelligence
+
+<p align="center">
+  <img src="assests/screenshots/ai%20intelligence.png" alt="AI Intelligence" width="900">
+</p>
+
+<p align="center"><strong>AI Intelligence</strong></p>
+
+AI is positioned as an analysis and decision-support layer while authorization and governance remain deterministic.
+
+---
+
+## Continuous Monitoring
+
+<p align="center">
+  <img src="assests/screenshots/continuous%20monitoring.png" alt="Continuous Monitoring" width="900">
+</p>
+
+<p align="center"><strong>Continuous Monitoring</strong></p>
+
+Continuous Monitoring surfaces risk and GRC conditions that require attention.
+
+---
+
+## Reports
+
+<p align="center">
+  <img src="assests/screenshots/reports.png" alt="Reports" width="900">
+</p>
+
+<p align="center"><strong>Reports</strong></p>
+
 
 # 🔄 GRC Lifecycle
 
