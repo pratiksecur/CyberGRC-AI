@@ -89,6 +89,19 @@ class User(Base):
         back_populates="created_by"
     )
 
+    risk_treatments = relationship(
+        "RiskTreatment",
+        foreign_keys="RiskTreatment.owner_id",
+        back_populates="owner",
+        cascade="all, delete-orphan"
+    )
+
+    accepted_risk_treatments = relationship(
+        "RiskTreatment",
+        foreign_keys="RiskTreatment.accepted_by_id",
+        back_populates="accepted_by"
+    )
+
     controls = relationship(
         "Control",
         foreign_keys="Control.owner_id",

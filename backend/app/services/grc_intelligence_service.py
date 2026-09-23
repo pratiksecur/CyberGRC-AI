@@ -14,7 +14,13 @@ from app.models.framework import Framework
 from app.models.framework_control import FrameworkControl
 from app.models.risk import Risk
 from app.models.risk_control import RiskControl
+from app.models.risk_treatment import RiskTreatment
 from app.models.user import User
+
+from app.services.risk_treatment_residual_service import (
+    select_authoritative_treatment,
+    has_residual_assessment,
+)
 
 from app.schemas.intelligence import (
     GRCIntelligenceOverviewMetrics,
@@ -93,6 +99,9 @@ def _build_risk_intelligence(
     Every downstream resource uses its own visibility scope.
     This prevents the intelligence layer from becoming an
     authorization bypass.
+
+    Phase 55.4.1 adds treatment-aware residual-risk
+    intelligence without changing the persisted Risk record.
     """
 
     # ------------------------------------------------------
@@ -433,21 +442,18 @@ def _build_risk_intelligence(
         average_effectiveness = 0.0
 
     # ======================================================
-    # ESTIMATED RESIDUAL RISK
+    # CONTROL-BASED RESIDUAL RISK
     # ======================================================
 
-    # The current Risk model does not have a persisted
-    # residual-risk field.
+    # This is the existing intelligence calculation.
     #
-    # Therefore this is an explicitly derived estimate:
-    #
-    #     risk score × (1 - control effectiveness / 100)
-    #
-    # It must NOT be interpreted as a stored risk value.
+    # It remains separate from treatment assessments so that
+    # the intelligence layer can distinguish technical/control
+    # evidence from explicitly assessed treatment residual risk.
 
     if control_count:
 
-        estimated_residual_risk = round(
+        control_estimated_residual_risk = round(
             float(risk.risk_score)
             * (
                 1
@@ -461,9 +467,110 @@ def _build_risk_intelligence(
 
     else:
 
-        estimated_residual_risk = float(
+        control_estimated_residual_risk = float(
             risk.risk_score
         )
+
+    # ======================================================
+    # TREATMENT-AWARE RESIDUAL RISK
+    # ======================================================
+
+    # Treatment assessments represent explicit residual-risk
+    # assessments recorded during the treatment lifecycle.
+    #
+    # We intentionally do NOT calculate:
+    #
+    #     min(treatment residuals)
+    #
+    # or:
+    #
+    #     max(treatment residuals)
+    #
+    # because separate treatment records do not necessarily
+    # represent independent/additive risk reductions.
+    #
+    # Instead, the intelligence layer selects the latest
+    # authoritative treatment assessment using a deterministic
+    # lifecycle rule.
+    #
+    # Priority:
+    #
+    #   1. Completed non-Accept treatment
+    #   2. In Progress non-Accept treatment
+    #   3. Approved Accept treatment
+    #
+    # Planned and Cancelled treatments do not affect the
+    # residual-risk calculation.
+    #
+    # Accept treatments only affect the calculation after
+    # management acceptance has been Approved.
+    #
+    # Within each category:
+    #
+    #   updated_at DESC
+    #   created_at DESC
+    #   id DESC
+    #
+    # Therefore the selected record is deterministic.
+
+    risk_treatments = (
+        db.query(RiskTreatment)
+        .filter(
+            RiskTreatment.risk_id == risk.id,
+        )
+        .order_by(
+            RiskTreatment.updated_at.desc(),
+            RiskTreatment.created_at.desc(),
+            RiskTreatment.id.desc(),
+        )
+        .all()
+    )
+
+    # Phase 55.7:
+    # Treatment authority is centralized so Intelligence,
+    # Monitoring, and Reports cannot develop different
+    # residual-risk selection semantics.
+    selected_treatment = select_authoritative_treatment(
+        risk_treatments
+    )
+
+    treatment_residual_risk = (
+        float(
+            selected_treatment.residual_risk_score
+        )
+        if selected_treatment is not None
+        else None
+    )
+
+    treatment_aware_residual_risk = (
+        treatment_residual_risk
+        if treatment_residual_risk is not None
+        else control_estimated_residual_risk
+    )
+
+    treatment_count = len(
+        risk_treatments
+    )
+
+    effective_treatment_count = sum(
+        1
+        for treatment in risk_treatments
+        if has_residual_assessment(treatment)
+        and (
+            (
+                treatment.status == "Completed"
+                and treatment.strategy != "Accept"
+            )
+            or (
+                treatment.status == "In Progress"
+                and treatment.strategy != "Accept"
+            )
+            or (
+                treatment.strategy == "Accept"
+                and treatment.acceptance_status == "Approved"
+            )
+        )
+    )
 
     # ======================================================
     # METRICS RESPONSE
@@ -507,8 +614,35 @@ def _build_risk_intelligence(
             action_count,
         ),
 
+        # Backward-compatible field.
         estimated_residual_risk=(
-            estimated_residual_risk
+            treatment_aware_residual_risk
+        ),
+
+        # Existing control calculation.
+        control_estimated_residual_risk=(
+            control_estimated_residual_risk
+        ),
+
+        # Treatment intelligence.
+        treatment_count=treatment_count,
+
+        effective_treatment_count=(
+            effective_treatment_count
+        ),
+
+        treatment_residual_risk=(
+            treatment_residual_risk
+        ),
+
+        treatment_aware_residual_risk=(
+            treatment_aware_residual_risk
+        ),
+
+        selected_treatment_id=(
+            selected_treatment.id
+            if selected_treatment is not None
+            else None
         ),
     )
 

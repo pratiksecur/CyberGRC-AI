@@ -1,6 +1,8 @@
 from sqlalchemy.orm import Session
 
 from app.models.risk import Risk
+from app.models.risk_control import RiskControl
+from app.models.risk_treatment import RiskTreatment
 from app.models.user import User
 
 from app.models.audit import Audit
@@ -16,6 +18,130 @@ from app.models.control_framework_control import (
     ControlFrameworkControl,
 )
 
+from app.services.risk_treatment_residual_service import (
+    select_authoritative_treatment,
+    treatment_authority_rank,
+    has_residual_assessment,
+)
+
+
+def _risk_treatment_context(
+    db: Session,
+    risk: Risk,
+    visible_user_ids: list[int],
+):
+    """
+    Calculate report treatment metrics using the canonical treatment
+    lifecycle semantics shared with GRC Intelligence and Monitoring.
+
+    Treatment visibility is constrained by the already-resolved report
+    visibility set for treatment owners.
+    """
+
+    treatments = (
+        db.query(RiskTreatment)
+        .filter(
+            RiskTreatment.risk_id == risk.id,
+            RiskTreatment.owner_id.in_(visible_user_ids),
+        )
+        .order_by(
+            RiskTreatment.updated_at.desc(),
+            RiskTreatment.created_at.desc(),
+            RiskTreatment.id.desc(),
+        )
+        .all()
+    )
+
+    effective_treatments = [
+        treatment
+        for treatment in treatments
+        if (
+            treatment_authority_rank(treatment) < 99
+            and has_residual_assessment(treatment)
+        )
+    ]
+
+    selected = select_authoritative_treatment(
+        treatments
+    )
+
+    controls = (
+        db.query(Control)
+        .join(
+            RiskControl,
+            RiskControl.control_id == Control.id,
+        )
+        .filter(
+            RiskControl.risk_id == risk.id,
+            Control.owner_id.in_(visible_user_ids),
+        )
+        .all()
+    )
+
+    if controls:
+        average_effectiveness = sum(
+            control.effectiveness
+            for control in controls
+        ) / len(controls)
+
+        control_estimated_residual_risk = round(
+            risk.risk_score
+            * (1 - average_effectiveness / 100),
+            2,
+        )
+    else:
+        control_estimated_residual_risk = float(
+            risk.risk_score
+        )
+
+    treatment_residual_risk = (
+        selected.residual_risk_score
+        if selected is not None
+        else None
+    )
+
+    treatment_aware_residual_risk = (
+        float(treatment_residual_risk)
+        if treatment_residual_risk is not None
+        else float(control_estimated_residual_risk)
+    )
+
+    return {
+        "treatment_count": len(treatments),
+        "effective_treatment_count": len(
+            effective_treatments
+        ),
+        "treatment_residual_risk": (
+            treatment_residual_risk
+        ),
+        "treatment_aware_residual_risk": (
+            treatment_aware_residual_risk
+        ),
+        "selected_treatment_id": (
+            selected.id
+            if selected is not None
+            else None
+        ),
+        "selected_treatment_strategy": (
+            selected.strategy
+            if selected is not None
+            else None
+        ),
+        "selected_treatment_status": (
+            selected.status
+            if selected is not None
+            else None
+        ),
+        "selected_treatment_acceptance_status": (
+            selected.acceptance_status
+            if selected is not None
+            else None
+        ),
+        "control_estimated_residual_risk": (
+            control_estimated_residual_risk
+        ),
+    }
+
 
 def get_risk_report(
     db: Session,
@@ -24,6 +150,9 @@ def get_risk_report(
     """
     Generate a live risk report limited to
     risks within the authenticated user's scope.
+
+    Treatment-aware residual-risk values use the canonical
+    Phase 55.7 treatment-selection semantics.
     """
 
     risks = (
@@ -86,7 +215,71 @@ def get_risk_report(
 
     risk_items = []
 
+    treatment_aware_scores = []
+    total_treatments = 0
+    risks_with_effective_treatment = 0
+    pending_acceptances = 0
+    approved_acceptances = 0
+
     for risk in risks:
+        treatment_context = _risk_treatment_context(
+            db,
+            risk,
+            visible_user_ids,
+        )
+
+        total_treatments += (
+            treatment_context["treatment_count"]
+        )
+
+        if (
+            treatment_context[
+                "effective_treatment_count"
+            ]
+            > 0
+        ):
+            risks_with_effective_treatment += 1
+
+        treatment_aware_scores.append(
+            treatment_context[
+                "treatment_aware_residual_risk"
+            ]
+        )
+
+        pending_acceptances += sum(
+            1
+            for treatment in (
+                db.query(RiskTreatment)
+                .filter(
+                    RiskTreatment.risk_id == risk.id,
+                    RiskTreatment.owner_id.in_(
+                        visible_user_ids
+                    ),
+                    RiskTreatment.strategy == "Accept",
+                    RiskTreatment.acceptance_status
+                    == "Pending",
+                )
+                .all()
+            )
+        )
+
+        approved_acceptances += sum(
+            1
+            for treatment in (
+                db.query(RiskTreatment)
+                .filter(
+                    RiskTreatment.risk_id == risk.id,
+                    RiskTreatment.owner_id.in_(
+                        visible_user_ids
+                    ),
+                    RiskTreatment.strategy == "Accept",
+                    RiskTreatment.acceptance_status
+                    == "Approved",
+                )
+                .all()
+            )
+        )
+
         owner = (
             db.query(User)
             .filter(
@@ -104,6 +297,52 @@ def get_risk_report(
                 "impact": risk.impact,
                 "risk_score": risk.risk_score,
                 "status": risk.status,
+
+                "treatment_count": (
+                    treatment_context[
+                        "treatment_count"
+                    ]
+                ),
+                "effective_treatment_count": (
+                    treatment_context[
+                        "effective_treatment_count"
+                    ]
+                ),
+                "treatment_residual_risk": (
+                    treatment_context[
+                        "treatment_residual_risk"
+                    ]
+                ),
+                "treatment_aware_residual_risk": (
+                    treatment_context[
+                        "treatment_aware_residual_risk"
+                    ]
+                ),
+                "control_estimated_residual_risk": (
+                    treatment_context[
+                        "control_estimated_residual_risk"
+                    ]
+                ),
+                "selected_treatment_id": (
+                    treatment_context[
+                        "selected_treatment_id"
+                    ]
+                ),
+                "selected_treatment_strategy": (
+                    treatment_context[
+                        "selected_treatment_strategy"
+                    ]
+                ),
+                "selected_treatment_status": (
+                    treatment_context[
+                        "selected_treatment_status"
+                    ]
+                ),
+                "selected_treatment_acceptance_status": (
+                    treatment_context[
+                        "selected_treatment_acceptance_status"
+                    ]
+                ),
                 "owner_id": risk.owner_id,
                 "owner_name": (
                     owner.full_name
@@ -133,6 +372,21 @@ def get_risk_report(
             "open_risks": open_risks,
             "closed_risks": closed_risks,
             "average_risk_score": average_risk_score,
+            "average_treatment_aware_residual_risk": (
+                round(
+                    sum(treatment_aware_scores)
+                    / len(treatment_aware_scores),
+                    2,
+                )
+                if treatment_aware_scores
+                else 0.0
+            ),
+            "total_treatments": total_treatments,
+            "risks_with_effective_treatment": (
+                risks_with_effective_treatment
+            ),
+            "pending_acceptances": pending_acceptances,
+            "approved_acceptances": approved_acceptances,
         },
         "risks": risk_items,
     }

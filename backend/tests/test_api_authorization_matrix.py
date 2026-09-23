@@ -70,6 +70,7 @@ EXPECTED_PERMISSIONS = {
     "admin": {
         "users": {"view", "create", "update", "delete"},
         "risks": {"view", "create", "update", "delete"},
+        "risk_treatments": {"view", "create", "update", "delete"},
         "controls": {"view", "create", "update", "delete"},
         "frameworks": {"view", "create", "update", "delete"},
         "framework_controls": {
@@ -120,6 +121,11 @@ EXPECTED_PERMISSIONS = {
     "manager": {
         "users": {"view"},
         "risks": {
+            "view",
+            "create",
+            "update",
+        },
+        "risk_treatments": {
             "view",
             "create",
             "update",
@@ -186,6 +192,11 @@ EXPECTED_PERMISSIONS = {
             "create",
             "update",
         },
+        "risk_treatments": {
+            "view",
+            "create",
+            "update",
+        },
         "controls": {
             "view",
             "create",
@@ -210,6 +221,7 @@ EXPECTED_PERMISSIONS = {
 
     "auditor": {
         "risks": {"view"},
+        "risk_treatments": {"view"},
         "controls": {"view"},
         "frameworks": {"view"},
         "framework_controls": {"view"},
@@ -243,6 +255,11 @@ EXPECTED_PERMISSIONS = {
 
     "employee": {
         "risks": {
+            "view",
+            "create",
+            "update",
+        },
+        "risk_treatments": {
             "view",
             "create",
             "update",
@@ -295,6 +312,7 @@ EXPECTED_SCOPES = {
     "admin": {
         "users": AccessScope.ORGANIZATION,
         "risks": AccessScope.ORGANIZATION,
+        "risk_treatments": AccessScope.ORGANIZATION,
         "controls": AccessScope.ORGANIZATION,
         "frameworks": AccessScope.ORGANIZATION,
         "framework_controls": AccessScope.ORGANIZATION,
@@ -310,6 +328,7 @@ EXPECTED_SCOPES = {
     "manager": {
         "users": AccessScope.SUBORDINATES,
         "risks": AccessScope.SUBORDINATES,
+        "risk_treatments": AccessScope.SUBORDINATES,
         "controls": AccessScope.SUBORDINATES,
         "frameworks": AccessScope.ORGANIZATION,
         "framework_controls": AccessScope.ORGANIZATION,
@@ -325,6 +344,7 @@ EXPECTED_SCOPES = {
 
     "analyst": {
         "risks": AccessScope.OWN,
+        "risk_treatments": AccessScope.OWN,
         "controls": AccessScope.OWN,
         "frameworks": AccessScope.ORGANIZATION,
         "framework_controls": AccessScope.ORGANIZATION,
@@ -338,6 +358,7 @@ EXPECTED_SCOPES = {
 
     "auditor": {
         "risks": AccessScope.ORGANIZATION,
+        "risk_treatments": AccessScope.ORGANIZATION,
         "controls": AccessScope.ORGANIZATION,
         "frameworks": AccessScope.ORGANIZATION,
         "framework_controls": AccessScope.ORGANIZATION,
@@ -352,6 +373,7 @@ EXPECTED_SCOPES = {
 
     "employee": {
         "risks": AccessScope.OWN,
+        "risk_treatments": AccessScope.OWN,
         "controls": AccessScope.ORGANIZATION,
         "frameworks": AccessScope.ORGANIZATION,
         "framework_controls": AccessScope.ORGANIZATION,

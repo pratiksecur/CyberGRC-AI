@@ -4,7 +4,7 @@ from sqlalchemy import (
     String,
     Text,
     DateTime,
-    ForeignKey
+    ForeignKey,
 )
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
@@ -106,4 +106,11 @@ class Risk(Base):
         "RiskControl",
         back_populates="risk",
         cascade="all, delete-orphan"
+    )
+
+    risk_treatments = relationship(
+        "RiskTreatment",
+        back_populates="risk",
+        cascade="all, delete-orphan",
+        order_by="RiskTreatment.created_at",
     )

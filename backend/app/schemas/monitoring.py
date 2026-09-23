@@ -71,6 +71,16 @@ class MonitoringMetrics(BaseModel):
 
     stale_evidence: int
 
+    # Risk-treatment intelligence signals
+    treatment_alerts: int = 0
+    overdue_treatments: int = 0
+    stuck_treatments: int = 0
+    planned_high_risk_treatments: int = 0
+    pending_acceptances: int = 0
+    elevated_residual_risks: int = 0
+    cancelled_without_replacement: int = 0
+    approved_acceptances: int = 0
+
 
 # ==========================================================
 # MONITORING OVERVIEW
