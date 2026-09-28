@@ -22,6 +22,10 @@ from app.services.risk_treatment_residual_service import (
     has_residual_assessment,
 )
 
+from app.services.continuous_risk_state_service import (
+    get_continuous_risk_state,
+)
+
 from app.schemas.intelligence import (
     GRCIntelligenceOverviewMetrics,
     GRCIntelligenceOverviewResponse,
@@ -31,6 +35,7 @@ from app.schemas.intelligence import (
     IntelligenceFinding,
     IntelligenceFramework,
     RiskIntelligenceMetrics,
+    IntelligenceRiskStateReason,
     RiskIntelligenceResponse,
 )
 
@@ -573,6 +578,36 @@ def _build_risk_intelligence(
     )
 
     # ======================================================
+    # PHASE 56 — CONTINUOUS RISK STATE
+    # ======================================================
+
+    # State is derived deterministically from the current
+    # GRC evidence. The intelligence layer does not decide
+    # the state and does not use AI for this calculation.
+    #
+    # The risk has already passed resource-level visibility
+    # validation before reaching this function.
+
+    continuous_state = get_continuous_risk_state(
+        db,
+        risk,
+        current_user=current_user,
+    )
+
+    state_reasons = [
+        IntelligenceRiskStateReason(
+            code=reason.code.value,
+            severity=reason.severity,
+            message=reason.message,
+            resource_type=reason.resource_type,
+            resource_id=reason.resource_id,
+        )
+        for reason in continuous_state.reasons
+    ]
+
+
+
+    # ======================================================
     # METRICS RESPONSE
     # ======================================================
 
@@ -644,6 +679,24 @@ def _build_risk_intelligence(
             if selected_treatment is not None
             else None
         ),
+
+        # --------------------------------------------------
+        # Phase 56 — Continuous Risk State
+        # --------------------------------------------------
+
+        continuous_risk_state=(
+            continuous_state.risk_state.value
+        ),
+
+        treatment_state=(
+            continuous_state.treatment_state.value
+        ),
+
+        reassessment_required=(
+            continuous_state.reassessment_required
+        ),
+
+        state_reasons=state_reasons,
     )
 
     # ======================================================

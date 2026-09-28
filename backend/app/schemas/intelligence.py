@@ -7,6 +7,7 @@ from pydantic import BaseModel, ConfigDict
 # EVIDENCE
 # ==========================================================
 
+
 class IntelligenceEvidence(BaseModel):
     model_config = ConfigDict(
         from_attributes=True
@@ -22,6 +23,7 @@ class IntelligenceEvidence(BaseModel):
 # FRAMEWORK
 # ==========================================================
 
+
 class IntelligenceFramework(BaseModel):
     model_config = ConfigDict(
         from_attributes=True
@@ -36,6 +38,7 @@ class IntelligenceFramework(BaseModel):
 # ==========================================================
 # CORRECTIVE ACTION
 # ==========================================================
+
 
 class IntelligenceAction(BaseModel):
     model_config = ConfigDict(
@@ -56,6 +59,7 @@ class IntelligenceAction(BaseModel):
 # AUDIT FINDING
 # ==========================================================
 
+
 class IntelligenceFinding(BaseModel):
     model_config = ConfigDict(
         from_attributes=True
@@ -75,6 +79,7 @@ class IntelligenceFinding(BaseModel):
 # CONTROL
 # ==========================================================
 
+
 class IntelligenceControl(BaseModel):
     model_config = ConfigDict(
         from_attributes=True
@@ -91,8 +96,29 @@ class IntelligenceControl(BaseModel):
 
 
 # ==========================================================
+# CONTINUOUS RISK STATE
+# ==========================================================
+
+
+class IntelligenceRiskStateReason(BaseModel):
+    """
+    Deterministic reason explaining why the continuous
+    risk state is CURRENT, DEGRADED, or requires
+    reassessment.
+    """
+
+    code: str
+    severity: str
+    message: str
+
+    resource_type: str | None = None
+    resource_id: int | None = None
+
+
+# ==========================================================
 # RISK INTELLIGENCE METRICS
 # ==========================================================
+
 
 class RiskIntelligenceMetrics(BaseModel):
     control_count: int
@@ -143,10 +169,30 @@ class RiskIntelligenceMetrics(BaseModel):
 
     selected_treatment_id: int | None
 
+    # ------------------------------------------------------
+    # Phase 56 — Continuous risk state
+    # ------------------------------------------------------
+
+    # Deterministically derived from current GRC evidence.
+    continuous_risk_state: str
+
+    # Deterministically derived state of the authoritative
+    # risk treatment.
+    treatment_state: str
+
+    # True when the risk requires formal reassessment.
+    reassessment_required: bool
+
+    # Structured deterministic reasons.
+    state_reasons: list[
+        IntelligenceRiskStateReason
+    ]
+
 
 # ==========================================================
 # RISK INTELLIGENCE RESPONSE
 # ==========================================================
+
 
 class RiskIntelligenceResponse(BaseModel):
     risk_id: int
@@ -163,6 +209,7 @@ class RiskIntelligenceResponse(BaseModel):
 # ==========================================================
 # OVERVIEW METRICS
 # ==========================================================
+
 
 class GRCIntelligenceOverviewMetrics(BaseModel):
     total_risks: int
@@ -185,6 +232,7 @@ class GRCIntelligenceOverviewMetrics(BaseModel):
 # ==========================================================
 # OVERVIEW RESPONSE
 # ==========================================================
+
 
 class GRCIntelligenceOverviewResponse(BaseModel):
     metrics: GRCIntelligenceOverviewMetrics
