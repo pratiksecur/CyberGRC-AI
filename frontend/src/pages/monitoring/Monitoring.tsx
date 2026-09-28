@@ -343,6 +343,84 @@ export default function Monitoring() {
 
         </div>
 
+        {/* ==================================================
+            Continuous Risk State
+        ================================================== */}
+
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+
+          <MetricCard
+            title="Degraded Risks"
+            value={metrics.degraded_risks}
+            icon={AlertTriangle}
+            emphasis={
+              metrics.degraded_risks > 0
+                ? "critical"
+                : undefined
+            }
+          />
+
+          <MetricCard
+            title="Reassessment Required"
+            value={metrics.reassessment_required_risks}
+            icon={ShieldAlert}
+            emphasis={
+              metrics.reassessment_required_risks > 0
+                ? "critical"
+                : undefined
+            }
+          />
+
+          <MetricCard
+            title="Treatment Alerts"
+            value={metrics.treatment_alerts}
+            icon={RefreshCw}
+          />
+
+          <MetricCard
+            title="Elevated Residual Risk"
+            value={metrics.elevated_residual_risks}
+            icon={ShieldAlert}
+            emphasis={
+              metrics.elevated_residual_risks > 0
+                ? "critical"
+                : undefined
+            }
+          />
+
+        </div>
+
+        {/* ==================================================
+            Continuous Risk State Explanation
+        ================================================== */}
+
+        <div className="rounded-2xl border bg-slate-50 p-6">
+
+          <div className="flex items-start gap-3">
+
+            <div className="rounded-lg bg-white p-2 shadow-sm">
+              <Activity className="h-5 w-5 text-emerald-600" />
+            </div>
+
+            <div>
+
+              <h2 className="font-semibold text-slate-900">
+                Continuous Risk State
+              </h2>
+
+              <p className="mt-1 max-w-4xl text-sm leading-6 text-slate-600">
+                Risk state is continuously derived from the current treatment,
+                control, evidence, finding, and remediation conditions.
+                A degraded state indicates that the current risk posture has
+                changed, while reassessment required indicates that the existing
+                treatment assessment should be reviewed.
+              </p>
+
+            </div>
+
+          </div>
+
+        </div>
 
         {/* ==================================================
             Explanation

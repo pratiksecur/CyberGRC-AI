@@ -29,6 +29,10 @@ import {
   useRiskMonitoring,
 } from "@/hooks/useMonitoring";
 
+import {
+  useRiskStateExplanation,
+} from "@/hooks/useRiskStateExplanation";
+
 import Can from "@/components/auth/Can";
 
 import RiskScoreBadge from "@/components/risks/RiskScoreBadge";
@@ -60,6 +64,44 @@ function formatPercent(value: number) {
   return `${value.toFixed(1)}%`;
 }
 
+function formatMonitoringState(
+  value: string
+) {
+  return value
+    .replace(/_/g, " ")
+    .toLowerCase()
+    .replace(
+      /\b\w/g,
+      (character) =>
+        character.toUpperCase()
+    );
+}
+
+
+function monitoringStateClass(
+  value: string
+) {
+  switch (value) {
+
+    case "CURRENT":
+      return "border-emerald-200 bg-emerald-50 text-emerald-700";
+
+    case "DEGRADED":
+      return "border-amber-200 bg-amber-50 text-amber-700";
+
+    case "STALE":
+      return "border-amber-200 bg-amber-50 text-amber-700";
+
+    case "REASSESSMENT_REQUIRED":
+      return "border-red-200 bg-red-50 text-red-700";
+
+    case "REQUIRES_REASSESSMENT":
+      return "border-red-200 bg-red-50 text-red-700";
+
+    default:
+      return "border-slate-200 bg-slate-50 text-slate-700";
+  }
+}
 
 // ==========================================================
 // Page
@@ -94,6 +136,13 @@ export default function ViewRisk() {
     isFetching: monitoringFetching,
   } = useRiskMonitoring(riskId);
 
+  const {
+    mutate: explainRiskState,
+    data: aiStateExplanation,
+    isPending: aiStateExplanationLoading,
+    error: aiStateExplanationError,
+    reset: resetAIStateExplanation,
+  } = useRiskStateExplanation();
 
   // ========================================================
   // Loading
@@ -738,6 +787,512 @@ export default function ViewRisk() {
 
                 </div>
 
+                {/* ==================================================
+                    Phase 56 - Continuous Risk State
+                ================================================== */}
+
+                <div className="mt-6 grid gap-4 md:grid-cols-3">
+
+                  <div className="rounded-xl border bg-white p-5">
+
+                    <p className="text-sm font-medium text-slate-500">
+                      Risk State
+                    </p>
+
+                    <div
+                      className={`mt-3 inline-flex rounded-full border px-3 py-1.5 text-sm font-semibold ${monitoringStateClass(
+                        monitoring.continuous_risk_state
+                      )}`}
+                    >
+                      {formatMonitoringState(
+                        monitoring.continuous_risk_state
+                      )}
+                    </div>
+
+                    <p className="mt-3 text-xs text-slate-500">
+                      Deterministic continuous risk state
+                    </p>
+
+                  </div>
+
+
+                  <div className="rounded-xl border bg-white p-5">
+
+                    <p className="text-sm font-medium text-slate-500">
+                      Treatment State
+                    </p>
+
+                    <div
+                      className={`mt-3 inline-flex rounded-full border px-3 py-1.5 text-sm font-semibold ${monitoringStateClass(
+                        monitoring.treatment_state
+                      )}`}
+                    >
+                      {formatMonitoringState(
+                        monitoring.treatment_state
+                      )}
+                    </div>
+
+                    <p className="mt-3 text-xs text-slate-500">
+                      State of the authoritative treatment
+                    </p>
+
+                  </div>
+
+
+                  <div className="rounded-xl border bg-white p-5">
+
+                    <p className="text-sm font-medium text-slate-500">
+                      Reassessment
+                    </p>
+
+                    <div
+                      className={`mt-3 inline-flex rounded-full border px-3 py-1.5 text-sm font-semibold ${
+                        monitoring.reassessment_required
+                          ? "border-red-200 bg-red-50 text-red-700"
+                          : "border-emerald-200 bg-emerald-50 text-emerald-700"
+                      }`}
+                    >
+                      {monitoring.reassessment_required
+                        ? "Required"
+                        : "Not Required"}
+                    </div>
+
+                    <p className="mt-3 text-xs text-slate-500">
+                      Determined from current GRC conditions
+                    </p>
+
+                  </div>
+
+                </div>
+
+                {/* ==================================================
+                    Phase 56 - State Drivers
+                ================================================== */}
+
+                {monitoring.state_reasons.length > 0 && (
+
+                  <div className="mt-6 rounded-xl border bg-slate-50 p-5">
+
+                    <div className="flex items-start gap-3">
+
+                      <AlertTriangle className="mt-0.5 h-5 w-5 text-amber-600" />
+
+                      <div className="min-w-0 flex-1">
+
+                        <h3 className="font-semibold text-slate-900">
+                          State Drivers
+                        </h3>
+
+                        <p className="mt-1 text-sm text-slate-500">
+                          Conditions currently affecting the continuous risk state.
+                        </p>
+
+
+                        <div className="mt-4 space-y-3">
+
+                          {monitoring.state_reasons.map(
+                            (reason, index) => (
+
+                              <div
+                                key={`${reason.code}-${reason.resource_id ?? "none"}-${index}`}
+                                className="rounded-xl border bg-white p-4"
+                              >
+
+                                <div className="flex flex-wrap items-center gap-2">
+
+                                  <span
+                                    className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${monitoringStateClass(
+                                      reason.severity === "CRITICAL"
+                                        ? "REASSESSMENT_REQUIRED"
+                                        : "DEGRADED"
+                                    )}`}
+                                  >
+                                    {reason.severity}
+                                  </span>
+
+                                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                                    {reason.code.replace(
+                                      /_/g,
+                                      " "
+                                    )}
+                                  </span>
+
+                                </div>
+
+
+                                <p className="mt-2 text-sm leading-6 text-slate-600">
+                                  {reason.message}
+                                </p>
+
+
+                                {(reason.resource_type ||
+                                  reason.resource_id !== null) && (
+
+                                  <p className="mt-2 text-xs text-slate-400">
+
+                                    {reason.resource_type
+                                      ? reason.resource_type
+                                      : "resource"}
+
+                                    {reason.resource_id !== null
+                                      ? ` #${reason.resource_id}`
+                                      : ""}
+
+                                  </p>
+
+                                )}
+
+                              </div>
+
+                            )
+                          )}
+
+                        </div>
+
+                      </div>
+
+                    </div>
+
+                  </div>
+
+                )}
+
+                {/* ==================================================
+                    AI CONTINUOUS RISK STATE EXPLANATION
+                ================================================== */}
+
+                <Can
+                  resource="ai"
+                  action="use"
+                >
+                  <section className="rounded-2xl border bg-white shadow-sm">
+
+                    {/* Header */}
+                    <div className="border-b p-6">
+
+                      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+
+                        <div className="flex items-start gap-3">
+
+                          <div className="rounded-xl bg-purple-50 p-3">
+                            <Brain className="h-6 w-6 text-purple-600" />
+                          </div>
+
+                          <div>
+
+                            <h2 className="text-lg font-semibold text-slate-900">
+                              AI Risk State Explanation
+                            </h2>
+
+                            <p className="mt-1 text-sm leading-6 text-slate-500">
+                              AI-generated explanation of the current continuous
+                              risk state and the factors that should be reviewed.
+                            </p>
+
+                            <p className="mt-2 text-xs text-slate-400">
+                              The deterministic GRC engine remains authoritative
+                              for the risk and treatment state. AI only explains
+                              the state and does not change GRC decisions.
+                            </p>
+
+                          </div>
+
+                        </div>
+
+                        <Button
+                          type="button"
+                          onClick={() => {
+                            resetAIStateExplanation();
+                            explainRiskState(riskId);
+                          }}
+                          disabled={aiStateExplanationLoading}
+                        >
+                          {aiStateExplanationLoading ? (
+                            <>
+                              <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                              Generating...
+                            </>
+                          ) : (
+                            <>
+                              <Brain className="mr-2 h-4 w-4" />
+                              Explain with AI
+                            </>
+                          )}
+                        </Button>
+
+                      </div>
+
+                    </div>
+
+
+                    {/* Error */}
+                    {aiStateExplanationError && (
+                      <div className="p-6">
+
+                        <div className="rounded-xl border border-red-200 bg-red-50 p-4">
+
+                          <div className="flex items-start gap-3">
+
+                            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
+
+                            <div>
+
+                              <p className="font-medium text-red-800">
+                                AI explanation unavailable
+                              </p>
+
+                              <p className="mt-1 text-sm text-red-700">
+                                {aiStateExplanationError.message}
+                              </p>
+
+                            </div>
+
+                          </div>
+
+                        </div>
+
+                      </div>
+                    )}
+
+
+                    {/* Explanation */}
+                    {aiStateExplanation && (
+                      <div className="space-y-6 p-6">
+
+                        {/* Authoritative State */}
+                        <div>
+
+                          <div className="mb-3">
+
+                            <h3 className="text-sm font-semibold text-slate-900">
+                              Authoritative Risk State
+                            </h3>
+
+                            <p className="mt-1 text-xs text-slate-500">
+                              These values come from the deterministic continuous
+                              risk state engine, not from the AI response.
+                            </p>
+
+                          </div>
+
+
+                          <div className="grid gap-4 md:grid-cols-3">
+
+                            <div className="rounded-xl border p-4">
+
+                              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                                Risk State
+                              </p>
+
+                              <div className="mt-2">
+
+                                <span
+                                  className={`inline-flex rounded-full border px-3 py-1 text-sm font-medium ${monitoringStateClass(
+                                    aiStateExplanation.risk_state
+                                  )}`}
+                                >
+                                  {formatMonitoringState(
+                                    aiStateExplanation.risk_state
+                                  )}
+                                </span>
+
+                              </div>
+
+                            </div>
+
+
+                            <div className="rounded-xl border p-4">
+
+                              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                                Treatment State
+                              </p>
+
+                              <div className="mt-2">
+
+                                <span
+                                  className={`inline-flex rounded-full border px-3 py-1 text-sm font-medium ${monitoringStateClass(
+                                    aiStateExplanation.treatment_state
+                                  )}`}
+                                >
+                                  {formatMonitoringState(
+                                    aiStateExplanation.treatment_state
+                                  )}
+                                </span>
+
+                              </div>
+
+                            </div>
+
+
+                            <div className="rounded-xl border p-4">
+
+                              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                                Reassessment
+                              </p>
+
+                              <div className="mt-2">
+
+                                <span
+                                  className={`inline-flex rounded-full border px-3 py-1 text-sm font-medium ${
+                                    aiStateExplanation.reassessment_required
+                                      ? "border-red-200 bg-red-50 text-red-700"
+                                      : "border-emerald-200 bg-emerald-50 text-emerald-700"
+                                  }`}
+                                >
+                                  {aiStateExplanation.reassessment_required
+                                    ? "Required"
+                                    : "Not Required"}
+                                </span>
+
+                              </div>
+
+                            </div>
+
+                          </div>
+
+                        </div>
+
+
+                        {/* AI Explanation */}
+                        <div className="rounded-xl border border-purple-100 bg-purple-50/40 p-5">
+
+                          <div className="flex items-start gap-3">
+
+                            <Brain className="mt-0.5 h-5 w-5 shrink-0 text-purple-600" />
+
+                            <div>
+
+                              <h3 className="font-semibold text-slate-900">
+                                Explanation
+                              </h3>
+
+                              <p className="mt-2 text-sm leading-7 text-slate-700">
+                                {aiStateExplanation.explanation}
+                              </p>
+
+                            </div>
+
+                          </div>
+
+                        </div>
+
+
+                        {/* Key Drivers + Review Areas */}
+                        <div className="grid gap-6 md:grid-cols-2">
+
+                          {/* Key Drivers */}
+                          <div className="rounded-xl border p-5">
+
+                            <div className="mb-4 flex items-center gap-2">
+
+                              <ShieldAlert className="h-5 w-5 text-orange-600" />
+
+                              <h3 className="font-semibold text-slate-900">
+                                Key Drivers
+                              </h3>
+
+                            </div>
+
+
+                            <div className="space-y-3">
+
+                              {aiStateExplanation.key_drivers.map(
+                                (driver, index) => (
+                                  <div
+                                    key={`${driver}-${index}`}
+                                    className="flex items-start gap-3"
+                                  >
+
+                                    <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-orange-50 text-xs font-semibold text-orange-700">
+                                      {index + 1}
+                                    </span>
+
+                                    <p className="text-sm leading-6 text-slate-700">
+                                      {driver}
+                                    </p>
+
+                                  </div>
+                                )
+                              )}
+
+                            </div>
+
+                          </div>
+
+
+                          {/* Review Areas */}
+                          <div className="rounded-xl border p-5">
+
+                            <div className="mb-4 flex items-center gap-2">
+
+                              <ClipboardCheck className="h-5 w-5 text-blue-600" />
+
+                              <h3 className="font-semibold text-slate-900">
+                                Areas to Review
+                              </h3>
+
+                            </div>
+
+
+                            <div className="space-y-3">
+
+                              {aiStateExplanation.review_areas.map(
+                                (area, index) => (
+                                  <div
+                                    key={`${area}-${index}`}
+                                    className="flex items-start gap-3"
+                                  >
+
+                                    <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-50 text-xs font-semibold text-blue-700">
+                                      {index + 1}
+                                    </span>
+
+                                    <p className="text-sm leading-6 text-slate-700">
+                                      {area}
+                                    </p>
+
+                                  </div>
+                                )
+                              )}
+
+                            </div>
+
+                          </div>
+
+                        </div>
+
+
+                        {/* Governance Notice */}
+                        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+
+                          <div className="flex items-start gap-3">
+
+                            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+
+                            <div>
+
+                              <p className="text-sm font-medium text-slate-800">
+                                Governance boundary
+                              </p>
+
+                              <p className="mt-1 text-xs leading-5 text-slate-600">
+                                The AI explanation is advisory. Risk state,
+                                treatment state, and reassessment requirements
+                                are determined by CyberGRC-AI's deterministic
+                                GRC rules and are not controlled by the AI model.
+                              </p>
+
+                            </div>
+
+                          </div>
+
+                        </div>
+
+                      </div>
+                    )}
+
+                  </section>
+                </Can>
 
                 {monitoring.alerts.length === 0 ? (
 

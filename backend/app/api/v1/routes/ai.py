@@ -14,6 +14,7 @@ from app.schemas.ai import (
     ControlRecommendationResponse,
     AuditSummaryResponse,
     ExecutiveDashboardResponse,
+    RiskStateExplanationResponse,
 )
 
 from app.services.ai.risk_ai_service import analyze_risk
@@ -21,6 +22,11 @@ from app.services.ai.control_ai_service import recommend_controls
 from app.services.ai.executive_dashboard_ai_service import (
     generate_executive_dashboard,
 )
+
+from app.services.ai.continuous_risk_state_ai_service import (
+    explain_continuous_risk_state,
+)
+
 from app.services.ai.audit_ai_service import summarize_audit
 
 
@@ -70,6 +76,50 @@ def analyze_existing_risk(
         current_user=current_user,
     )
 
+# ==========================================================
+# CONTINUOUS RISK STATE EXPLANATION
+# ==========================================================
+
+@router.post(
+    "/risk/{risk_id}/state-explanation",
+    response_model=RiskStateExplanationResponse,
+)
+def explain_risk_state(
+    risk_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_permission(
+            "ai",
+            "use",
+        )
+    ),
+):
+    """
+    Explain the deterministic continuous risk state
+    using governed AI.
+
+    The deterministic state is calculated by the GRC
+    intelligence layer. AI is used only to explain
+    the state and identify human review areas.
+    """
+
+    risk = get_authorized_risk(
+        db,
+        current_user,
+        risk_id,
+    )
+
+    if risk is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Risk not found.",
+        )
+
+    return explain_continuous_risk_state(
+        db=db,
+        risk_id=risk_id,
+        current_user=current_user,
+    )
 
 # ==========================================================
 # CONTROL RECOMMENDATIONS

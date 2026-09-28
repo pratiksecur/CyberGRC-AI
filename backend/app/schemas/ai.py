@@ -196,3 +196,76 @@ class ExecutiveDashboardResponse(_AIBaseModel):
         min_length=1,
         max_length=10,
     )
+
+    # ==========================================================
+# CONTINUOUS RISK STATE AI EXPLANATION
+# ==========================================================
+
+
+class AIContinuousRiskStateExplanation(_AIBaseModel):
+    explanation: str = Field(
+        ...,
+        min_length=30,
+        max_length=3000,
+    )
+
+    key_drivers: List[str] = Field(
+        ...,
+        min_length=1,
+        max_length=8,
+    )
+
+    review_areas: List[str] = Field(
+        ...,
+        min_length=1,
+        max_length=8,
+    )
+
+    @field_validator(
+        "key_drivers",
+        "review_areas",
+    )
+    @classmethod
+    def validate_items(cls, values):
+        if any(
+            not item.strip()
+            or len(item) > 500
+            for item in values
+        ):
+            raise ValueError(
+                "Invalid explanation item."
+            )
+
+        return values
+
+
+class RiskStateExplanationResponse(_AIBaseModel):
+    risk_state: str = Field(
+        ...,
+        pattern=r"^(CURRENT|DEGRADED|REASSESSMENT_REQUIRED)$",
+    )
+
+    treatment_state: str = Field(
+        ...,
+        pattern=r"^(CURRENT|STALE|DEGRADED|REQUIRES_REASSESSMENT)$",
+    )
+
+    reassessment_required: bool
+
+    explanation: str = Field(
+        ...,
+        min_length=30,
+        max_length=3000,
+    )
+
+    key_drivers: List[str] = Field(
+        ...,
+        min_length=1,
+        max_length=8,
+    )
+
+    review_areas: List[str] = Field(
+        ...,
+        min_length=1,
+        max_length=8,
+    )

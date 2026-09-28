@@ -71,7 +71,10 @@ class MonitoringMetrics(BaseModel):
 
     stale_evidence: int
 
+    # ------------------------------------------------------
     # Risk-treatment intelligence signals
+    # ------------------------------------------------------
+
     treatment_alerts: int = 0
     overdue_treatments: int = 0
     stuck_treatments: int = 0
@@ -80,6 +83,14 @@ class MonitoringMetrics(BaseModel):
     elevated_residual_risks: int = 0
     cancelled_without_replacement: int = 0
     approved_acceptances: int = 0
+
+    # ------------------------------------------------------
+    # Phase 56 — Continuous Risk State
+    # ------------------------------------------------------
+
+    degraded_risks: int = 0
+
+    reassessment_required_risks: int = 0
 
 
 # ==========================================================
@@ -105,6 +116,8 @@ class MonitoringOverviewResponse(BaseModel):
 class RiskMonitoringResponse(BaseModel):
     """
     Monitoring information for one risk.
+
+    Phase 56 adds deterministic continuous-risk-state information.
     """
 
     generated_at: datetime
@@ -114,3 +127,15 @@ class RiskMonitoringResponse(BaseModel):
     risk_score: int
 
     alerts: list[MonitoringAlert]
+
+    # ------------------------------------------------------
+    # Phase 56 — Continuous Risk State
+    # ------------------------------------------------------
+
+    continuous_risk_state: str
+
+    treatment_state: str
+
+    reassessment_required: bool
+
+    state_reasons: list[dict]

@@ -104,3 +104,38 @@ export async function summarizeAudit(
 
   return response.data;
 }
+
+// ==========================================================
+// Continuous Risk State Explanation — Phase 56
+// ==========================================================
+
+export interface RiskStateExplanation {
+  risk_state:
+    | "CURRENT"
+    | "DEGRADED"
+    | "REASSESSMENT_REQUIRED";
+
+  treatment_state:
+    | "CURRENT"
+    | "STALE"
+    | "DEGRADED"
+    | "REQUIRES_REASSESSMENT";
+
+  reassessment_required: boolean;
+
+  explanation: string;
+
+  key_drivers: string[];
+
+  review_areas: string[];
+}
+
+export async function explainRiskState(
+  riskId: number
+): Promise<RiskStateExplanation> {
+  const response = await api.post(
+    `/ai/risk/${riskId}/state-explanation`
+  );
+
+  return response.data;
+}

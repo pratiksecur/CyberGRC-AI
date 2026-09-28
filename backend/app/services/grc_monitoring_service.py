@@ -18,6 +18,10 @@ from app.services.risk_treatment_residual_service import (
     select_authoritative_treatment,
 )
 
+from app.services.continuous_risk_state_service import (
+    get_continuous_risk_state,
+)
+
 from app.schemas.monitoring import (
     MonitoringAlert,
     MonitoringMetrics,
@@ -412,6 +416,60 @@ def _monitor_risk(
     """
 
     alerts: list[MonitoringAlert] = []
+
+    # ======================================================
+    # PHASE 56 — CONTINUOUS RISK STATE
+    # ======================================================
+
+    continuous_state = get_continuous_risk_state(
+        db,
+        risk,
+        current_user=current_user,
+    )
+
+    if continuous_state.risk_state.value == "REASSESSMENT_REQUIRED":
+
+        reason_text = "; ".join(
+            reason.message
+            for reason in continuous_state.reasons
+        )
+
+        alerts.append(
+            _alert(
+                alert_type="RISK_REASSESSMENT_REQUIRED",
+                severity="CRITICAL",
+                resource_type="risk",
+                resource_id=risk.id,
+                title="Risk Reassessment Required",
+                message=(
+                    f"{risk.title} requires reassessment. "
+                    f"{reason_text}"
+                ),
+                risk_id=risk.id,
+            )
+        )
+
+    elif continuous_state.risk_state.value == "DEGRADED":
+
+        reason_text = "; ".join(
+            reason.message
+            for reason in continuous_state.reasons
+        )
+
+        alerts.append(
+            _alert(
+                alert_type="RISK_STATE_DEGRADED",
+                severity="HIGH",
+                resource_type="risk",
+                resource_id=risk.id,
+                title="Risk State Has Degraded",
+                message=(
+                    f"{risk.title} is in a degraded state. "
+                    f"{reason_text}"
+                ),
+                risk_id=risk.id,
+            )
+        )
 
     # Treatment lifecycle is evaluated within the same risk and treatment
     # visibility boundaries as the API.
@@ -820,11 +878,42 @@ def get_risk_monitoring(
         current_user,
     )
 
+    continuous_state = get_continuous_risk_state(
+        db,
+        risk,
+        current_user=current_user,
+    )
+
+    state_reasons = [
+        {
+            "code": reason.code.value,
+            "severity": reason.severity,
+            "message": reason.message,
+            "resource_type": reason.resource_type,
+            "resource_id": reason.resource_id,
+        }
+        for reason in continuous_state.reasons
+    ]
+
     return RiskMonitoringResponse(
         generated_at=_utc_now(),
         risk_id=risk.id,
         risk_score=risk.risk_score,
         alerts=alerts,
+
+        continuous_risk_state=(
+            continuous_state.risk_state.value
+        ),
+
+        treatment_state=(
+            continuous_state.treatment_state.value
+        ),
+
+        reassessment_required=(
+            continuous_state.reassessment_required
+        ),
+
+        state_reasons=state_reasons,
     )
 
 
@@ -861,7 +950,29 @@ def get_monitoring_overview(
 
     alerts: list[MonitoringAlert] = []
 
+    degraded_risks = 0
+
+    reassessment_required_risks = 0
+
     for risk in risks:
+
+        continuous_state = get_continuous_risk_state(
+            db,
+            risk,
+            current_user=current_user,
+        )
+
+        if (
+            continuous_state.risk_state.value
+            == "DEGRADED"
+        ):
+            degraded_risks += 1
+
+        elif (
+            continuous_state.risk_state.value
+            == "REASSESSMENT_REQUIRED"
+        ):
+            reassessment_required_risks += 1
 
         alerts.extend(
             _monitor_risk(
@@ -1146,6 +1257,16 @@ def get_monitoring_overview(
         elevated_residual_risks=elevated_residual_risks,
         cancelled_without_replacement=cancelled_without_replacement,
         approved_acceptances=approved_acceptances,
+
+        # --------------------------------------------------
+        # Phase 56 — Continuous Risk State
+        # --------------------------------------------------
+
+        degraded_risks=degraded_risks,
+
+        reassessment_required_risks=(
+            reassessment_required_risks
+        ),
     )
 
     return MonitoringOverviewResponse(
