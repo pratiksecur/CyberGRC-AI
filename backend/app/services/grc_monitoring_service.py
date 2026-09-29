@@ -22,10 +22,16 @@ from app.services.continuous_risk_state_service import (
     get_continuous_risk_state,
 )
 
+from app.services.continuous_risk_response_service import (
+    get_continuous_risk_response,
+)
+
 from app.schemas.monitoring import (
     MonitoringAlert,
     MonitoringMetrics,
     MonitoringOverviewResponse,
+    MonitoringRiskResponse,
+    MonitoringRiskResponseDecision,
     RiskMonitoringResponse,
 )
 
@@ -950,11 +956,33 @@ def get_monitoring_overview(
 
     alerts: list[MonitoringAlert] = []
 
+    # ======================================================
+    # Phase 56 — Continuous Risk State
+    # ======================================================
+
     degraded_risks = 0
 
     reassessment_required_risks = 0
 
+    # ======================================================
+    # Phase 57 — Continuous Risk Response
+    # ======================================================
+
+    risk_responses: list[
+        MonitoringRiskResponse
+    ] = []
+
+    response_required_risks = 0
+
+    human_approval_required_risks = 0
+
+    critical_response_risks = 0
+
     for risk in risks:
+
+        # ==================================================
+        # Phase 56 — Continuous Risk State
+        # ==================================================
 
         continuous_state = get_continuous_risk_state(
             db,
@@ -973,6 +1001,81 @@ def get_monitoring_overview(
             == "REASSESSMENT_REQUIRED"
         ):
             reassessment_required_risks += 1
+
+        # ==================================================
+        # Phase 57 — Continuous Risk Response
+        # ==================================================
+
+        continuous_response = (
+            get_continuous_risk_response(
+                db,
+                risk,
+                current_user=current_user,
+            )
+        )
+
+        if continuous_response.response_required:
+            response_required_risks += 1
+
+        if continuous_response.human_approval_required:
+            human_approval_required_risks += 1
+
+        if (
+            continuous_response.priority.value
+            == "CRITICAL"
+        ):
+            critical_response_risks += 1
+
+        response_decisions = [
+            MonitoringRiskResponseDecision(
+                decision=decision.decision.value,
+                priority=decision.priority.value,
+                reason_codes=list(
+                    decision.reason_codes
+                ),
+                human_approval_required=(
+                    decision.human_approval_required
+                ),
+            )
+            for decision
+            in continuous_response.decisions
+        ]
+
+        risk_responses.append(
+            MonitoringRiskResponse(
+                risk_id=continuous_response.risk_id,
+
+                risk_state=(
+                    continuous_response.risk_state
+                ),
+
+                treatment_state=(
+                    continuous_response.treatment_state
+                ),
+
+                reassessment_required=(
+                    continuous_response.reassessment_required
+                ),
+
+                response_required=(
+                    continuous_response.response_required
+                ),
+
+                priority=(
+                    continuous_response.priority.value
+                ),
+
+                human_approval_required=(
+                    continuous_response.human_approval_required
+                ),
+
+                decisions=response_decisions,
+            )
+        )
+
+        # ==================================================
+        # Existing Monitoring Alerts
+        # ==================================================
 
         alerts.extend(
             _monitor_risk(
@@ -1267,10 +1370,48 @@ def get_monitoring_overview(
         reassessment_required_risks=(
             reassessment_required_risks
         ),
+
+        # --------------------------------------------------
+        # Phase 57 — Continuous Risk Response
+        # --------------------------------------------------
+
+        response_required_risks=(
+            response_required_risks
+        ),
+
+        human_approval_required_risks=(
+            human_approval_required_risks
+        ),
+
+        critical_response_risks=(
+            critical_response_risks
+        ),
+    )
+
+    # ======================================================
+    # Phase 57 — Deterministic Response Ordering
+    # ======================================================
+
+    priority_order = {
+        "CRITICAL": 0,
+        "HIGH": 1,
+        "MEDIUM": 2,
+        "LOW": 3,
+    }
+
+    risk_responses.sort(
+        key=lambda item: (
+            priority_order.get(
+                item.priority,
+                99,
+            ),
+            item.risk_id,
+        )
     )
 
     return MonitoringOverviewResponse(
         generated_at=_utc_now(),
         metrics=metrics,
         alerts=alerts,
+        risk_responses=risk_responses,
     )

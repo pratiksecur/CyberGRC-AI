@@ -9,6 +9,7 @@ import {
   RefreshCw,
   ShieldAlert,
   ShieldCheck,
+  UserCheck,
   XCircle,
 } from "lucide-react";
 
@@ -39,6 +40,61 @@ function severityClass(
     default:
       return "bg-blue-100 text-blue-700 border-blue-200";
   }
+}
+
+
+function priorityClass(
+  priority: string
+) {
+  switch (priority.toUpperCase()) {
+    case "CRITICAL":
+      return "bg-red-100 text-red-700 border-red-200";
+
+    case "HIGH":
+      return "bg-orange-100 text-orange-700 border-orange-200";
+
+    case "MEDIUM":
+      return "bg-yellow-100 text-yellow-700 border-yellow-200";
+
+    default:
+      return "bg-slate-100 text-slate-700 border-slate-200";
+  }
+}
+
+
+function stateClass(
+  state: string
+) {
+  switch (state.toUpperCase()) {
+    case "REASSESSMENT_REQUIRED":
+    case "REQUIRES_REASSESSMENT":
+      return "bg-red-100 text-red-700 border-red-200";
+
+    case "DEGRADED":
+    case "STALE":
+      return "bg-orange-100 text-orange-700 border-orange-200";
+
+    case "CURRENT":
+      return "bg-emerald-100 text-emerald-700 border-emerald-200";
+
+    default:
+      return "bg-slate-100 text-slate-700 border-slate-200";
+  }
+}
+
+
+function formatLabel(
+  value: string
+) {
+  return value
+    .toLowerCase()
+    .split("_")
+    .map(
+      (part) =>
+        part.charAt(0).toUpperCase() +
+        part.slice(1)
+    )
+    .join(" ");
 }
 
 
@@ -190,6 +246,15 @@ export default function Monitoring() {
 
 
   const metrics = data.metrics;
+
+  const riskResponses =
+    data.risk_responses ?? [];
+
+  const responseRisks =
+    riskResponses.filter(
+      (response) =>
+        response.response_required
+    );
 
 
   return (
@@ -343,6 +408,7 @@ export default function Monitoring() {
 
         </div>
 
+
         {/* ==================================================
             Continuous Risk State
         ================================================== */}
@@ -390,6 +456,49 @@ export default function Monitoring() {
 
         </div>
 
+
+        {/* ==================================================
+            Phase 57 — Response Summary
+        ================================================== */}
+
+        <div className="grid gap-4 sm:grid-cols-3">
+
+          <MetricCard
+            title="Response Required"
+            value={metrics.response_required_risks}
+            icon={AlertTriangle}
+            emphasis={
+              metrics.response_required_risks > 0
+                ? "critical"
+                : undefined
+            }
+          />
+
+          <MetricCard
+            title="Human Approval Required"
+            value={metrics.human_approval_required_risks}
+            icon={UserCheck}
+            emphasis={
+              metrics.human_approval_required_risks > 0
+                ? "critical"
+                : undefined
+            }
+          />
+
+          <MetricCard
+            title="Critical Responses"
+            value={metrics.critical_response_risks}
+            icon={ShieldAlert}
+            emphasis={
+              metrics.critical_response_risks > 0
+                ? "critical"
+                : undefined
+            }
+          />
+
+        </div>
+
+
         {/* ==================================================
             Continuous Risk State Explanation
         ================================================== */}
@@ -422,6 +531,319 @@ export default function Monitoring() {
 
         </div>
 
+
+        {/* ==================================================
+            Phase 57 — Response Posture
+        ================================================== */}
+
+        <div className="rounded-2xl border bg-white shadow-sm">
+
+          <div className="border-b p-6">
+
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+
+              <div className="flex items-start gap-3">
+
+                <div className="rounded-lg bg-red-50 p-2">
+                  <ShieldAlert className="h-5 w-5 text-red-600" />
+                </div>
+
+                <div>
+
+                  <h2 className="text-lg font-semibold text-slate-900">
+                    Response Posture
+                  </h2>
+
+                  <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-500">
+                    Deterministic response recommendations derived from the
+                    current continuous risk state. High-impact decisions remain
+                    subject to human approval.
+                  </p>
+
+                </div>
+
+              </div>
+
+              <span
+                className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                  responseRisks.length > 0
+                    ? "bg-red-100 text-red-700"
+                    : "bg-emerald-100 text-emerald-700"
+                }`}
+              >
+                {responseRisks.length} response
+                {responseRisks.length === 1
+                  ? ""
+                  : "s"} required
+              </span>
+
+            </div>
+
+          </div>
+
+
+          <div className="divide-y">
+
+            {responseRisks.length === 0 ? (
+
+              <div className="p-10 text-center">
+
+                <CheckCircle2 className="mx-auto h-8 w-8 text-emerald-500" />
+
+                <p className="mt-3 font-medium text-slate-700">
+                  No active response requirements
+                </p>
+
+                <p className="mt-1 text-sm text-slate-500">
+                  All visible risks currently have a monitor-only response posture.
+                </p>
+
+              </div>
+
+            ) : (
+
+              responseRisks.map(
+                (response) => {
+
+                  const primaryDecision =
+                    response.decisions[0];
+
+                  return (
+                    <div
+                      key={response.risk_id}
+                      className="p-6 transition hover:bg-slate-50"
+                    >
+
+                      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+
+                        <div className="min-w-0">
+
+                          <div className="flex flex-wrap items-center gap-2">
+
+                            <h3 className="font-semibold text-slate-900">
+                              Risk #{response.risk_id}
+                            </h3>
+
+                            <span
+                              className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${stateClass(
+                                response.risk_state
+                              )}`}
+                            >
+                              {formatLabel(
+                                response.risk_state
+                              )}
+                            </span>
+
+                            <span
+                              className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${stateClass(
+                                response.treatment_state
+                              )}`}
+                            >
+                              Treatment:{" "}
+                              {formatLabel(
+                                response.treatment_state
+                              )}
+                            </span>
+
+                          </div>
+
+
+                          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+
+                            <ResponseDetail
+                              label="Priority"
+                              value={formatLabel(
+                                response.priority
+                              )}
+                              className={priorityClass(
+                                response.priority
+                              )}
+                            />
+
+                            <ResponseDetail
+                              label="Response Required"
+                              value={
+                                response.response_required
+                                  ? "Yes"
+                                  : "No"
+                              }
+                              className={
+                                response.response_required
+                                  ? "bg-red-100 text-red-700 border-red-200"
+                                  : "bg-emerald-100 text-emerald-700 border-emerald-200"
+                              }
+                            />
+
+                            <ResponseDetail
+                              label="Reassessment"
+                              value={
+                                response.reassessment_required
+                                  ? "Required"
+                                  : "Not Required"
+                              }
+                              className={
+                                response.reassessment_required
+                                  ? "bg-red-100 text-red-700 border-red-200"
+                                  : "bg-slate-100 text-slate-700 border-slate-200"
+                              }
+                            />
+
+                            <ResponseDetail
+                              label="Human Approval"
+                              value={
+                                response.human_approval_required
+                                  ? "Required"
+                                  : "Not Required"
+                              }
+                              className={
+                                response.human_approval_required
+                                  ? "bg-red-100 text-red-700 border-red-200"
+                                  : "bg-emerald-100 text-emerald-700 border-emerald-200"
+                              }
+                            />
+
+                          </div>
+
+
+                          <div className="mt-5">
+
+                            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                              Recommended Decision
+                            </p>
+
+                            <div className="mt-2 flex flex-wrap items-center gap-2">
+
+                              {primaryDecision ? (
+                                <span
+                                  className={`rounded-lg border px-3 py-2 text-sm font-semibold ${priorityClass(
+                                    primaryDecision.priority
+                                  )}`}
+                                >
+                                  {formatLabel(
+                                    primaryDecision.decision
+                                  )}
+                                </span>
+                              ) : (
+                                <span className="text-sm text-slate-500">
+                                  No decision recorded
+                                </span>
+                              )}
+
+                            </div>
+
+                          </div>
+
+
+                          {response.decisions.length > 1 && (
+
+                            <div className="mt-4">
+
+                              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                                Additional Decisions
+                              </p>
+
+                              <div className="mt-2 flex flex-wrap gap-2">
+
+                                {response.decisions
+                                  .slice(1)
+                                  .map(
+                                    (decision) => (
+                                      <span
+                                        key={`${decision.decision}-${decision.priority}-${decision.reason_codes.join(
+                                          "-"
+                                        )}`}
+                                        className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-700"
+                                      >
+                                        {formatLabel(
+                                          decision.decision
+                                        )}
+                                      </span>
+                                    )
+                                  )}
+
+                              </div>
+
+                            </div>
+
+                          )}
+
+
+                          {primaryDecision &&
+                            primaryDecision.reason_codes.length > 0 && (
+
+                              <div className="mt-4">
+
+                                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                                  Response Drivers
+                                </p>
+
+                                <div className="mt-2 flex flex-wrap gap-2">
+
+                                  {primaryDecision.reason_codes.map(
+                                    (reasonCode) => (
+                                      <span
+                                        key={reasonCode}
+                                        className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600"
+                                      >
+                                        {formatLabel(
+                                          reasonCode
+                                        )}
+                                      </span>
+                                    )
+                                  )}
+
+                                </div>
+
+                              </div>
+
+                            )}
+
+                        </div>
+
+
+                        <div className="flex shrink-0 flex-col gap-3 lg:items-end">
+
+                          {response.human_approval_required && (
+
+                            <div className="inline-flex items-center rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700">
+
+                              <UserCheck className="mr-2 h-4 w-4" />
+
+                              Human approval required
+
+                            </div>
+
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              navigate(
+                                `/risks/${response.risk_id}`
+                              )
+                            }
+                            className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+                          >
+                            View Risk
+                            <ArrowRight className="ml-2 h-4 w-4" />
+                          </button>
+
+                        </div>
+
+                      </div>
+
+                    </div>
+                  );
+                }
+              )
+
+            )}
+
+          </div>
+
+        </div>
+
+
         {/* ==================================================
             Explanation
         ================================================== */}
@@ -441,11 +863,11 @@ export default function Monitoring() {
               </h2>
 
               <p className="mt-1 max-w-4xl text-sm leading-6 text-slate-600">
-                Monitoring alerts are calculated from the current database
-                state rather than generated by an AI model. This provides
-                predictable detection of critical risks, missing controls,
-                evidence gaps, ineffective controls, findings, remediation
-                issues, and stale evidence.
+                Monitoring alerts and response recommendations are calculated
+                from the current database state rather than generated by an AI
+                model. This provides predictable detection of critical risks,
+                missing controls, evidence gaps, ineffective controls, findings,
+                remediation issues, stale evidence, and response requirements.
               </p>
 
             </div>
@@ -591,6 +1013,41 @@ export default function Monitoring() {
       </div>
 
     </AppLayout>
+  );
+}
+
+
+// ==========================================================
+// Response Detail
+// ==========================================================
+
+interface ResponseDetailProps {
+  label: string;
+  value: string;
+  className: string;
+}
+
+
+function ResponseDetail({
+  label,
+  value,
+  className,
+}: ResponseDetailProps) {
+
+  return (
+    <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+
+      <p className="text-xs font-medium text-slate-500">
+        {label}
+      </p>
+
+      <span
+        className={`mt-2 inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${className}`}
+      >
+        {value}
+      </span>
+
+    </div>
   );
 }
 

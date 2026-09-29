@@ -26,6 +26,10 @@ from app.services.continuous_risk_state_service import (
     get_continuous_risk_state,
 )
 
+from app.services.continuous_risk_response_service import (
+    get_continuous_risk_response,
+)
+
 from app.schemas.intelligence import (
     GRCIntelligenceOverviewMetrics,
     GRCIntelligenceOverviewResponse,
@@ -36,6 +40,7 @@ from app.schemas.intelligence import (
     IntelligenceFramework,
     RiskIntelligenceMetrics,
     IntelligenceRiskStateReason,
+    IntelligenceRiskResponseDecision,
     RiskIntelligenceResponse,
 )
 
@@ -605,6 +610,34 @@ def _build_risk_intelligence(
         for reason in continuous_state.reasons
     ]
 
+    # ======================================================
+    # PHASE 57 — CONTINUOUS RISK RESPONSE
+    # ======================================================
+
+    # Response orchestration consumes the authoritative
+    # Phase 56 state. It does not independently recalculate
+    # risk state and it does not execute any action.
+
+    continuous_response = get_continuous_risk_response(
+        db,
+        risk,
+        current_user=current_user,
+    )
+
+    response_decisions = [
+        IntelligenceRiskResponseDecision(
+            decision=decision.decision.value,
+            priority=decision.priority.value,
+            reason_codes=list(
+                decision.reason_codes
+            ),
+            human_approval_required=(
+                decision.human_approval_required
+            ),
+        )
+        for decision in continuous_response.decisions
+    ]
+
 
 
     # ======================================================
@@ -697,6 +730,24 @@ def _build_risk_intelligence(
         ),
 
         state_reasons=state_reasons,
+        
+        # --------------------------------------------------
+        # Phase 57 — Continuous Risk Response
+        # --------------------------------------------------
+
+        response_required=(
+            continuous_response.response_required
+        ),
+
+        response_priority=(
+            continuous_response.priority.value
+        ),
+
+        human_approval_required=(
+            continuous_response.human_approval_required
+        ),
+
+        response_decisions=response_decisions,
     )
 
     # ======================================================
