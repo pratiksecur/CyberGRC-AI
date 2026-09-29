@@ -1,7 +1,6 @@
 from datetime import datetime
 
-
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 # ==========================================================
@@ -13,8 +12,7 @@ class MonitoringAlert(BaseModel):
     One deterministic GRC monitoring alert.
 
     Alerts are derived from the current database state.
-    They are intentionally not persisted as a separate model
-    in Phase 46.
+    They are intentionally not persisted as a separate model.
     """
 
     alert_type: str
@@ -32,6 +30,57 @@ class MonitoringAlert(BaseModel):
     risk_id: int | None = None
 
     detected_at: datetime
+
+
+# ==========================================================
+# PHASE 57 — MONITORING RISK RESPONSE DECISION
+# ==========================================================
+
+class MonitoringRiskResponseDecision(BaseModel):
+    """
+    One deterministic response decision associated with a risk.
+
+    Response decisions are advisory and do not execute
+    automatically.
+    """
+
+    decision: str
+
+    priority: str
+
+    reason_codes: list[str]
+
+    human_approval_required: bool
+
+
+# ==========================================================
+# PHASE 57 — MONITORING RISK RESPONSE
+# ==========================================================
+
+# ==========================================================
+# PHASE 57 — MONITORING RISK RESPONSE
+# ==========================================================
+
+class MonitoringRiskResponse(BaseModel):
+    """
+    Deterministic Phase 57 response posture for one visible risk.
+    """
+
+    risk_id: int
+
+    risk_state: str
+
+    treatment_state: str
+
+    reassessment_required: bool
+
+    response_required: bool
+
+    priority: str
+
+    human_approval_required: bool
+
+    decisions: list[MonitoringRiskResponseDecision]
 
 
 # ==========================================================
@@ -76,12 +125,19 @@ class MonitoringMetrics(BaseModel):
     # ------------------------------------------------------
 
     treatment_alerts: int = 0
+
     overdue_treatments: int = 0
+
     stuck_treatments: int = 0
+
     planned_high_risk_treatments: int = 0
+
     pending_acceptances: int = 0
+
     elevated_residual_risks: int = 0
+
     cancelled_without_replacement: int = 0
+
     approved_acceptances: int = 0
 
     # ------------------------------------------------------
@@ -91,6 +147,16 @@ class MonitoringMetrics(BaseModel):
     degraded_risks: int = 0
 
     reassessment_required_risks: int = 0
+
+    # ------------------------------------------------------
+    # Phase 57 — Continuous Risk Response
+    # ------------------------------------------------------
+
+    response_required_risks: int = 0
+
+    human_approval_required_risks: int = 0
+
+    critical_response_risks: int = 0
 
 
 # ==========================================================
@@ -107,6 +173,14 @@ class MonitoringOverviewResponse(BaseModel):
     metrics: MonitoringMetrics
 
     alerts: list[MonitoringAlert]
+
+    # ------------------------------------------------------
+    # Phase 57 — Continuous Risk Response
+    # ------------------------------------------------------
+
+    risk_responses: list[MonitoringRiskResponse] = Field(
+        default_factory=list
+    )
 
 
 # ==========================================================

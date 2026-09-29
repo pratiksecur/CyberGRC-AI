@@ -5,6 +5,7 @@ import AppLayout from "@/layouts/AppLayout";
 import RiskAIInsights from "@/components/ai/RiskAIInsights";
 
 import RiskTreatmentSection from "@/components/risk-treatments/RiskTreatmentSection";
+import RiskContinuousResponse from "@/components/risks/RiskContinuousResponse";
 
 import { Button } from "@/components/ui/button";
 
@@ -22,9 +23,11 @@ import {
 } from "lucide-react";
 
 import { useRisk } from "@/hooks/useRisk";
+
 import {
   useRiskIntelligence,
 } from "@/hooks/useGRCIntelligence";
+
 import {
   useRiskMonitoring,
 } from "@/hooks/useMonitoring";
@@ -32,6 +35,10 @@ import {
 import {
   useRiskStateExplanation,
 } from "@/hooks/useRiskStateExplanation";
+
+import {
+  useRiskContinuousResponse,
+} from "@/hooks/useRiskContinuousResponse";
 
 import Can from "@/components/auth/Can";
 
@@ -63,6 +70,7 @@ function riskScoreClass(score: number) {
 function formatPercent(value: number) {
   return `${value.toFixed(1)}%`;
 }
+
 
 function formatMonitoringState(
   value: string
@@ -103,6 +111,7 @@ function monitoringStateClass(
   }
 }
 
+
 // ==========================================================
 // Page
 // ==========================================================
@@ -137,12 +146,21 @@ export default function ViewRisk() {
   } = useRiskMonitoring(riskId);
 
   const {
+    data: continuousResponse,
+    isLoading: continuousResponseLoading,
+    error: continuousResponseError,
+    refetch: refetchContinuousResponse,
+    isFetching: continuousResponseFetching,
+  } = useRiskContinuousResponse(riskId);
+
+  const {
     mutate: explainRiskState,
     data: aiStateExplanation,
     isPending: aiStateExplanationLoading,
     error: aiStateExplanationError,
     reset: resetAIStateExplanation,
   } = useRiskStateExplanation();
+
 
   // ========================================================
   // Loading
@@ -151,9 +169,11 @@ export default function ViewRisk() {
   if (isLoading) {
     return (
       <AppLayout>
+
         <div className="p-10 text-center">
           Loading Risk...
         </div>
+
       </AppLayout>
     );
   }
@@ -166,9 +186,11 @@ export default function ViewRisk() {
   if (error || !data) {
     return (
       <AppLayout>
+
         <div className="p-10 text-red-500">
           Risk not found.
         </div>
+
       </AppLayout>
     );
   }
@@ -258,7 +280,10 @@ export default function ViewRisk() {
 
             {/* Edit */}
 
-            <Can resource="risks" action="update">
+            <Can
+              resource="risks"
+              action="update"
+            >
               <Button
                 onClick={() =>
                   navigate(`/risks/${data.id}/edit`)
@@ -306,6 +331,7 @@ export default function ViewRisk() {
             <div className="space-y-4">
 
               <div className="flex justify-between">
+
                 <span className="text-slate-500">
                   Likelihood
                 </span>
@@ -313,10 +339,12 @@ export default function ViewRisk() {
                 <span>
                   {data.likelihood}
                 </span>
+
               </div>
 
 
               <div className="flex justify-between">
+
                 <span className="text-slate-500">
                   Impact
                 </span>
@@ -324,10 +352,12 @@ export default function ViewRisk() {
                 <span>
                   {data.impact}
                 </span>
+
               </div>
 
 
               <div className="flex justify-between">
+
                 <span className="text-slate-500">
                   Owner
                 </span>
@@ -335,6 +365,7 @@ export default function ViewRisk() {
                 <span>
                   User #{data.owner_id}
                 </span>
+
               </div>
 
             </div>
@@ -411,6 +442,7 @@ export default function ViewRisk() {
 
         </div>
 
+
         {/* ==================================================
             Risk Treatment
         ================================================== */}
@@ -423,6 +455,7 @@ export default function ViewRisk() {
             riskId={data.id}
           />
         </Can>
+
 
         {/* ==================================================
             GRC Intelligence
@@ -463,7 +496,9 @@ export default function ViewRisk() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => refetchIntelligence()}
+                  onClick={() =>
+                    refetchIntelligence()
+                  }
                   disabled={
                     intelligenceLoading ||
                     intelligenceFetching
@@ -476,13 +511,16 @@ export default function ViewRisk() {
                         : ""
                     }`}
                   />
+
                   Refresh
                 </Button>
 
 
                 <Button
                   size="sm"
-                  onClick={() => navigate("/intelligence")}
+                  onClick={() =>
+                    navigate("/intelligence")
+                  }
                 >
                   Open Intelligence
                 </Button>
@@ -500,18 +538,24 @@ export default function ViewRisk() {
 
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
 
-                {Array.from({ length: 8 }).map(
+                {Array.from({
+                  length: 8,
+                }).map(
                   (_, index) => (
+
                     <div
                       key={index}
                       className="h-24 animate-pulse rounded-xl bg-slate-100"
                     />
+
                   )
                 )}
 
               </div>
 
-            ) : intelligenceError || !intelligence || !metrics ? (
+            ) : intelligenceError ||
+              !intelligence ||
+              !metrics ? (
 
               <div className="rounded-xl border border-red-200 bg-red-50 p-5">
 
@@ -638,7 +682,9 @@ export default function ViewRisk() {
             AI Risk Intelligence
         ================================================== */}
 
-        <RiskAIInsights riskId={riskId} />
+        <RiskAIInsights
+          riskId={riskId}
+        />
 
 
         {/* ==================================================
@@ -679,7 +725,9 @@ export default function ViewRisk() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => refetchMonitoring()}
+                  onClick={() =>
+                    refetchMonitoring()
+                  }
                   disabled={
                     monitoringLoading ||
                     monitoringFetching
@@ -692,13 +740,16 @@ export default function ViewRisk() {
                         : ""
                     }`}
                   />
+
                   Refresh
                 </Button>
 
 
                 <Button
                   size="sm"
-                  onClick={() => navigate("/monitoring")}
+                  onClick={() =>
+                    navigate("/monitoring")
+                  }
                 >
                   Open Monitoring
                 </Button>
@@ -716,18 +767,23 @@ export default function ViewRisk() {
 
               <div className="grid gap-4 md:grid-cols-3">
 
-                {Array.from({ length: 3 }).map(
+                {Array.from({
+                  length: 3,
+                }).map(
                   (_, index) => (
+
                     <div
                       key={index}
                       className="h-24 animate-pulse rounded-xl bg-slate-100"
                     />
+
                   )
                 )}
 
               </div>
 
-            ) : monitoringError || !monitoring ? (
+            ) : monitoringError ||
+              !monitoring ? (
 
               <div className="rounded-xl border border-red-200 bg-red-50 p-5">
 
@@ -759,13 +815,17 @@ export default function ViewRisk() {
 
                   <PostureCard
                     title="Total Alerts"
-                    value={String(monitoring.alerts.length)}
+                    value={String(
+                      monitoring.alerts.length
+                    )}
                     detail="Current detected conditions"
                   />
 
                   <PostureCard
                     title="Critical Alerts"
-                    value={String(criticalAlerts.length)}
+                    value={String(
+                      criticalAlerts.length
+                    )}
                     detail="Immediate attention conditions"
                     emphasis={
                       criticalAlerts.length > 0
@@ -776,7 +836,9 @@ export default function ViewRisk() {
 
                   <PostureCard
                     title="High Alerts"
-                    value={String(highAlerts.length)}
+                    value={String(
+                      highAlerts.length
+                    )}
                     detail="High-priority conditions"
                     emphasis={
                       highAlerts.length > 0
@@ -786,6 +848,7 @@ export default function ViewRisk() {
                   />
 
                 </div>
+
 
                 {/* ==================================================
                     Phase 56 - Continuous Risk State
@@ -864,6 +927,7 @@ export default function ViewRisk() {
                   </div>
 
                 </div>
+
 
                 {/* ==================================================
                     Phase 56 - State Drivers
@@ -957,6 +1021,7 @@ export default function ViewRisk() {
 
                 )}
 
+
                 {/* ==================================================
                     AI CONTINUOUS RISK STATE EXPLANATION
                 ================================================== */}
@@ -965,9 +1030,10 @@ export default function ViewRisk() {
                   resource="ai"
                   action="use"
                 >
-                  <section className="rounded-2xl border bg-white shadow-sm">
+                  <section className="mt-6 rounded-2xl border bg-white shadow-sm">
 
                     {/* Header */}
+
                     <div className="border-b p-6">
 
                       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
@@ -975,7 +1041,9 @@ export default function ViewRisk() {
                         <div className="flex items-start gap-3">
 
                           <div className="rounded-xl bg-purple-50 p-3">
+
                             <Brain className="h-6 w-6 text-purple-600" />
+
                           </div>
 
                           <div>
@@ -999,13 +1067,16 @@ export default function ViewRisk() {
 
                         </div>
 
+
                         <Button
                           type="button"
                           onClick={() => {
                             resetAIStateExplanation();
                             explainRiskState(riskId);
                           }}
-                          disabled={aiStateExplanationLoading}
+                          disabled={
+                            aiStateExplanationLoading
+                          }
                         >
                           {aiStateExplanationLoading ? (
                             <>
@@ -1026,7 +1097,9 @@ export default function ViewRisk() {
 
 
                     {/* Error */}
+
                     {aiStateExplanationError && (
+
                       <div className="p-6">
 
                         <div className="rounded-xl border border-red-200 bg-red-50 p-4">
@@ -1052,14 +1125,18 @@ export default function ViewRisk() {
                         </div>
 
                       </div>
+
                     )}
 
 
                     {/* Explanation */}
+
                     {aiStateExplanation && (
+
                       <div className="space-y-6 p-6">
 
                         {/* Authoritative State */}
+
                         <div>
 
                           <div className="mb-3">
@@ -1154,6 +1231,7 @@ export default function ViewRisk() {
 
 
                         {/* AI Explanation */}
+
                         <div className="rounded-xl border border-purple-100 bg-purple-50/40 p-5">
 
                           <div className="flex items-start gap-3">
@@ -1178,9 +1256,11 @@ export default function ViewRisk() {
 
 
                         {/* Key Drivers + Review Areas */}
+
                         <div className="grid gap-6 md:grid-cols-2">
 
                           {/* Key Drivers */}
+
                           <div className="rounded-xl border p-5">
 
                             <div className="mb-4 flex items-center gap-2">
@@ -1198,6 +1278,7 @@ export default function ViewRisk() {
 
                               {aiStateExplanation.key_drivers.map(
                                 (driver, index) => (
+
                                   <div
                                     key={`${driver}-${index}`}
                                     className="flex items-start gap-3"
@@ -1212,6 +1293,7 @@ export default function ViewRisk() {
                                     </p>
 
                                   </div>
+
                                 )
                               )}
 
@@ -1221,6 +1303,7 @@ export default function ViewRisk() {
 
 
                           {/* Review Areas */}
+
                           <div className="rounded-xl border p-5">
 
                             <div className="mb-4 flex items-center gap-2">
@@ -1238,6 +1321,7 @@ export default function ViewRisk() {
 
                               {aiStateExplanation.review_areas.map(
                                 (area, index) => (
+
                                   <div
                                     key={`${area}-${index}`}
                                     className="flex items-start gap-3"
@@ -1252,6 +1336,7 @@ export default function ViewRisk() {
                                     </p>
 
                                   </div>
+
                                 )
                               )}
 
@@ -1263,6 +1348,7 @@ export default function ViewRisk() {
 
 
                         {/* Governance Notice */}
+
                         <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
 
                           <div className="flex items-start gap-3">
@@ -1289,10 +1375,152 @@ export default function ViewRisk() {
                         </div>
 
                       </div>
+
                     )}
 
                   </section>
                 </Can>
+
+
+                {/* ==================================================
+                    Phase 57 - Continuous Risk Response
+                ================================================== */}
+
+                <div className="mt-6">
+
+                  {continuousResponseLoading ? (
+
+                    <section className="rounded-2xl border bg-white shadow-sm">
+
+                      <div className="border-b p-6">
+
+                        <div className="flex items-start justify-between gap-4">
+
+                          <div>
+
+                            <div className="h-5 w-56 animate-pulse rounded bg-slate-200" />
+
+                            <div className="mt-2 h-4 w-96 max-w-full animate-pulse rounded bg-slate-100" />
+
+                          </div>
+
+                        </div>
+
+                      </div>
+
+
+                      <div className="grid gap-4 p-6 md:grid-cols-2 lg:grid-cols-4">
+
+                        {Array.from({
+                          length: 4,
+                        }).map(
+                          (_, index) => (
+
+                            <div
+                              key={index}
+                              className="h-24 animate-pulse rounded-xl bg-slate-100"
+                            />
+
+                          )
+                        )}
+
+                      </div>
+
+
+                      <div className="space-y-3 px-6 pb-6">
+
+                        {Array.from({
+                          length: 2,
+                        }).map(
+                          (_, index) => (
+
+                            <div
+                              key={index}
+                              className="h-28 animate-pulse rounded-xl bg-slate-100"
+                            />
+
+                          )
+                        )}
+
+                      </div>
+
+                    </section>
+
+                  ) : continuousResponseError ||
+                    !continuousResponse ? (
+
+                    <section className="rounded-2xl border bg-white shadow-sm">
+
+                      <div className="p-6">
+
+                        <div className="rounded-xl border border-red-200 bg-red-50 p-5">
+
+                          <div className="flex items-start justify-between gap-4">
+
+                            <div className="flex items-start gap-3">
+
+                              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
+
+                              <div>
+
+                                <h3 className="font-semibold text-red-700">
+                                  Continuous response unavailable
+                                </h3>
+
+                                <p className="mt-1 text-sm leading-6 text-red-600">
+                                  The deterministic risk response could not
+                                  be loaded.
+                                </p>
+
+                              </div>
+
+                            </div>
+
+
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                refetchContinuousResponse()
+                              }
+                              disabled={
+                                continuousResponseFetching
+                              }
+                            >
+                              <RefreshCw
+                                className={`mr-2 h-4 w-4 ${
+                                  continuousResponseFetching
+                                    ? "animate-spin"
+                                    : ""
+                                }`}
+                              />
+
+                              Retry
+                            </Button>
+
+                          </div>
+
+                        </div>
+
+                      </div>
+
+                    </section>
+
+                  ) : (
+
+                    <RiskContinuousResponse
+                      response={continuousResponse}
+                    />
+
+                  )}
+
+                </div>
+
+
+                {/* ==================================================
+                    Monitoring Alerts
+                ================================================== */}
 
                 {monitoring.alerts.length === 0 ? (
 
@@ -1325,69 +1553,71 @@ export default function ViewRisk() {
 
                     {monitoring.alerts
                       .slice(0, 5)
-                      .map((alert) => (
+                      .map(
+                        (alert) => (
 
-                        <div
-                          key={`${alert.alert_type}-${alert.resource_type}-${alert.resource_id}`}
-                          className="rounded-xl border p-4"
-                        >
+                          <div
+                            key={`${alert.alert_type}-${alert.resource_type}-${alert.resource_id}`}
+                            className="rounded-xl border p-4"
+                          >
 
-                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex items-start justify-between gap-4">
 
-                            <div className="min-w-0">
+                              <div className="min-w-0">
 
-                              <div className="flex flex-wrap items-center gap-2">
+                                <div className="flex flex-wrap items-center gap-2">
 
-                                <span
-                                  className={`rounded-full border px-2.5 py-1 text-xs font-semibold uppercase ${riskScoreClass(
-                                    alert.severity
-                                      .toLowerCase() === "critical"
-                                      ? 20
-                                      : alert.severity
-                                          .toLowerCase() === "high"
-                                        ? 15
+                                  <span
+                                    className={`rounded-full border px-2.5 py-1 text-xs font-semibold uppercase ${riskScoreClass(
+                                      alert.severity
+                                        .toLowerCase() === "critical"
+                                        ? 20
                                         : alert.severity
-                                            .toLowerCase() === "medium"
-                                          ? 8
-                                          : 1
-                                  )}`}
-                                >
-                                  {alert.severity}
-                                </span>
+                                            .toLowerCase() === "high"
+                                          ? 15
+                                          : alert.severity
+                                              .toLowerCase() === "medium"
+                                            ? 8
+                                            : 1
+                                    )}`}
+                                  >
+                                    {alert.severity}
+                                  </span>
 
-                                <span className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                                  {alert.alert_type.replace(
-                                    /_/g,
-                                    " "
-                                  )}
-                                </span>
+                                  <span className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                                    {alert.alert_type.replace(
+                                      /_/g,
+                                      " "
+                                    )}
+                                  </span>
+
+                                </div>
+
+
+                                <h3 className="mt-2 font-semibold text-slate-900">
+                                  {alert.title}
+                                </h3>
+
+
+                                <p className="mt-1 text-sm leading-6 text-slate-600">
+                                  {alert.message}
+                                </p>
 
                               </div>
 
 
-                              <h3 className="mt-2 font-semibold text-slate-900">
-                                {alert.title}
-                              </h3>
-
-
-                              <p className="mt-1 text-sm leading-6 text-slate-600">
-                                {alert.message}
-                              </p>
+                              <span className="shrink-0 text-xs text-slate-400">
+                                {new Date(
+                                  alert.detected_at
+                                ).toLocaleString()}
+                              </span>
 
                             </div>
 
-
-                            <span className="shrink-0 text-xs text-slate-400">
-                              {new Date(
-                                alert.detected_at
-                              ).toLocaleString()}
-                            </span>
-
                           </div>
 
-                        </div>
-
-                      ))}
+                        )
+                      )}
 
                   </div>
 
@@ -1456,6 +1686,7 @@ interface IntelligenceMetricProps {
   emphasis?: "critical";
 }
 
+
 function IntelligenceMetric({
   label,
   value,
@@ -1487,6 +1718,7 @@ function IntelligenceMetric({
 
       </div>
 
+
       <p
         className={`mt-2 text-2xl font-bold ${
           emphasis === "critical"
@@ -1513,6 +1745,7 @@ interface PostureCardProps {
   emphasis?: "critical" | "warning";
 }
 
+
 function PostureCard({
   title,
   value,
@@ -1534,6 +1767,7 @@ function PostureCard({
         {title}
       </p>
 
+
       <p
         className={`mt-2 text-xl font-bold ${
           emphasis === "critical"
@@ -1545,6 +1779,7 @@ function PostureCard({
       >
         {value}
       </p>
+
 
       <p className="mt-1 text-xs text-slate-500">
         {detail}

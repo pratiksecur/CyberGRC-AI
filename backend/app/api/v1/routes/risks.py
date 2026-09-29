@@ -22,6 +22,10 @@ from app.services.risk_service import (
     delete_risk,
 )
 
+from app.services.continuous_risk_response_service import (
+    get_continuous_risk_response,
+)
+
 
 router = APIRouter(
     prefix="/risks",
@@ -123,6 +127,119 @@ def list_all_risks(
         )
         .all()
     )
+
+
+# ==========================================================
+# CONTINUOUS RISK RESPONSE
+# ==========================================================
+
+@router.get(
+    "/{risk_id}/continuous-response"
+)
+def get_risk_continuous_response(
+    risk_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_permission(
+            "risks",
+            "view"
+        )
+    )
+):
+    """
+    Get the deterministic continuous risk response
+    for a risk.
+
+    The response is derived from the current continuous
+    risk state and treatment state.
+
+    This endpoint is read-only and does not:
+      - modify the risk
+      - modify the treatment
+      - create corrective actions
+      - send notifications
+      - execute high-impact decisions
+
+    High-impact decisions such as REASSESS_RISK and
+    ESCALATE are explicitly marked as requiring human
+    approval.
+    """
+
+    # ------------------------------------------------------
+    # Enforce risk-level organizational visibility
+    # ------------------------------------------------------
+
+    visible_user_ids = get_visible_user_ids(
+        db,
+        current_user,
+        "risks",
+    )
+
+    risk = (
+        db.query(Risk)
+        .filter(
+            Risk.id == risk_id,
+            Risk.owner_id.in_(visible_user_ids)
+        )
+        .first()
+    )
+
+    if risk is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Risk not found."
+        )
+
+    # ------------------------------------------------------
+    # Build deterministic response
+    # ------------------------------------------------------
+
+    continuous_response = get_continuous_risk_response(
+        db,
+        risk,
+        current_user=current_user,
+    )
+
+    # ------------------------------------------------------
+    # Return explicit API representation
+    # ------------------------------------------------------
+
+    return {
+        "risk_id": continuous_response.risk_id,
+        "risk_state": continuous_response.risk_state,
+        "treatment_state": continuous_response.treatment_state,
+        "reassessment_required": (
+            continuous_response.reassessment_required
+        ),
+        "response_required": (
+            continuous_response.response_required
+        ),
+        "priority": continuous_response.priority.value,
+        "human_approval_required": (
+            continuous_response.human_approval_required
+        ),
+        "decisions": [
+            {
+                "decision": decision.decision.value,
+                "priority": decision.priority.value,
+                "reason_codes": list(decision.reason_codes),
+                "human_approval_required": (
+                    decision.human_approval_required
+                ),
+            }
+            for decision in continuous_response.decisions
+        ],
+        "reasons": [
+            {
+                "code": reason.code.value,
+                "severity": reason.severity,
+                "message": reason.message,
+                "resource_type": reason.resource_type,
+                "resource_id": reason.resource_id,
+            }
+            for reason in continuous_response.reasons
+        ],
+    }
 
 
 # ==========================================================

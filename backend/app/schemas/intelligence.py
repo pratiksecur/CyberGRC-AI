@@ -116,6 +116,39 @@ class IntelligenceRiskStateReason(BaseModel):
 
 
 # ==========================================================
+# CONTINUOUS RISK RESPONSE
+# ==========================================================
+
+
+class IntelligenceRiskResponseDecision(BaseModel):
+    """
+    Deterministic Phase 57 response decision.
+
+    This describes what should be considered next. It does
+    not mean the action has been executed.
+    """
+
+    decision: str
+    priority: str
+    reason_codes: list[str]
+    human_approval_required: bool
+
+
+class IntelligenceRiskResponse(BaseModel):
+    """
+    Deterministic response orchestration derived from the
+    Phase 56 continuous risk state.
+    """
+
+    response_required: bool
+    priority: str
+    human_approval_required: bool
+    decisions: list[
+        IntelligenceRiskResponseDecision
+    ]
+
+
+# ==========================================================
 # RISK INTELLIGENCE METRICS
 # ==========================================================
 
@@ -144,15 +177,8 @@ class RiskIntelligenceMetrics(BaseModel):
     # Residual risk
     # ------------------------------------------------------
 
-    # Backward-compatible public field.
-    #
-    # This represents the treatment-aware residual risk when
-    # an eligible treatment assessment exists. Otherwise it
-    # falls back to the existing control-based estimate.
     estimated_residual_risk: float
 
-    # Existing control-based calculation, preserved separately
-    # so the intelligence result remains explainable.
     control_estimated_residual_risk: float
 
     # ------------------------------------------------------
@@ -173,19 +199,28 @@ class RiskIntelligenceMetrics(BaseModel):
     # Phase 56 — Continuous risk state
     # ------------------------------------------------------
 
-    # Deterministically derived from current GRC evidence.
     continuous_risk_state: str
 
-    # Deterministically derived state of the authoritative
-    # risk treatment.
     treatment_state: str
 
-    # True when the risk requires formal reassessment.
     reassessment_required: bool
 
-    # Structured deterministic reasons.
     state_reasons: list[
         IntelligenceRiskStateReason
+    ]
+
+    # ------------------------------------------------------
+    # Phase 57 — Continuous risk response
+    # ------------------------------------------------------
+
+    response_required: bool
+
+    response_priority: str
+
+    human_approval_required: bool
+
+    response_decisions: list[
+        IntelligenceRiskResponseDecision
     ]
 
 

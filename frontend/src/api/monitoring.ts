@@ -42,6 +42,44 @@ export interface RiskStateReason {
 
 
 // ==========================================================
+// PHASE 57 — MONITORING RESPONSE DECISION
+// ==========================================================
+
+export interface MonitoringResponseDecision {
+  decision: string;
+
+  priority: string;
+
+  reason_codes: string[];
+
+  human_approval_required: boolean;
+}
+
+
+// ==========================================================
+// PHASE 57 — MONITORING RISK RESPONSE
+// ==========================================================
+
+export interface MonitoringRiskResponse {
+  risk_id: number;
+
+  risk_state: string;
+
+  treatment_state: string;
+
+  reassessment_required: boolean;
+
+  response_required: boolean;
+
+  priority: string;
+
+  human_approval_required: boolean;
+
+  decisions: MonitoringResponseDecision[];
+}
+
+
+// ==========================================================
 // MONITORING METRICS
 // ==========================================================
 
@@ -101,6 +139,16 @@ export interface MonitoringMetrics {
   degraded_risks: number;
 
   reassessment_required_risks: number;
+
+  // --------------------------------------------------------
+  // Phase 57 - Continuous Risk Response
+  // --------------------------------------------------------
+
+  response_required_risks: number;
+
+  human_approval_required_risks: number;
+
+  critical_response_risks: number;
 }
 
 
@@ -114,6 +162,12 @@ export interface MonitoringOverviewResponse {
   metrics: MonitoringMetrics;
 
   alerts: MonitoringAlert[];
+
+  // --------------------------------------------------------
+  // Phase 57 - Continuous Risk Response
+  // --------------------------------------------------------
+
+  risk_responses: MonitoringRiskResponse[];
 }
 
 
