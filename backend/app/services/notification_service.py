@@ -21,21 +21,40 @@ from app.services.notification_recipient_service import (
 # ==========================================================
 
 
-def _notification_exists(
-    db: Session,
-    user_id: int,
+def _build_legacy_event_key(
     notification_type: str,
     source_type: str,
     source_id: int,
+) -> str:
+    """
+    Build a deterministic event key for existing notification
+    types that do not yet provide an explicit event key.
+
+    This preserves the current notification deduplication
+    behavior while moving it onto the new event_key field.
+    """
+
+    return (
+        f"legacy:{notification_type}:"
+        f"{source_type}:{source_id}"
+    )
+
+
+def _notification_exists(
+    db: Session,
+    user_id: int,
+    event_key: str,
 ) -> bool:
+    """
+    Determine whether this exact notification event already
+    exists for the recipient.
+    """
 
     return (
         db.query(Notification)
         .filter(
             Notification.user_id == user_id,
-            Notification.type == notification_type,
-            Notification.source_type == source_type,
-            Notification.source_id == source_id,
+            Notification.event_key == event_key,
         )
         .first()
         is not None
@@ -50,22 +69,43 @@ def _create_notification(
     message: str,
     source_type: str,
     source_id: int,
+    event_key: str | None = None,
 ):
     """
-    Create one notification if it does not already exist.
+    Create one notification if the exact event does not
+    already exist.
 
     This function intentionally does NOT commit.
 
-    The notification is added to the same SQLAlchemy transaction
-    as the GRC event that triggered it.
+    The notification is added to the same SQLAlchemy
+    transaction as the GRC event that triggered it.
+
+    Parameters
+    ----------
+    event_key:
+        Optional stable event identity.
+
+        Phase 58 response orchestration will provide explicit
+        event keys for response-state notifications.
+
+        Existing notification callers may omit it and will
+        automatically receive a deterministic legacy key.
     """
+
+    resolved_event_key = (
+        event_key
+        if event_key is not None
+        else _build_legacy_event_key(
+            notification_type=notification_type,
+            source_type=source_type,
+            source_id=source_id,
+        )
+    )
 
     if _notification_exists(
         db,
         user_id,
-        notification_type,
-        source_type,
-        source_id,
+        resolved_event_key,
     ):
         return
 
@@ -76,6 +116,7 @@ def _create_notification(
         message=message,
         source_type=source_type,
         source_id=source_id,
+        event_key=resolved_event_key,
         is_read=False,
     )
 
@@ -90,9 +131,16 @@ def _create_for_recipients(
     message: str,
     source_type: str,
     source_id: int,
+    event_key: str | None = None,
 ):
     """
     Create one notification for each resolved recipient.
+
+    When event_key is supplied, every recipient receives the
+    same logical event identity.
+
+    The user_id remains part of the database uniqueness key,
+    so each recipient has an independent notification.
     """
 
     for user_id in recipients:
@@ -105,6 +153,7 @@ def _create_for_recipients(
             message=message,
             source_type=source_type,
             source_id=source_id,
+            event_key=event_key,
         )
 
 
