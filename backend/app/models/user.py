@@ -163,6 +163,14 @@ class User(Base):
         back_populates="executed_by",
     )
 
+    response_workflows = relationship(
+        "RiskResponseWorkflowRecord",
+        foreign_keys=(
+            "RiskResponseWorkflowRecord.created_by_id"
+        ),
+        back_populates="created_by",
+    )
+
     # ======================================================
     # Timestamps
     # ======================================================

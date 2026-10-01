@@ -8,6 +8,7 @@ from alembic import context
 
 from app.models import risk_response_decision
 from app.models import risk_response_execution
+from app.models import risk_response_workflow
 
 from app.database.database import Base
 

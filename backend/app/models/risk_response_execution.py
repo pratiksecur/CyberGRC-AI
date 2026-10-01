@@ -1,16 +1,14 @@
 """
 Governed Risk Response Execution Model
 
-Phase 59.3
------------
+Phase 59.3 / Phase 60
+----------------------
 
-Records the execution of an approved governed risk response decision.
+Records the execution of an approved governed risk response
+decision.
 
-This model is intentionally separate from the decision record so that:
-- approval remains immutable governance history;
-- execution attempts have their own audit trail;
-- duplicate execution can be prevented;
-- stale approvals cannot be silently reused.
+Phase 60 adds the relationship to the resulting governed
+workflow record.
 """
 
 from sqlalchemy import (
@@ -134,4 +132,10 @@ class RiskResponseExecutionRecord(Base):
         "User",
         foreign_keys=[executed_by_id],
         back_populates="response_executions",
+    )
+
+    workflow = relationship(
+        "RiskResponseWorkflowRecord",
+        back_populates="execution",
+        uselist=False,
     )

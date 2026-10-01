@@ -185,3 +185,10 @@ class RiskResponseDecisionRecord(Base):
         back_populates="decision_record",
         uselist=False,
     )
+
+    workflows = relationship(
+        "RiskResponseWorkflowRecord",
+        back_populates="decision",
+        cascade="all, delete-orphan",
+        order_by="RiskResponseWorkflowRecord.created_at",
+    )
