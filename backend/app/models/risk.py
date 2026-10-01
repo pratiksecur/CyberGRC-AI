@@ -114,3 +114,17 @@ class Risk(Base):
         cascade="all, delete-orphan",
         order_by="RiskTreatment.created_at",
     )
+ 
+    response_decisions = relationship(
+        "RiskResponseDecisionRecord",
+        back_populates="risk",
+        cascade="all, delete-orphan",
+        order_by="RiskResponseDecisionRecord.created_at",
+    )
+
+    response_executions = relationship(
+        "RiskResponseExecutionRecord",
+        back_populates="risk",
+        cascade="all, delete-orphan",
+        order_by="RiskResponseExecutionRecord.created_at",
+    )

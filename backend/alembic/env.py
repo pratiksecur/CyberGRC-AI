@@ -6,6 +6,9 @@ from sqlalchemy import pool
 
 from alembic import context
 
+from app.models import risk_response_decision
+from app.models import risk_response_execution
+
 from app.database.database import Base
 
 from app.models import (

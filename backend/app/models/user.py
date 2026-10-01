@@ -139,6 +139,30 @@ class User(Base):
         cascade="all, delete-orphan"
     )
 
+    requested_response_decisions = relationship(
+        "RiskResponseDecisionRecord",
+        foreign_keys=(
+            "RiskResponseDecisionRecord.requested_by_id"
+        ),
+        back_populates="requested_by",
+    )
+
+    assigned_response_decisions = relationship(
+        "RiskResponseDecisionRecord",
+        foreign_keys=(
+            "RiskResponseDecisionRecord.assigned_to_id"
+        ),
+        back_populates="assigned_to",
+    )
+
+    response_executions = relationship(
+        "RiskResponseExecutionRecord",
+        foreign_keys=(
+            "RiskResponseExecutionRecord.executed_by_id"
+        ),
+        back_populates="executed_by",
+    )
+
     # ======================================================
     # Timestamps
     # ======================================================
