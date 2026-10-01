@@ -32,6 +32,20 @@ from app.schemas.risk_response_execution import (
     RiskResponseExecutionResponse,
 )
 
+from app.schemas.risk_response_workflow import (
+    RiskResponseWorkflowResponse,
+    RiskResponseWorkflowTransitionRequest,
+)
+
+from app.services.risk_response_workflow_service import (
+    ResponseWorkflowLifecycleError,
+    WorkflowLifecycleUnauthorized,
+    WorkflowLifecycleValidationError,
+    WorkflowNotFound,
+    get_workflow_for_transition,
+    transition_response_workflow,
+)
+
 from app.services.risk_service import (
     create_risk,
     update_risk,
@@ -58,9 +72,14 @@ from app.services.risk_response_execution_service import (
     ResponseExecutionValidationError,
     StaleResponseExecution,
     UnsupportedResponseExecution,
-    execute_approved_response,
 )
 
+from app.services.governed_response_execution_service import (
+    ResponseWorkflowError,
+    execute_governed_response,
+    get_response_workflow,
+    list_response_workflows,
+)
 
 router = APIRouter(
     prefix="/risks",
@@ -733,7 +752,7 @@ def defer_risk_response_decision(
 
 
 # ==========================================================
-# PHASE 59.4
+# PHASE 59.4 / PHASE 60
 # EXECUTE APPROVED RESPONSE DECISION
 # ==========================================================
 
@@ -758,6 +777,10 @@ def execute_risk_response_decision(
     Execution is intentionally limited to Admin and
     GRC Manager.
 
+    Phase 60 extends Phase 59 execution by creating an
+    explicit governed response workflow after the Phase 59
+    execution record has been successfully created.
+
     Security boundary:
 
       1. The parent risk must be visible.
@@ -767,9 +790,11 @@ def execute_risk_response_decision(
          continuous risk response event.
       5. The decision must not already have an execution.
       6. The response decision must remain executable.
+      7. A valid Phase 60 workflow must be created.
 
-    The execution service remains authoritative for
-    approval, event-key and duplicate-execution checks.
+    If Phase 60 workflow creation fails, the complete
+    transaction is rolled back, including the Phase 59
+    execution record.
 
     This endpoint does not directly mutate risk,
     treatment, control, evidence or other GRC state.
@@ -782,7 +807,7 @@ def execute_risk_response_decision(
         decision_id,
     )
 
-    risk = _get_visible_risk(
+    _get_visible_risk(
         db,
         current_user,
         risk_id,
@@ -790,7 +815,7 @@ def execute_risk_response_decision(
 
     try:
 
-        execution = execute_approved_response(
+        execution = execute_governed_response(
             db,
             decision,
             actor=current_user,
@@ -807,6 +832,179 @@ def execute_risk_response_decision(
         ResponseAlreadyExecuted,
         UnsupportedResponseExecution,
         ResponseExecutionValidationError,
+        ResponseWorkflowError,
+    ) as exc:
+
+        db.rollback()
+
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc),
+        )
+
+
+# ==========================================================
+# PHASE 60
+# GOVERNED RESPONSE WORKFLOWS
+# ==========================================================
+
+@router.get(
+    "/{risk_id}/response-workflows",
+    response_model=list[RiskResponseWorkflowResponse],
+)
+def list_risk_response_workflows(
+    risk_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_permission(
+            "risks",
+            "view",
+        )
+    ),
+):
+    """
+    List governed response workflows for a visible risk.
+
+    Workflow visibility follows the parent risk visibility
+    boundary.
+    """
+
+    _get_visible_risk(
+        db,
+        current_user,
+        risk_id,
+    )
+
+    return list_response_workflows(
+        db,
+        risk_id,
+    )
+
+
+@router.get(
+    "/{risk_id}/response-workflows/{workflow_id}",
+    response_model=RiskResponseWorkflowResponse,
+)
+def get_risk_response_workflow(
+    risk_id: int,
+    workflow_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_permission(
+            "risks",
+            "view",
+        )
+    ),
+):
+    """
+    Get one governed response workflow.
+
+    The parent risk must be visible and the workflow must
+    belong to that risk.
+    """
+
+    _get_visible_risk(
+        db,
+        current_user,
+        risk_id,
+    )
+
+    workflow = get_response_workflow(
+        db,
+        workflow_id,
+        risk_id,
+    )
+
+    if workflow is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Response workflow not found.",
+        )
+
+    return workflow
+
+
+# ==========================================================
+# PHASE 60.4
+# GOVERNED RESPONSE WORKFLOW LIFECYCLE
+# ==========================================================
+
+@router.post(
+    "/{risk_id}/response-workflows/{workflow_id}/transition",
+    response_model=RiskResponseWorkflowResponse,
+)
+def transition_risk_response_workflow(
+    risk_id: int,
+    workflow_id: int,
+    transition: RiskResponseWorkflowTransitionRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_roles(
+            UserRole.ADMIN,
+            UserRole.GRC_MANAGER,
+        )
+    ),
+):
+    """
+    Transition a governed response workflow.
+
+    Supported transitions:
+
+        OPEN -> IN_PROGRESS
+        OPEN -> CANCELLED
+        IN_PROGRESS -> COMPLETED
+        IN_PROGRESS -> CANCELLED
+
+    Completed and cancelled workflows are terminal.
+
+    Completion/cancellation requires an explicit
+    resolution reason.
+
+    Completing a workflow does not automatically mutate
+    the underlying risk, treatment, control, evidence,
+    finding or corrective action.
+    """
+
+    _get_visible_risk(
+        db,
+        current_user,
+        risk_id,
+    )
+
+    try:
+
+        workflow = get_workflow_for_transition(
+            db,
+            workflow_id=workflow_id,
+            risk_id=risk_id,
+        )
+
+        updated = transition_response_workflow(
+            db,
+            workflow,
+            target_status=transition.status,
+            actor=current_user,
+            resolution_reason=transition.resolution_reason,
+        )
+
+        db.commit()
+        db.refresh(updated)
+
+        return updated
+
+    except WorkflowNotFound as exc:
+
+        db.rollback()
+
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        )
+
+    except (
+        WorkflowLifecycleUnauthorized,
+        WorkflowLifecycleValidationError,
+        ResponseWorkflowLifecycleError,
     ) as exc:
 
         db.rollback()

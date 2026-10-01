@@ -288,7 +288,11 @@ def _build_response_signature(
             "|".join(
                 [
                     action.decision.value,
-                    action.priority.value,
+                    (
+                        action.priority.value
+                        if hasattr(action.priority, "value")
+                        else action.priority
+                    ),
                     reason_codes,
                     str(
                         action.human_approval_required
@@ -305,7 +309,11 @@ def _build_response_signature(
         [
             response.risk_state,
             response.treatment_state,
-            response.priority.value,
+            (
+                response.priority.value
+                if hasattr(response.priority, "value")
+                else response.priority
+            ),
             str(response.reassessment_required),
             str(response.human_approval_required),
             decisions_signature,

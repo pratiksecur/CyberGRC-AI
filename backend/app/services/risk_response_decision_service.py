@@ -113,7 +113,11 @@ def _primary_decision(
     return max(
         response.decisions,
         key=lambda action: (
-            priority_rank[action.priority.value],
+            priority_rank[
+                action.priority.value
+                if hasattr(action.priority, "value")
+                else action.priority
+            ],
             action.decision.value,
         ),
     )
@@ -226,7 +230,11 @@ def create_response_decision(
     record = RiskResponseDecisionRecord(
         risk_id=risk.id,
         decision=primary.decision.value,
-        priority=primary.priority.value,
+        priority=(
+            primary.priority.value
+            if hasattr(primary.priority, "value")
+            else primary.priority
+        ),
         governance_level=governance.value,
         status=RiskResponseDecisionStatus.PENDING.value,
         human_approval_required=(
