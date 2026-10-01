@@ -11,3 +11,10 @@ from app.models.audit import Audit
 from app.models.audit_finding import AuditFinding
 from app.models.corrective_action import CorrectiveAction
 from app.models.notification import Notification
+from app.models.risk_response_decision import RiskResponseDecisionRecord
+from app.models.risk_response_decision import (
+    RiskResponseDecisionRecord,
+)
+from app.models.risk_response_execution import (
+    RiskResponseExecutionRecord,
+)
