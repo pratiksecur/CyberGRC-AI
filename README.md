@@ -840,6 +840,116 @@ CyberGRC-AI is designed around a connected GRC lifecycle:
 
 ---
 
+# 🔄 Continuous Risk Governance & Response
+
+CyberGRC-AI has evolved beyond periodic GRC assessment into a continuous risk lifecycle. The platform now separates deterministic risk state evaluation, response recommendation, governance approval and governed execution.
+
+```text
+Continuous Risk State
+        ↓
+Continuous Risk Response
+        ↓
+Governance Classification
+        ↓
+Human Notification / Escalation
+        ↓
+Persistent Governance Decision
+        ↓
+Approval / Rejection / Deferral
+        ↓
+Stale-Response Protection
+        ↓
+Governed Execution
+        ↓
+Execution Audit Record
+```
+
+### Continuous Risk State
+
+Risk state is derived deterministically from current GRC conditions. The system can identify conditions such as:
+
+- Open critical findings
+- Overdue corrective actions
+- Overdue or cancelled treatments
+- Missing residual-risk information
+- Elevated residual risk
+- Inactive or ineffective controls
+- Stale or missing supporting evidence
+
+The resulting risk posture can be represented as:
+
+```text
+CURRENT
+DEGRADED
+REASSESSMENT_REQUIRED
+```
+
+### Continuous Risk Response
+
+The response engine maps the current risk state to explicit response decisions, including:
+
+- Monitor
+- Review
+- Reassess risk
+- Update treatment
+- Corrective-action review
+- Control review
+- Evidence review
+- Escalation
+
+The response engine is deterministic and does not allow AI output to bypass governance rules.
+
+### Governed Response Decisions
+
+High-impact responses are persisted as governance decisions and can move through controlled lifecycle states:
+
+```text
+PENDING
+   ├── APPROVED
+   ├── REJECTED
+   └── DEFERRED → reconsideration
+
+Changed underlying response
+          ↓
+        STALE
+```
+
+Approvals are bound to the response event that was reviewed. If the underlying continuous-risk response changes, the previous approval becomes stale and cannot be reused for execution.
+
+### Governed Execution
+
+Approved responses are recorded through a separate execution boundary with controls for:
+
+- Human approval verification
+- Response-event verification
+- Duplicate execution prevention
+- Execution actor tracking
+- Execution reason preservation
+- Decision/event consistency
+- Failure-path integrity
+- Execution auditability
+
+Execution deliberately does not silently mutate unrelated GRC records. Domain-specific response handlers are being developed as a separate controlled execution layer.
+
+### Governance Architecture
+
+```text
+Risk State
+    ↓
+Response Engine
+    ↓
+Governance Decision
+    ↓
+Human Approval
+    ↓
+Governed Execution
+    ↓
+Audit Trail
+```
+
+This separation keeps security authorization, deterministic governance and AI-assisted analysis distinct.
+
+
 # 🔮 Future Direction
 
 The next stage of CyberGRC-AI is focused on moving toward **continuous risk understanding**.
@@ -919,6 +1029,14 @@ Current major capabilities include:
 - ✅ Residual risk intelligence
 - ✅ GRC intelligence
 - ✅ Continuous monitoring
+- ✅ Continuous risk state evaluation
+- ✅ Continuous risk response intelligence
+- ✅ Risk treatment governance and finality
+- ✅ Notification and response governance
+- ✅ Human approval / rejection / deferral workflow
+- ✅ Stale-response protection
+- ✅ Governed response execution
+- ✅ Execution audit integrity
 - ✅ AI-assisted GRC analysis
 - ✅ Framework mapping
 - ✅ Security hardening
@@ -928,7 +1046,9 @@ Current major capabilities include:
 
 ### Current test status
 
-**1,251 tests passing — 0 failures**
+**1,478 tests passing — 0 failures**
+
+The current backend regression includes coverage for continuous risk state, response intelligence, treatment governance, notification governance, governed response decisions, execution controls and authorization boundaries.
 
 ---
 
