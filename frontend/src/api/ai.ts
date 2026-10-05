@@ -139,3 +139,51 @@ export async function explainRiskState(
 
   return response.data;
 }
+
+// ==========================================================
+// Phase 61.9 - Workflow Intelligence Explanation
+// ==========================================================
+
+export interface WorkflowIntelligenceExplanation {
+  workflow_id: number;
+
+  risk_id: number;
+
+  status: string;
+
+  health: string;
+
+  age_days: number;
+
+  attention_required: boolean;
+
+  decision_priority: string | null;
+
+  priority_requires_attention: boolean;
+
+  bottlenecked: boolean;
+
+  escalation_recommendation: string;
+
+  escalation_requires_human_review: boolean;
+
+  dependency_state: string;
+
+  explanation: string;
+
+  key_drivers: string[];
+
+  review_areas: string[];
+}
+
+
+export async function explainRiskResponseWorkflow(
+  riskId: number,
+  workflowId: number
+): Promise<WorkflowIntelligenceExplanation> {
+  const response = await api.post(
+    `/ai/risk/${riskId}/response-workflows/${workflowId}/explanation`
+  );
+
+  return response.data;
+}

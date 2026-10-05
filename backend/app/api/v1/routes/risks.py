@@ -35,6 +35,7 @@ from app.schemas.risk_response_execution import (
 from app.schemas.risk_response_workflow import (
     RiskResponseWorkflowResponse,
     RiskResponseWorkflowTransitionRequest,
+    RiskResponseWorkflowIntelligenceResponse,
 )
 
 from app.services.risk_response_workflow_service import (
@@ -79,6 +80,10 @@ from app.services.governed_response_execution_service import (
     execute_governed_response,
     get_response_workflow,
     list_response_workflows,
+)
+
+from app.services.risk_response_workflow_intelligence_service import (
+    get_workflow_intelligence,
 )
 
 router = APIRouter(
@@ -923,6 +928,138 @@ def get_risk_response_workflow(
 
     return workflow
 
+# ==========================================================
+# PHASE 61.7
+# GOVERNED RESPONSE WORKFLOW INTELLIGENCE
+# ==========================================================
+
+@router.get(
+    "/{risk_id}/response-workflows/{workflow_id}/intelligence",
+    response_model=RiskResponseWorkflowIntelligenceResponse,
+)
+def get_risk_response_workflow_intelligence(
+    risk_id: int,
+    workflow_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_permission(
+            "risks",
+            "view",
+        )
+    ),
+):
+    """
+    Get deterministic intelligence for a governed response
+    workflow.
+
+    This endpoint is strictly read-only.
+
+    Security boundary:
+
+      1. The parent risk must be visible.
+      2. The workflow must belong to that risk.
+      3. Workflow intelligence is derived server-side.
+      4. No workflow lifecycle state is mutated.
+      5. No underlying GRC resource is mutated.
+      6. No execution or escalation is triggered.
+
+    Phase 61 intelligence includes:
+
+      - workflow health
+      - workflow ageing
+      - lifecycle timing
+      - priority intelligence
+      - bottleneck detection
+      - escalation recommendation
+      - dependency intelligence
+    """
+
+    _get_visible_risk(
+        db,
+        current_user,
+        risk_id,
+    )
+
+    workflow = get_response_workflow(
+        db,
+        workflow_id,
+        risk_id,
+    )
+
+    if workflow is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Response workflow not found.",
+        )
+
+    intelligence = get_workflow_intelligence(
+        workflow,
+    )
+
+    return RiskResponseWorkflowIntelligenceResponse(
+        workflow_id=intelligence.workflow_id,
+        risk_id=intelligence.risk_id,
+        status=intelligence.status,
+        health=intelligence.health.value,
+        age_days=intelligence.age_days,
+        age_seconds=intelligence.age_seconds,
+        attention_required=intelligence.attention_required,
+        reason_codes=list(
+            intelligence.reason_codes
+        ),
+        started=intelligence.started,
+        terminal=intelligence.terminal,
+        time_to_start_seconds=(
+            intelligence.time_to_start_seconds
+        ),
+        time_in_progress_seconds=(
+            intelligence.time_in_progress_seconds
+        ),
+        lifecycle_duration_seconds=(
+            intelligence.lifecycle_duration_seconds
+        ),
+        terminal_age_seconds=(
+            intelligence.terminal_age_seconds
+        ),
+        decision_priority=(
+            intelligence.decision_priority.value
+            if intelligence.decision_priority is not None
+            else None
+        ),
+        priority_rank=intelligence.priority_rank,
+        governance_level=intelligence.governance_level,
+        priority_requires_attention=(
+            intelligence.priority_requires_attention
+        ),
+        priority_reason_codes=list(
+            intelligence.priority_reason_codes
+        ),
+        bottlenecked=intelligence.bottlenecked,
+        bottleneck_reason_codes=list(
+            intelligence.bottleneck_reason_codes
+        ),
+        escalation_recommendation=(
+            intelligence.escalation_recommendation.value
+        ),
+        escalation_reason_codes=list(
+            intelligence.escalation_reason_codes
+        ),
+        escalation_requires_human_review=(
+            intelligence.escalation_requires_human_review
+        ),
+        dependency_state=(
+            intelligence.dependency_state.value
+        ),
+        dependency_reason_codes=list(
+            intelligence.dependency_reason_codes
+        ),
+        dependency_target_type=(
+            intelligence.dependency_target_type
+        ),
+        dependency_target_id=(
+            intelligence.dependency_target_id
+        ),
+    )
 
 # ==========================================================
 # PHASE 60.4

@@ -7,6 +7,7 @@ import RiskAIInsights from "@/components/ai/RiskAIInsights";
 import RiskTreatmentSection from "@/components/risk-treatments/RiskTreatmentSection";
 import RiskContinuousResponse from "@/components/risks/RiskContinuousResponse";
 
+
 import { Button } from "@/components/ui/button";
 
 import {
@@ -39,6 +40,12 @@ import {
 import {
   useRiskContinuousResponse,
 } from "@/hooks/useRiskContinuousResponse";
+
+import { 
+  useRiskResponseWorkflows 
+} from "@/hooks/useRiskResponseWorkflows";
+
+import RiskResponseWorkflows from "@/components/risks/RiskResponseWorkflows";
 
 import Can from "@/components/auth/Can";
 
@@ -152,6 +159,12 @@ export default function ViewRisk() {
     refetch: refetchContinuousResponse,
     isFetching: continuousResponseFetching,
   } = useRiskContinuousResponse(riskId);
+
+  const {
+    data: responseWorkflows = [],
+    isLoading: responseWorkflowsLoading,
+    isError: responseWorkflowsError,
+  } = useRiskResponseWorkflows(riskId);
 
   const {
     mutate: explainRiskState,
@@ -1517,6 +1530,14 @@ export default function ViewRisk() {
 
                 </div>
 
+                <div className="mt-6">
+                  <RiskResponseWorkflows
+                    riskId={riskId}
+                    workflows={responseWorkflows}
+                    isLoading={responseWorkflowsLoading}
+                    isError={responseWorkflowsError}
+                  />
+                </div>
 
                 {/* ==================================================
                     Monitoring Alerts

@@ -63,11 +63,119 @@ export interface RiskContinuousResponse {
 
 
 // ==========================================================
+// Phase 60 - Governed Response Workflows
+// ==========================================================
+
+export interface RiskResponseWorkflow {
+  id: number;
+
+  execution_id: number;
+
+  decision_id: number;
+
+  risk_id: number;
+
+  workflow_type: string;
+
+  status: string;
+
+  target_type: string;
+
+  target_id: number | null;
+
+  title: string;
+
+  description: string;
+
+  created_by_id: number;
+
+  updated_by_id: number | null;
+
+  resolution_reason: string | null;
+
+  started_at: string | null;
+
+  completed_at: string | null;
+
+  cancelled_at: string | null;
+
+  created_at: string;
+
+  updated_at: string;
+}
+
+
+// ==========================================================
+// Phase 61 - Workflow Intelligence
+// ==========================================================
+
+export interface RiskResponseWorkflowIntelligence {
+  workflow_id: number;
+
+  risk_id: number;
+
+  status: string;
+
+  health: string;
+
+  age_days: number;
+
+  age_seconds: number;
+
+  attention_required: boolean;
+
+  reason_codes: string[];
+
+  started: boolean;
+
+  terminal: boolean;
+
+  time_to_start_seconds: number | null;
+
+  time_in_progress_seconds: number | null;
+
+  lifecycle_duration_seconds: number | null;
+
+  terminal_age_seconds: number | null;
+
+  decision_priority: string | null;
+
+  priority_rank: number | null;
+
+  governance_level: string | null;
+
+  priority_requires_attention: boolean;
+
+  priority_reason_codes: string[];
+
+  bottlenecked: boolean;
+
+  bottleneck_reason_codes: string[];
+
+  escalation_recommendation: string;
+
+  escalation_reason_codes: string[];
+
+  escalation_requires_human_review: boolean;
+
+  dependency_state: string;
+
+  dependency_reason_codes: string[];
+
+  dependency_target_type: string | null;
+
+  dependency_target_id: number | null;
+}
+
+
+// ==========================================================
 // API - Risk CRUD
 // ==========================================================
 
 export async function getRisks(): Promise<Risk[]> {
-  const response = await api.get("/risks/");
+  const response = await api.get(
+    "/risks/"
+  );
 
   return response.data;
 }
@@ -127,6 +235,37 @@ export async function getRiskContinuousResponse(
 ): Promise<RiskContinuousResponse> {
   const response = await api.get(
     `/risks/${riskId}/continuous-response`
+  );
+
+  return response.data;
+}
+
+
+// ==========================================================
+// Phase 60 - Governed Response Workflows API
+// ==========================================================
+
+export async function getRiskResponseWorkflows(
+  riskId: number
+): Promise<RiskResponseWorkflow[]> {
+  const response = await api.get(
+    `/risks/${riskId}/response-workflows`
+  );
+
+  return response.data;
+}
+
+
+// ==========================================================
+// Phase 61 - Workflow Intelligence API
+// ==========================================================
+
+export async function getRiskResponseWorkflowIntelligence(
+  riskId: number,
+  workflowId: number
+): Promise<RiskResponseWorkflowIntelligence> {
+  const response = await api.get(
+    `/risks/${riskId}/response-workflows/${workflowId}/intelligence`
   );
 
   return response.data;

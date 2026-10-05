@@ -15,6 +15,7 @@ from app.schemas.ai import (
     AuditSummaryResponse,
     ExecutiveDashboardResponse,
     RiskStateExplanationResponse,
+    WorkflowIntelligenceExplanationResponse,
 )
 
 from app.services.ai.risk_ai_service import analyze_risk
@@ -25,6 +26,10 @@ from app.services.ai.executive_dashboard_ai_service import (
 
 from app.services.ai.continuous_risk_state_ai_service import (
     explain_continuous_risk_state,
+)
+
+from app.services.ai.risk_response_workflow_ai_service import (
+    explain_risk_response_workflow,
 )
 
 from app.services.ai.audit_ai_service import summarize_audit
@@ -118,6 +123,39 @@ def explain_risk_state(
     return explain_continuous_risk_state(
         db=db,
         risk_id=risk_id,
+        current_user=current_user,
+    )
+
+# ==========================================================
+# PHASE 61.9 - WORKFLOW INTELLIGENCE EXPLANATION
+# ==========================================================
+
+@router.post(
+    "/risk/{risk_id}/response-workflows/{workflow_id}/explanation",
+    response_model=WorkflowIntelligenceExplanationResponse,
+)
+def explain_response_workflow(
+    risk_id: int,
+    workflow_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_permission(
+            "ai",
+            "use",
+        )
+    ),
+):
+    """
+    Explain deterministic workflow intelligence using governed AI.
+
+    AI only explains the workflow intelligence. It does not
+    modify or execute the workflow.
+    """
+
+    return explain_risk_response_workflow(
+        db=db,
+        risk_id=risk_id,
+        workflow_id=workflow_id,
         current_user=current_user,
     )
 

@@ -269,3 +269,90 @@ class RiskStateExplanationResponse(_AIBaseModel):
         min_length=1,
         max_length=8,
     )
+
+# ==========================================================
+# Phase 61.9 - Workflow Intelligence AI Explanation
+# ==========================================================
+
+
+class AIWorkflowExplanation(_AIBaseModel):
+    explanation: str = Field(
+        ...,
+        min_length=30,
+        max_length=3000,
+    )
+
+    key_drivers: List[str] = Field(
+        ...,
+        min_length=1,
+        max_length=8,
+    )
+
+    review_areas: List[str] = Field(
+        ...,
+        min_length=1,
+        max_length=8,
+    )
+
+    @field_validator(
+        "key_drivers",
+        "review_areas",
+    )
+    @classmethod
+    def validate_items(cls, values):
+        if any(
+            not item.strip()
+            or len(item) > 500
+            for item in values
+        ):
+            raise ValueError(
+                "Invalid workflow explanation item."
+            )
+
+        return values
+
+
+class WorkflowIntelligenceExplanationResponse(
+    _AIBaseModel
+):
+    workflow_id: int
+
+    risk_id: int
+
+    status: str
+
+    health: str
+
+    age_days: float
+
+    attention_required: bool
+
+    decision_priority: str | None
+
+    priority_requires_attention: bool
+
+    bottlenecked: bool
+
+    escalation_recommendation: str
+
+    escalation_requires_human_review: bool
+
+    dependency_state: str
+
+    explanation: str = Field(
+        ...,
+        min_length=30,
+        max_length=3000,
+    )
+
+    key_drivers: List[str] = Field(
+        ...,
+        min_length=1,
+        max_length=8,
+    )
+
+    review_areas: List[str] = Field(
+        ...,
+        min_length=1,
+        max_length=8,
+    )
