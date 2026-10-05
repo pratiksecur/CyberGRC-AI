@@ -37,6 +37,16 @@ from app.services.evidence_service import (
     update_evidence,
 )
 
+from app.services.evidence_intelligence_service import (
+    build_evidence_intelligence_report,
+)
+
+from app.schemas.evidence import (
+    EvidenceCreate,
+    EvidenceResponse,
+    EvidenceUpdate,
+    EvidenceIntelligenceResponse,
+)
 
 UPLOAD_DIR = Path("uploads")
 UPLOAD_DIR.mkdir(
@@ -315,6 +325,162 @@ def list_all_evidence(
         .all()
     )
 
+# ==========================================================
+# Phase 62 - Evidence Intelligence
+# ==========================================================
+
+
+@router.get(
+    "/intelligence",
+    response_model=EvidenceIntelligenceResponse,
+)
+def get_evidence_intelligence(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_permission(
+            "evidence",
+            "view",
+        )
+    ),
+):
+    """
+    Return deterministic Evidence Intelligence.
+
+    Includes:
+    - freshness
+    - completeness
+    - quality
+    - evidence -> control mapping
+    - evidence -> risk mapping
+    - missing evidence
+    - coverage
+    - collection recommendations
+    - audit-readiness / package information
+
+    Read-only:
+    this endpoint does not mutate Evidence, Controls, Risks,
+    or any other GRC resource.
+    """
+
+    visible_user_ids = get_visible_user_ids(
+        db,
+        current_user,
+        "evidence",
+    )
+
+    report = build_evidence_intelligence_report(
+        db,
+        visible_user_ids=visible_user_ids,
+    )
+
+    return EvidenceIntelligenceResponse(
+        coverage=EvidenceCoverageResponse(
+            total_controls=(
+                report.coverage.total_controls
+            ),
+            controls_with_evidence=(
+                report.coverage.controls_with_evidence
+            ),
+            controls_without_evidence=(
+                report.coverage.controls_without_evidence
+            ),
+            coverage_percent=(
+                report.coverage.coverage_percent
+            ),
+            total_evidence=(
+                report.coverage.total_evidence
+            ),
+            fresh_evidence=(
+                report.coverage.fresh_evidence
+            ),
+            aging_evidence=(
+                report.coverage.aging_evidence
+            ),
+            stale_evidence=(
+                report.coverage.stale_evidence
+            ),
+            risk_mapped_evidence=(
+                report.coverage.risk_mapped_evidence
+            ),
+            average_quality_score=(
+                report.coverage.average_quality_score
+            ),
+            average_completeness_score=(
+                report.coverage.average_completeness_score
+            ),
+            audit_readiness_score=(
+                report.coverage.audit_readiness_score
+            ),
+            audit_ready=(
+                report.coverage.audit_ready
+            ),
+        ),
+        evidence=[
+            EvidenceIntelligenceItemResponse(
+                evidence_id=item.evidence_id,
+                control_id=item.control_id,
+                risk_ids=list(
+                    item.risk_ids
+                ),
+                age_days=item.age_days,
+                freshness=(
+                    item.freshness.value
+                ),
+                freshness_score=(
+                    item.freshness_score
+                ),
+                completeness=(
+                    item.completeness.value
+                ),
+                completeness_score=(
+                    item.completeness_score
+                ),
+                quality=item.quality.value,
+                quality_score=item.quality_score,
+                quality_indicators=list(
+                    item.quality_indicators
+                ),
+                evidence_to_control_mapped=(
+                    item.evidence_to_control_mapped
+                ),
+                evidence_to_risk_mapped=(
+                    item.evidence_to_risk_mapped
+                ),
+                file_available=(
+                    item.file_available
+                ),
+            )
+            for item in report.evidence
+        ],
+        missing_evidence=[
+            MissingEvidenceResponse(
+                control_id=item.control_id,
+                control_title=item.control_title,
+                priority=item.priority.value,
+                reason=item.reason,
+                recommended_action=(
+                    item.recommended_action
+                ),
+            )
+            for item in report.missing_evidence
+        ],
+        collection_workflows=[
+            EvidenceCollectionWorkflowResponse(
+                control_id=item.control_id,
+                control_title=item.control_title,
+                priority=item.priority.value,
+                workflow_type=item.workflow_type,
+                status=item.status,
+                recommended_action=(
+                    item.recommended_action
+                ),
+            )
+            for item in report.collection_workflows
+        ],
+        audit_package_evidence_ids=list(
+            report.audit_package_evidence_ids
+        ),
+    )
 
 @router.get(
     "/{evidence_id}",

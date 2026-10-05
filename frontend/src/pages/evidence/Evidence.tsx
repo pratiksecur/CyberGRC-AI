@@ -5,12 +5,14 @@ import AppLayout from "@/layouts/AppLayout";
 
 import { useEvidence } from "@/hooks/useEvidence";
 import { useDeleteEvidence } from "@/hooks/useDeleteEvidence";
+import { useEvidenceIntelligence } from "@/hooks/useEvidenceIntelligence";
 
 import EvidenceStats from "@/components/evidence/EvidenceStats";
 import EvidenceFilters from "@/components/evidence/EvidenceFilters";
 import EvidenceCards from "@/components/evidence/EvidenceCards";
 import RecentEvidence from "@/components/evidence/RecentEvidence";
 import EvidenceTable from "@/components/evidence/EvidenceTable";
+import EvidenceIntelligence from "@/components/evidence/EvidenceIntelligence";
 
 export default function Evidence() {
   const navigate = useNavigate();
@@ -23,22 +25,29 @@ export default function Evidence() {
     error,
   } = useEvidence();
 
+  const {
+    data: intelligence,
+    isLoading: intelligenceLoading,
+  } = useEvidenceIntelligence();
+
   const [search, setSearch] = useState("");
 
   const filteredEvidence = useMemo(() => {
     if (!data) return [];
 
     return data.filter((evidence) => {
+      const query = search.toLowerCase();
+
       return (
         evidence.title
           .toLowerCase()
-          .includes(search.toLowerCase()) ||
+          .includes(query) ||
         evidence.description
           .toLowerCase()
-          .includes(search.toLowerCase()) ||
+          .includes(query) ||
         evidence.file_name
           .toLowerCase()
-          .includes(search.toLowerCase())
+          .includes(query)
       );
     });
   }, [data, search]);
@@ -67,7 +76,9 @@ export default function Evidence() {
     <AppLayout>
       <div className="space-y-6">
 
-        {/* Header */}
+        {/* =====================================================
+            Header
+        ===================================================== */}
 
         <div>
           <h1 className="text-3xl font-bold">
@@ -79,7 +90,27 @@ export default function Evidence() {
           </p>
         </div>
 
-        {/* Filters */}
+
+        {/* =====================================================
+            Phase 62 - Evidence Intelligence
+        ===================================================== */}
+
+        {intelligenceLoading ? (
+          <div className="rounded-2xl border bg-white p-6">
+            <p className="text-sm text-slate-500">
+              Loading Evidence Intelligence...
+            </p>
+          </div>
+        ) : intelligence ? (
+          <EvidenceIntelligence
+            intelligence={intelligence}
+          />
+        ) : null}
+
+
+        {/* =====================================================
+            Filters
+        ===================================================== */}
 
         <EvidenceFilters
           search={search}
@@ -89,14 +120,20 @@ export default function Evidence() {
           }
         />
 
-        {/* Statistics */}
+
+        {/* =====================================================
+            Statistics
+        ===================================================== */}
 
         <EvidenceStats
           totalEvidence={filteredEvidence.length}
           totalFiles={filteredEvidence.length}
         />
 
-        {/* Evidence Overview */}
+
+        {/* =====================================================
+            Evidence Overview
+        ===================================================== */}
 
         <div className="grid gap-6 lg:grid-cols-2">
 
@@ -106,13 +143,19 @@ export default function Evidence() {
 
         </div>
 
-        {/* Recent Evidence */}
+
+        {/* =====================================================
+            Recent Evidence
+        ===================================================== */}
 
         <RecentEvidence
           evidence={filteredEvidence}
         />
 
-        {/* Evidence Table */}
+
+        {/* =====================================================
+            Evidence Table
+        ===================================================== */}
 
         <EvidenceTable
           evidence={filteredEvidence}
