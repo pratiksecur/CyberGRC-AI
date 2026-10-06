@@ -11,6 +11,7 @@ import {
   ListChecks,
   Bot,
   FileBarChart,
+  Network,
   Settings,
 } from "lucide-react";
 
@@ -101,6 +102,14 @@ export const navigation: NavigationItem[] = [
     label: "GRC Intelligence",
     path: "/intelligence",
     icon: Brain,
+    resource: "risks",
+    action: "view",
+  },
+
+  {
+    label: "Knowledge Graph",
+    path: "/knowledge-graph",
+    icon: Network,
     resource: "risks",
     action: "view",
   },

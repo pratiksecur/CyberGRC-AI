@@ -60,6 +60,8 @@ import CreateRiskTreatment from "@/pages/risk-treatments/CreateRiskTreatment";
 import ViewRiskTreatment from "@/pages/risk-treatments/ViewRiskTreatment";
 import EditRiskTreatment from "@/pages/risk-treatments/EditRiskTreatment";
 
+import KnowledgeGraph from "@/pages/intelligence/KnowledgeGraph";
+
 import AI from "@/pages/ai/AI";
 import Settings from "@/pages/settings/Settings";
 
@@ -586,6 +588,17 @@ export default function AppRouter() {
           }
         />
 
+        <Route
+          path="/knowledge-graph"
+          element={
+            <ProtectedRoute
+              resource="risks"
+              action="view"
+            >
+              <KnowledgeGraph />
+            </ProtectedRoute>
+          }
+        />
 
         {/* ================================================== */}
         {/* CONTINUOUS MONITORING */}

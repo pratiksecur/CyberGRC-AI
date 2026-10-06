@@ -171,3 +171,100 @@ export async function getRiskIntelligence(
 
   return response.data;
 }
+
+// ==========================================================
+// GRC KNOWLEDGE GRAPH
+// ==========================================================
+
+export interface KnowledgeGraphNode {
+  id: number;
+
+  node_type: string;
+
+  label: string;
+
+  status: string | null;
+
+  metadata: Record<
+    string,
+    unknown
+  >;
+}
+
+
+export interface KnowledgeGraphEdge {
+  source_id: number;
+
+  source_type: string;
+
+  target_id: number;
+
+  target_type: string;
+
+  relation: string;
+}
+
+
+export interface KnowledgeGraphSummary {
+  total_nodes: number;
+
+  total_edges: number;
+
+  node_counts: Record<
+    string,
+    number
+  >;
+
+  edge_counts: Record<
+    string,
+    number
+  >;
+
+  risks_with_controls: number;
+
+  controls_with_evidence: number;
+
+  controls_with_frameworks: number;
+
+  findings_with_actions: number;
+
+  risks_with_treatments: number;
+
+  risks_with_decisions: number;
+
+  risks_with_workflows: number;
+
+  disconnected_nodes: number;
+}
+
+
+export interface KnowledgeGraphResponse {
+  focus_risk_id: number | null;
+
+  nodes: KnowledgeGraphNode[];
+
+  edges: KnowledgeGraphEdge[];
+
+  summary: KnowledgeGraphSummary;
+
+  generated_at: string;
+}
+
+
+export async function getKnowledgeGraph(
+  riskId?: number
+): Promise<KnowledgeGraphResponse> {
+  const response = await api.get(
+    "/intelligence/knowledge-graph",
+    {
+      params:
+        riskId !== undefined
+          ? {
+              risk_id: riskId,
+            }
+          : undefined,
+    }
+  );
+
+  return response.data;
+}
