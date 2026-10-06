@@ -6,6 +6,9 @@ import AppLayout from "@/layouts/AppLayout";
 import { useControls } from "@/hooks/useControls";
 import { useDeleteControl } from "@/hooks/useDeleteControl";
 
+import ControlIntelligence from "@/components/controls/ControlIntelligence";
+import { useControlIntelligence } from "@/hooks/useControlIntelligence";
+
 import ControlFilters from "@/components/controls/ControlFilters";
 import ControlStats from "@/components/controls/ControlStats";
 import ControlStatusChart from "@/components/controls/ControlStatusChart";
@@ -24,6 +27,11 @@ export default function Controls() {
     isLoading,
     error,
   } = useControls();
+
+  const {
+    data: intelligence,
+    isLoading: intelligenceLoading,
+  } = useControlIntelligence();
 
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
@@ -119,6 +127,20 @@ export default function Controls() {
           </p>
         </div>
 
+        {/* Phase 63 — Control Intelligence */}
+
+        {intelligenceLoading ? (
+          <div className="rounded-2xl border bg-white p-6 shadow-sm">
+            <div className="text-sm text-slate-500">
+              Loading Control Intelligence...
+            </div>
+          </div>
+        ) : intelligence ? (
+          <ControlIntelligence
+            intelligence={intelligence}
+          />
+        ) : null}
+
         {/* Filters */}
 
         <ControlFilters
@@ -128,7 +150,9 @@ export default function Controls() {
           onStatusChange={setStatus}
           framework={type}
           onFrameworkChange={setType}
-          onCreate={() => navigate("/controls/new")}
+          onCreate={() =>
+            navigate("/controls/new")
+          }
         />
 
         {/* Statistics */}

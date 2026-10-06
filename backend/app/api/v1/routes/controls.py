@@ -24,14 +24,19 @@ from app.schemas.control import (
     ControlResponse,
 )
 
+from app.schemas.control_intelligence import (
+    ControlIntelligenceResponse,
+)
+
 from app.services.control_service import (
     create_control,
-    get_all_controls,
-    get_control_by_id,
     update_control,
     delete_control,
 )
 
+from app.services.control_intelligence_service import (
+    build_control_intelligence_report,
+)
 
 router = APIRouter(
     prefix="/controls",
@@ -114,6 +119,40 @@ def list_all_controls(
             )
         )
         .all()
+    )
+
+
+@router.get(
+    "/intelligence",
+    response_model=ControlIntelligenceResponse
+)
+def get_control_intelligence_report(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_permission(
+            "controls",
+            "view"
+        )
+    )
+):
+    """
+    Phase 63 — Control Intelligence.
+
+    Returns deterministic control health,
+    effectiveness, evidence, risk, framework,
+    exception and remediation intelligence
+    within the current user's visibility scope.
+    """
+
+    visible_user_ids = get_visible_user_ids(
+        db,
+        current_user,
+        "controls",
+    )
+
+    return build_control_intelligence_report(
+        db,
+        visible_user_ids,
     )
 
 
