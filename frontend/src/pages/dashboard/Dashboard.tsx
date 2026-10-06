@@ -7,6 +7,7 @@ import RecentActivity from "@/components/dashboard/RecentActivity";
 import RiskTrend from "@/components/dashboard/RiskTrend";
 import FindingsActionsOverview from "@/components/dashboard/FindingsActionsOverview";
 import CriticalRemediation from "@/components/dashboard/CriticalRemediation";
+import ExecutiveIntelligence from "@/components/dashboard/ExecutiveIntelligence";
 
 import { useDashboard } from "@/hooks/useDashboard";
 import { useExecutiveSummary } from "@/hooks/useExecutiveSummary";
@@ -402,6 +403,15 @@ export default function Dashboard() {
 
 
   // ==================================================
+  // PHASE 67 EXECUTIVE INTELLIGENCE
+  // ==================================================
+
+  const showExecutiveIntelligence =
+    isAdmin ||
+    isGRCManager;
+
+
+  // ==================================================
   // ROLE-SPECIFIC DESCRIPTION
   // ==================================================
 
@@ -487,6 +497,17 @@ export default function Dashboard() {
           )}
 
         </div>
+
+
+        {/* ==================================================
+            PHASE 67 — EXECUTIVE RISK & COMPLIANCE
+        ================================================== */}
+
+        {showExecutiveIntelligence && (
+
+          <ExecutiveIntelligence />
+
+        )}
 
 
         {/* ==================================================

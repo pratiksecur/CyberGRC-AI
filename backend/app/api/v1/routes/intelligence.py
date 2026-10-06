@@ -27,6 +27,21 @@ from app.services.knowledge_graph_service import (
     build_knowledge_graph,
 )
 
+from app.schemas.executive_intelligence import (
+    ExecutiveIntelligenceResponse,
+)
+
+from app.services.executive_intelligence_service import (
+    build_executive_intelligence,
+)
+
+from app.schemas.audit_assurance import (
+    AuditAssuranceResponse,
+)
+
+from app.services.audit_assurance_service import (
+    build_audit_assurance,
+)
 
 router = APIRouter(
     prefix="/intelligence",
@@ -103,6 +118,94 @@ def get_grc_intelligence_overview_endpoint(
         current_user,
     )
 
+# ==========================================================
+# EXECUTIVE RISK & COMPLIANCE INTELLIGENCE
+# ==========================================================
+
+@router.get(
+    "/executive",
+    response_model=ExecutiveIntelligenceResponse,
+)
+def get_executive_intelligence_endpoint(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_permission(
+            "risks",
+            "view",
+        )
+    ),
+):
+    """
+    Return deterministic executive-level GRC intelligence.
+
+    The intelligence is visibility-aware and read-only.
+
+    It does not mutate risks, controls, evidence,
+    findings, corrective actions, treatments,
+    workflows, or decisions.
+    """
+
+    visible_user_ids = get_visible_user_ids(
+        db,
+        current_user,
+        "risks",
+    )
+
+    return build_executive_intelligence(
+        db,
+        visible_user_ids,
+    )
+
+
+# ==========================================================
+# AUDIT & ASSURANCE INTELLIGENCE
+# ==========================================================
+
+@router.get(
+    "/audit-assurance",
+    response_model=AuditAssuranceResponse,
+)
+def get_audit_assurance_endpoint(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_permission(
+            "audits",
+            "view",
+        )
+    ),
+):
+    """
+    Return deterministic Audit & Assurance Intelligence.
+
+    Phase 68 analyses:
+
+    - audit planning
+    - audit ageing
+    - audit findings
+    - critical findings
+    - control references
+    - evidence coverage
+    - corrective actions
+    - overdue remediation
+    - closure readiness
+
+    The endpoint is strictly read-only.
+
+    It does not:
+
+    - close audits
+    - close findings
+    - approve corrective actions
+    - complete corrective actions
+    - modify controls
+    - modify evidence
+    - modify audit scope
+    """
+
+    return build_audit_assurance(
+        db,
+        current_user,
+    )
 
 # ==========================================================
 # GRC KNOWLEDGE GRAPH

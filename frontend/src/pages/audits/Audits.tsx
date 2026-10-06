@@ -12,6 +12,7 @@ import AuditStatusChart from "@/components/audits/AuditStatusChart";
 import AuditCards from "@/components/audits/AuditCards";
 import RecentAudits from "@/components/audits/RecentAudits";
 import AuditTable from "@/components/audits/AuditTable";
+import AuditAssurance from "@/components/audits/AuditAssurance";
 
 export default function Audits() {
   const navigate = useNavigate();
@@ -98,6 +99,10 @@ export default function Audits() {
             Manage cybersecurity audits.
           </p>
         </div>
+
+        {/* Phase 68 — Audit & Assurance Intelligence */}
+
+        <AuditAssurance />
 
         {/* Filters */}
 
