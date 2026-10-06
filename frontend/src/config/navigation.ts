@@ -19,9 +19,9 @@ import type {
   PermissionResource,
 } from "@/auth/permissions";
 
-
 export interface NavigationItem {
   label: string;
+
   path: string;
 
   icon: React.ComponentType<{
@@ -30,12 +30,11 @@ export interface NavigationItem {
   }>;
 
   resource?: PermissionResource;
+
   action?: PermissionAction;
 }
 
-
 export const navigation: NavigationItem[] = [
-
   {
     label: "Command Center",
     path: "/dashboard",
@@ -125,6 +124,14 @@ export const navigation: NavigationItem[] = [
   {
     label: "AI Intelligence",
     path: "/ai",
+    icon: Bot,
+    resource: "ai",
+    action: "view",
+  },
+
+  {
+    label: "AI GRC Analyst",
+    path: "/ai/grc-analyst",
     icon: Bot,
     resource: "ai",
     action: "view",

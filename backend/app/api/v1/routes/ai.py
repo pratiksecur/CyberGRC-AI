@@ -6,6 +6,7 @@ from app.auth.ai_access import (
     get_authorized_audit,
     get_authorized_risk,
 )
+from app.auth.visibility import get_visible_user_ids
 from app.database.database import get_db
 from app.models.user import User
 
@@ -16,6 +17,11 @@ from app.schemas.ai import (
     ExecutiveDashboardResponse,
     RiskStateExplanationResponse,
     WorkflowIntelligenceExplanationResponse,
+)
+
+from app.schemas.ai_grc_analyst import (
+    AIGRCAnalystRequest,
+    AIGRCAnalystResponse,
 )
 
 from app.services.ai.risk_ai_service import analyze_risk
@@ -33,6 +39,10 @@ from app.services.ai.risk_response_workflow_ai_service import (
 )
 
 from app.services.ai.audit_ai_service import summarize_audit
+
+from app.services.ai_grc_analyst_ai_service import (
+    analyze_with_ai,
+)
 
 
 router = APIRouter(
@@ -81,6 +91,7 @@ def analyze_existing_risk(
         current_user=current_user,
     )
 
+
 # ==========================================================
 # CONTINUOUS RISK STATE EXPLANATION
 # ==========================================================
@@ -126,6 +137,7 @@ def explain_risk_state(
         current_user=current_user,
     )
 
+
 # ==========================================================
 # PHASE 61.9 - WORKFLOW INTELLIGENCE EXPLANATION
 # ==========================================================
@@ -158,6 +170,7 @@ def explain_response_workflow(
         workflow_id=workflow_id,
         current_user=current_user,
     )
+
 
 # ==========================================================
 # CONTROL RECOMMENDATIONS
@@ -275,4 +288,45 @@ def executive_dashboard(
     return generate_executive_dashboard(
         db=db,
         current_user=current_user,
+    )
+
+
+# ==========================================================
+# PHASE 65 — AI GRC ANALYST
+# ==========================================================
+
+@router.post(
+    "/grc-analyst",
+    response_model=AIGRCAnalystResponse,
+)
+def analyze_grc_question(
+    request: AIGRCAnalystRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_permission(
+            "ai",
+            "use",
+        )
+    ),
+):
+    """
+    Analyze an enterprise GRC question using governed AI.
+
+    The analyst receives only visibility-filtered GRC
+    intelligence.
+
+    AI is advisory only. It does not modify, execute,
+    approve, or remediate GRC resources.
+    """
+
+    visible_user_ids = get_visible_user_ids(
+        db,
+        current_user,
+        "risks",
+    )
+
+    return analyze_with_ai(
+        db=db,
+        question=request.question,
+        visible_user_ids=visible_user_ids,
     )
