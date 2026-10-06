@@ -60,3 +60,81 @@ export async function deleteFramework(
     `/frameworks/${id}`
   );
 }
+
+export interface RegulatoryControlIntelligence {
+  control_id: number;
+  control_title: string;
+  control_status: string | null;
+  effectiveness: number;
+  control_state: string;
+
+  evidence_count: number;
+  evidence_state: string;
+  evidence_freshness_score: number;
+
+  risk_ids: number[];
+  risk_scores: number[];
+  risk_exposure: string;
+}
+
+export interface RegulatoryRequirementIntelligence {
+  requirement_id: number;
+  requirement_code: string;
+  requirement_title: string;
+  requirement_description: string;
+
+  mapped_control_count: number;
+  control_ids: number[];
+
+  controls: RegulatoryControlIntelligence[];
+
+  state: string;
+  exposure: string;
+}
+
+export interface RegulatoryFrameworkIntelligence {
+  framework_id: number;
+  framework_name: string;
+  framework_version: string;
+
+  requirement_count: number;
+  covered_requirements: number;
+  partial_requirements: number;
+  gap_requirements: number;
+
+  critical_requirements: number;
+  high_requirements: number;
+
+  coverage_percent: number;
+
+  requirements: RegulatoryRequirementIntelligence[];
+}
+
+export interface RegulatoryIntelligence {
+  generated_at: string;
+
+  framework_count: number;
+
+  total_requirements: number;
+  covered_requirements: number;
+  partial_requirements: number;
+  gap_requirements: number;
+
+  critical_requirements: number;
+  high_requirements: number;
+
+  overall_coverage_percent: number;
+  overall_posture: string;
+
+  overlapping_controls: number;
+
+  frameworks: RegulatoryFrameworkIntelligence[];
+}
+
+export async function getRegulatoryIntelligence(): Promise<RegulatoryIntelligence> {
+  const response = await api.get(
+    "/frameworks/intelligence"
+  );
+
+  return response.data;
+}
