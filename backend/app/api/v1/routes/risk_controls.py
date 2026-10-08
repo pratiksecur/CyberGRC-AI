@@ -5,6 +5,7 @@ from app.database.database import get_db
 
 from app.auth.permissions import require_permission
 from app.auth.visibility import get_visible_user_ids
+from app.auth.tenant import get_tenant_resource
 
 from app.models.user import User
 from app.models.risk import Risk
@@ -72,12 +73,11 @@ def assign_control(
     # Verify Risk exists and is within scope
     # ------------------------------------------------------
 
-    risk = (
-        db.query(Risk)
-        .filter(
-            Risk.id == mapping.risk_id,
-        )
-        .first()
+    risk = get_tenant_resource(
+        db,
+        Risk,
+        mapping.risk_id,
+        current_user,
     )
 
     if risk is None:
@@ -99,12 +99,11 @@ def assign_control(
     # Verify Control exists and is within scope
     # ------------------------------------------------------
 
-    control = (
-        db.query(Control)
-        .filter(
-            Control.id == mapping.control_id,
-        )
-        .first()
+    control = get_tenant_resource(
+        db,
+        Control,
+        mapping.control_id,
+        current_user,
     )
 
     if control is None:
@@ -192,12 +191,11 @@ def get_controls(
     # Verify Risk exists and is within scope
     # ------------------------------------------------------
 
-    risk = (
-        db.query(Risk)
-        .filter(
-            Risk.id == risk_id,
-        )
-        .first()
+    risk = get_tenant_resource(
+        db,
+        Risk,
+        risk_id,
+        current_user,
     )
 
     if risk is None:
@@ -261,12 +259,11 @@ def get_risks(
     # Verify Control exists and is within scope
     # ------------------------------------------------------
 
-    control = (
-        db.query(Control)
-        .filter(
-            Control.id == control_id,
-        )
-        .first()
+    control = get_tenant_resource(
+        db,
+        Control,
+        control_id,
+        current_user,
     )
 
     if control is None:
@@ -345,20 +342,18 @@ def remove_mapping(
             detail="Mapping not found.",
         )
 
-    risk = (
-        db.query(Risk)
-        .filter(
-            Risk.id == mapping.risk_id,
-        )
-        .first()
+    risk = get_tenant_resource(
+        db,
+        Risk,
+        mapping.risk_id,
+        current_user,
     )
 
-    control = (
-        db.query(Control)
-        .filter(
-            Control.id == mapping.control_id,
-        )
-        .first()
+    control = get_tenant_resource(
+        db,
+        Control,
+        mapping.control_id,
+        current_user,
     )
 
     if risk is None or control is None:

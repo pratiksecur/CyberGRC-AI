@@ -22,6 +22,17 @@ class CorrectiveAction(Base):
         index=True
     )
 
+    # ======================================================
+    # Tenant Ownership
+    # ======================================================
+
+    organization_id = Column(
+        Integer,
+        ForeignKey("organizations.id"),
+        nullable=True,
+        index=True,
+    )
+
     finding_id = Column(
         Integer,
         ForeignKey("audit_findings.id"),
@@ -78,6 +89,15 @@ class CorrectiveAction(Base):
         DateTime(timezone=True),
         server_default=func.now(),
         onupdate=func.now()
+    )
+
+    # ======================================================
+    # Relationships
+    # ======================================================
+
+    organization = relationship(
+        "Organization",
+        foreign_keys=[organization_id],
     )
 
     finding = relationship(

@@ -11,11 +11,15 @@ from app.schemas.corrective_action import (
 
 
 def _serialize_corrective_action(
-    action: CorrectiveAction
+    action: CorrectiveAction,
 ):
     """
     Convert a corrective action into the response structure
     expected by the API.
+
+    The response includes relationship-derived fields:
+    - finding_title
+    - assignee_name
     """
 
     return {
@@ -43,12 +47,30 @@ def _serialize_corrective_action(
     }
 
 
-def create_corrective_action(
-    db: Session,
-    action_data: CorrectiveActionCreate
+def serialize_corrective_action(
+    action: CorrectiveAction,
 ):
     """
-    Create a new corrective action.
+    Public serializer used by API routes when a route performs
+    its own tenant/visibility filtering before returning actions.
+
+    Keeping serialization here prevents API routes from duplicating
+    relationship-derived response construction.
+    """
+
+    return _serialize_corrective_action(action)
+
+
+def create_corrective_action(
+    db: Session,
+    action_data: CorrectiveActionCreate,
+):
+    """
+    Create a corrective action within the organization of its
+    parent finding.
+
+    The organization is derived from the finding and cannot be
+    supplied by the client.
     """
 
     finding = (
@@ -65,7 +87,8 @@ def create_corrective_action(
     assignee = (
         db.query(User)
         .filter(
-            User.id == action_data.assigned_to
+            User.id == action_data.assigned_to,
+            User.organization_id == finding.organization_id,
         )
         .first()
     )
@@ -80,6 +103,7 @@ def create_corrective_action(
         return "INVALID_DATES"
 
     action = CorrectiveAction(
+        organization_id=finding.organization_id,
         finding_id=action_data.finding_id,
         assigned_to=action_data.assigned_to,
         title=action_data.title,
@@ -99,7 +123,7 @@ def create_corrective_action(
 
 
 def get_all_corrective_actions(
-    db: Session
+    db: Session,
 ):
     """
     Get all corrective actions.
@@ -109,11 +133,11 @@ def get_all_corrective_actions(
         db.query(CorrectiveAction)
         .join(
             AuditFinding,
-            CorrectiveAction.finding_id == AuditFinding.id
+            CorrectiveAction.finding_id == AuditFinding.id,
         )
         .join(
             User,
-            CorrectiveAction.assigned_to == User.id
+            CorrectiveAction.assigned_to == User.id,
         )
         .all()
     )
@@ -126,7 +150,7 @@ def get_all_corrective_actions(
 
 def get_corrective_action_by_id(
     db: Session,
-    action_id: int
+    action_id: int,
 ):
     """
     Get a single corrective action.
@@ -148,7 +172,7 @@ def get_corrective_action_by_id(
 
 def get_corrective_actions_for_finding(
     db: Session,
-    finding_id: int
+    finding_id: int,
 ):
     """
     Get all corrective actions for an audit finding.
@@ -171,7 +195,7 @@ def get_corrective_actions_for_finding(
 def update_corrective_action(
     db: Session,
     action_id: int,
-    action_data: CorrectiveActionUpdate
+    action_data: CorrectiveActionUpdate,
 ):
     """
     Update a corrective action.
@@ -223,7 +247,7 @@ def update_corrective_action(
 
 def delete_corrective_action(
     db: Session,
-    action_id: int
+    action_id: int,
 ):
     """
     Delete a corrective action.
@@ -247,7 +271,7 @@ def delete_corrective_action(
 
 
 def get_corrective_action_assignees(
-    db: Session
+    db: Session,
 ):
     """
     Get all users.

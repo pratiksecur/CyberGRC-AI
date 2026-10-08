@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 
 from app.models.framework import Framework
+from app.models.user import User
 
 from app.schemas.framework import (
     FrameworkCreate,
@@ -15,16 +16,23 @@ from app.exceptions.exceptions import (
 
 def create_framework(
     db: Session,
-    framework_data: FrameworkCreate
+    framework_data: FrameworkCreate,
+    current_user: User,
 ):
     """
-    Create a new compliance framework.
+    Create a framework inside the authenticated user's organization.
     """
+
+    organization_id = current_user.organization_id
+
+    if organization_id is None:
+        raise ResourceNotFound("Organization")
 
     existing = (
         db.query(Framework)
         .filter(
-            Framework.name == framework_data.name
+            Framework.organization_id == organization_id,
+            Framework.name == framework_data.name,
         )
         .first()
     )
@@ -33,6 +41,7 @@ def create_framework(
         raise DuplicateResource("Framework")
 
     framework = Framework(
+        organization_id=organization_id,
         name=framework_data.name,
         version=framework_data.version,
         description=framework_data.description,
@@ -47,29 +56,43 @@ def create_framework(
     return framework
 
 
-def get_all_frameworks(db: Session):
+def get_all_frameworks(
+    db: Session,
+    current_user: User,
+):
     """
-    Get all compliance frameworks.
+    Return only frameworks belonging to the user's organization.
     """
 
     return (
         db.query(Framework)
+        .filter(
+            Framework.organization_id
+            == current_user.organization_id
+        )
+        .order_by(
+            Framework.name.asc(),
+            Framework.id.asc(),
+        )
         .all()
     )
 
 
 def get_framework_by_id(
     db: Session,
-    framework_id: int
+    framework_id: int,
+    current_user: User,
 ):
     """
-    Get a framework by ID.
+    Return a framework only if it belongs to the user's organization.
     """
 
     framework = (
         db.query(Framework)
         .filter(
-            Framework.id == framework_id
+            Framework.id == framework_id,
+            Framework.organization_id
+            == current_user.organization_id,
         )
         .first()
     )
@@ -83,22 +106,18 @@ def get_framework_by_id(
 def update_framework(
     db: Session,
     framework_id: int,
-    framework_data: FrameworkUpdate
+    framework_data: FrameworkUpdate,
+    current_user: User,
 ):
     """
-    Update a compliance framework.
+    Update a framework only inside the authenticated user's organization.
     """
 
-    framework = (
-        db.query(Framework)
-        .filter(
-            Framework.id == framework_id
-        )
-        .first()
+    framework = get_framework_by_id(
+        db,
+        framework_id,
+        current_user,
     )
-
-    if framework is None:
-        raise ResourceNotFound("Framework")
 
     if (
         framework_data.name is not None
@@ -107,7 +126,11 @@ def update_framework(
         existing = (
             db.query(Framework)
             .filter(
-                Framework.name == framework_data.name
+                Framework.organization_id
+                == current_user.organization_id,
+                Framework.name
+                == framework_data.name,
+                Framework.id != framework.id,
             )
             .first()
         )
@@ -132,22 +155,18 @@ def update_framework(
 
 def delete_framework(
     db: Session,
-    framework_id: int
+    framework_id: int,
+    current_user: User,
 ):
     """
-    Delete a compliance framework.
+    Delete a framework only inside the authenticated user's organization.
     """
 
-    framework = (
-        db.query(Framework)
-        .filter(
-            Framework.id == framework_id
-        )
-        .first()
+    framework = get_framework_by_id(
+        db,
+        framework_id,
+        current_user,
     )
-
-    if framework is None:
-        raise ResourceNotFound("Framework")
 
     db.delete(framework)
 

@@ -3,8 +3,9 @@ from sqlalchemy import (
     Integer,
     String,
     DateTime,
-    ForeignKey
+    ForeignKey,
 )
+
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -43,6 +44,23 @@ class User(Base):
     )
 
     # ======================================================
+    # Organization / Tenant
+    # ======================================================
+
+    organization_id = Column(
+        Integer,
+        ForeignKey("organizations.id"),
+        nullable=False,
+        default=1,
+        index=True,
+    )
+
+    organization = relationship(
+        "Organization",
+        back_populates="users",
+    )
+
+    # ======================================================
     # Organizational Hierarchy
     # ======================================================
 
@@ -55,6 +73,52 @@ class User(Base):
     department = Column(
         String(100),
         nullable=True
+    )
+
+    # ======================================================
+    # Enterprise Organizational Structure
+    # ======================================================
+
+    business_unit_id = Column(
+        Integer,
+        ForeignKey(
+            "business_units.id"
+        ),
+        nullable=True,
+        index=True,
+    )
+
+    department_id = Column(
+        Integer,
+        ForeignKey(
+            "departments.id"
+        ),
+        nullable=True,
+        index=True,
+    )
+
+    team_id = Column(
+        Integer,
+        ForeignKey(
+            "grc_teams.id"
+        ),
+        nullable=True,
+        index=True,
+    )
+
+    business_unit = relationship(
+        "BusinessUnit",
+        back_populates="users",
+    )
+
+    department_entity = relationship(
+        "Department",
+        back_populates="users",
+    )
+
+    grc_team = relationship(
+        "GrcTeam",
+        back_populates="users",
     )
 
     # ======================================================

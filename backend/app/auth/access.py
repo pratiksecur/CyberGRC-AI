@@ -1,71 +1,110 @@
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.models.user import User
+from app.auth.tenant import (
+    ensure_resource_same_organization,
+)
 from app.auth.visibility import get_visible_user_ids
+from app.models.user import User
 
 
 # ==========================================================
-# USER SCOPE VALIDATION
+# USER VISIBILITY
 # ==========================================================
+
 
 def ensure_user_in_scope(
     db: Session,
     current_user: User,
     target_user_id: int,
     resource: str | None = None,
-) -> None:
+) -> User:
     """
-    Ensure that the target user falls within the
-    current user's organizational visibility scope.
+    Ensure the target user belongs to both:
 
-    When a resource is provided, the resource-specific
-    ROLE_SCOPES configuration is used. When omitted, the
-    legacy visibility behaviour is preserved for callers
-    that have not yet been migrated to resource-aware scope.
-
-    Raises:
-        HTTPException(403) if the target user is
-        outside the current user's scope.
+    1. the authenticated user's organization
+    2. the authenticated user's visibility scope
     """
+
+    target_user = (
+        db.query(User)
+        .filter(
+            User.id == target_user_id,
+            User.organization_id
+            == current_user.organization_id,
+        )
+        .first()
+    )
+
+    if target_user is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                "Cross-organization access is not permitted."
+            ),
+        )
 
     visible_user_ids = get_visible_user_ids(
         db,
         current_user,
-        resource,
+        resource=resource,
     )
 
-    if target_user_id not in visible_user_ids:
+    if target_user.id not in visible_user_ids:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=(
-                "You cannot access or assign resources "
-                "outside your organizational scope."
-            )
+                "You do not have access to this user."
+            ),
         )
 
+    return target_user
+
 
 # ==========================================================
-# RESOURCE OWNERSHIP VALIDATION
+# RESOURCE OWNER VISIBILITY
 # ==========================================================
+
 
 def ensure_resource_owner_in_scope(
     db: Session,
     current_user: User,
     owner_id: int,
     resource: str | None = None,
+) -> User:
+    """
+    Ensure the resource owner is inside both the tenant
+    and the user's visibility scope.
+    """
+
+    return ensure_user_in_scope(
+        db=db,
+        current_user=current_user,
+        target_user_id=owner_id,
+        resource=resource,
+    )
+
+
+# ==========================================================
+# RESOURCE TENANT ACCESS
+# ==========================================================
+
+
+def ensure_resource_in_tenant(
+    current_user: User,
+    resource,
 ) -> None:
     """
-    Ensure that a resource owner belongs to the
-    current user's visibility scope for the resource.
-
-    This is useful when creating or reassigning
-    resources such as Risks or Controls.
+    Convert the tenant PermissionError into an HTTP 403.
     """
 
-    ensure_user_in_scope(
-        db,
-        current_user,
-        owner_id,
-        resource,
-    )
+    try:
+        ensure_resource_same_organization(
+            current_user,
+            resource,
+        )
+    except PermissionError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(exc),
+        ) from exc

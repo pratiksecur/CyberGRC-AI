@@ -19,11 +19,14 @@ def get_visible_user_ids(
     Return the user IDs whose organizational data
     the current user is allowed to see.
 
+    Tenant isolation is always applied first.
+
     When a resource is provided, visibility is determined
     from ROLE_SCOPES for that specific resource.
 
     If no resource is provided, the existing role-based
-    behavior is preserved for backwards compatibility.
+    behavior is preserved for backwards compatibility,
+    while remaining tenant-scoped.
     """
 
     # ------------------------------------------------------
@@ -37,8 +40,8 @@ def get_visible_user_ids(
             resource,
         )
 
-        # No configured scope means no organizational
-        # resources are visible.
+        # No configured scope means the current user
+        # can only see their own organizational identity.
         if access_scope is None:
             return [current_user.id]
 
@@ -50,6 +53,10 @@ def get_visible_user_ids(
 
             users = (
                 db.query(User.id)
+                .filter(
+                    User.organization_id
+                    == current_user.organization_id
+                )
                 .all()
             )
 
@@ -64,7 +71,9 @@ def get_visible_user_ids(
 
         if access_scope == AccessScope.OWN:
 
-            return [current_user.id]
+            return [
+                current_user.id
+            ]
 
         # --------------------------------------------------
         # SUBORDINATES
@@ -72,7 +81,9 @@ def get_visible_user_ids(
 
         if access_scope == AccessScope.SUBORDINATES:
 
-            visible_ids = {current_user.id}
+            visible_ids = {
+                current_user.id
+            }
 
             def collect_subordinates(
                 manager_id: int,
@@ -80,17 +91,24 @@ def get_visible_user_ids(
                 subordinates = (
                     db.query(User.id)
                     .filter(
-                        User.manager_id == manager_id
+                        User.organization_id
+                        == current_user.organization_id,
+                        User.manager_id
+                        == manager_id,
                     )
                     .all()
                 )
 
-                for (user_id,) in subordinates:
+                for (
+                    user_id,
+                ) in subordinates:
 
                     if user_id in visible_ids:
                         continue
 
-                    visible_ids.add(user_id)
+                    visible_ids.add(
+                        user_id
+                    )
 
                     collect_subordinates(
                         user_id
@@ -100,17 +118,29 @@ def get_visible_user_ids(
                 current_user.id
             )
 
-            return list(visible_ids)
+            return list(
+                visible_ids
+            )
 
     # ------------------------------------------------------
     # BACKWARDS-COMPATIBLE ROLE VISIBILITY
     # ------------------------------------------------------
 
     # ADMIN
-    if current_user.role == UserRole.ADMIN.value:
+    #
+    # Organization visibility is still preserved,
+    # but only inside the current user's organization.
+    if (
+        current_user.role
+        == UserRole.ADMIN.value
+    ):
 
         users = (
             db.query(User.id)
+            .filter(
+                User.organization_id
+                == current_user.organization_id
+            )
             .all()
         )
 
@@ -119,13 +149,18 @@ def get_visible_user_ids(
             for (user_id,) in users
         ]
 
+    # ------------------------------------------------------
     # GRC MANAGER / RISK ANALYST
+    # ------------------------------------------------------
+
     if current_user.role in {
         UserRole.GRC_MANAGER.value,
         UserRole.RISK_ANALYST.value,
     }:
 
-        visible_ids = {current_user.id}
+        visible_ids = {
+            current_user.id
+        }
 
         def collect_subordinates(
             manager_id: int,
@@ -133,17 +168,24 @@ def get_visible_user_ids(
             subordinates = (
                 db.query(User.id)
                 .filter(
-                    User.manager_id == manager_id
+                    User.organization_id
+                    == current_user.organization_id,
+                    User.manager_id
+                    == manager_id,
                 )
                 .all()
             )
 
-            for (user_id,) in subordinates:
+            for (
+                user_id,
+            ) in subordinates:
 
                 if user_id in visible_ids:
                     continue
 
-                visible_ids.add(user_id)
+                visible_ids.add(
+                    user_id
+                )
 
                 collect_subordinates(
                     user_id
@@ -153,10 +195,17 @@ def get_visible_user_ids(
             current_user.id
         )
 
-        return list(visible_ids)
+        return list(
+            visible_ids
+        )
 
+    # ------------------------------------------------------
     # AUDITOR / EMPLOYEE
-    return [current_user.id]
+    # ------------------------------------------------------
+
+    return [
+        current_user.id
+    ]
 
 
 # ==========================================================
@@ -183,4 +232,7 @@ def can_view_user(
         resource,
     )
 
-    return target_user_id in visible_user_ids
+    return (
+        target_user_id
+        in visible_user_ids
+    )

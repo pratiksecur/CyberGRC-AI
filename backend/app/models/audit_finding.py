@@ -21,6 +21,17 @@ class AuditFinding(Base):
         index=True
     )
 
+    # ======================================================
+    # Tenant Ownership
+    # ======================================================
+
+    organization_id = Column(
+        Integer,
+        ForeignKey("organizations.id"),
+        nullable=True,
+        index=True,
+    )
+
     audit_id = Column(
         Integer,
         ForeignKey("audits.id"),
@@ -67,6 +78,15 @@ class AuditFinding(Base):
         DateTime(timezone=True),
         server_default=func.now(),
         onupdate=func.now()
+    )
+
+    # ======================================================
+    # Relationships
+    # ======================================================
+
+    organization = relationship(
+        "Organization",
+        foreign_keys=[organization_id],
     )
 
     audit = relationship(

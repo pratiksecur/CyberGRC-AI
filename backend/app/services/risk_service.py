@@ -8,18 +8,30 @@ from app.schemas.risk import RiskCreate, RiskUpdate
 def create_risk(
     db: Session,
     risk_data: RiskCreate,
-    created_by_id: int
+    created_by_id: int,
 ):
     """
-    Create a new risk.
+    Create a new risk within the authenticated user's organization.
 
-    created_by_id represents the authenticated
-    user who submitted the risk.
+    The organization is derived from the authenticated creator and
+    cannot be supplied by the client.
     """
+
+    creator = (
+        db.query(User)
+        .filter(User.id == created_by_id)
+        .first()
+    )
+
+    if creator is None:
+        return None
 
     owner = (
         db.query(User)
-        .filter(User.id == risk_data.owner_id)
+        .filter(
+            User.id == risk_data.owner_id,
+            User.organization_id == creator.organization_id,
+        )
         .first()
     )
 
@@ -38,13 +50,12 @@ def create_risk(
         impact=risk_data.impact,
         risk_score=risk_score,
         owner_id=risk_data.owner_id,
-        created_by_id=created_by_id
+        created_by_id=created_by_id,
+        organization_id=creator.organization_id,
     )
 
     db.add(risk)
-
     db.commit()
-
     db.refresh(risk)
 
     return risk

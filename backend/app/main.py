@@ -95,6 +95,13 @@ from app.services.notification_scheduler import (
     notification_scheduler_loop,
 )
 
+from app.api.v1.routes.enterprise import (
+    router as enterprise_router,
+)
+
+from app.api.v1.routes.policies import (
+    router as policies_router,
+)
 
 logger = logging.getLogger(
     "cybergrc.application"
@@ -496,6 +503,11 @@ app.include_router(
 )
 
 app.include_router(
+    policies_router,
+    prefix="/api/v1",
+)
+
+app.include_router(
     framework_controls_router,
     prefix="/api/v1",
 )
@@ -570,6 +582,10 @@ app.include_router(
     prefix="/api/v1",
 )
 
+app.include_router(
+    enterprise_router,
+    prefix="/api/v1",
+)
 
 # ==========================================================
 # ROOT

@@ -11,15 +11,29 @@ from app.schemas.control import (
 def create_control(
     db: Session,
     control_data: ControlCreate,
-    created_by_id: int
+    created_by_id: int,
 ):
     """
-    Create a new control.
+    Create a new control within the authenticated user's organization.
+
+    The organization is derived from the authenticated creator.
     """
+
+    creator = (
+        db.query(User)
+        .filter(User.id == created_by_id)
+        .first()
+    )
+
+    if creator is None:
+        return None
 
     owner = (
         db.query(User)
-        .filter(User.id == control_data.owner_id)
+        .filter(
+            User.id == control_data.owner_id,
+            User.organization_id == creator.organization_id,
+        )
         .first()
     )
 
@@ -34,12 +48,11 @@ def create_control(
         effectiveness=control_data.effectiveness,
         owner_id=control_data.owner_id,
         created_by_id=created_by_id,
+        organization_id=creator.organization_id,
     )
 
     db.add(control)
-
     db.commit()
-
     db.refresh(control)
 
     return control

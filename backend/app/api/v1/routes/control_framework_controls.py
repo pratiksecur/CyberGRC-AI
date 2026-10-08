@@ -5,9 +5,11 @@ from app.database.database import get_db
 
 from app.auth.permissions import require_permission
 from app.auth.visibility import get_visible_user_ids
+from app.auth.tenant import get_tenant_resource
 
 from app.models.user import User
 from app.models.control import Control
+from app.models.framework_control import FrameworkControl
 
 from app.schemas.control_framework_control import (
     ControlFrameworkControlCreate,
@@ -16,6 +18,8 @@ from app.schemas.control_framework_control import (
 
 from app.schemas.control import ControlResponse
 from app.schemas.framework_control import FrameworkControlResponse
+
+from app.services.framework_control_service import get_framework_control_by_id
 
 from app.services.control_framework_control_service import (
     assign_framework_control,
@@ -56,12 +60,11 @@ def assign_control_to_framework_control(
     # Load the Control
     # ------------------------------------------------------
 
-    control = (
-        db.query(Control)
-        .filter(
-            Control.id == mapping_data.control_id
-        )
-        .first()
+    control = get_tenant_resource(
+        db,
+        Control,
+        mapping_data.control_id,
+        current_user,
     )
 
     if control is None:
@@ -87,6 +90,18 @@ def assign_control_to_framework_control(
                 "You cannot create a mapping for a "
                 "Control outside your organizational scope."
             )
+        )
+
+    framework_control = get_framework_control_by_id(
+        db,
+        mapping_data.framework_control_id,
+        current_user,
+    )
+
+    if framework_control is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Framework Control not found."
         )
 
     # ------------------------------------------------------
@@ -139,12 +154,11 @@ def get_framework_controls(
     # Load the Control
     # ------------------------------------------------------
 
-    control = (
-        db.query(Control)
-        .filter(
-            Control.id == control_id
-        )
-        .first()
+    control = get_tenant_resource(
+        db,
+        Control,
+        control_id,
+        current_user,
     )
 
     if control is None:
@@ -209,6 +223,18 @@ def get_controls(
         current_user,
         "control_framework_mappings",
     )
+
+    framework_control = get_framework_control_by_id(
+        db,
+        framework_control_id,
+        current_user,
+    )
+
+    if framework_control is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Framework Control not found.",
+        )
 
     return get_controls_for_framework_control(
         db,

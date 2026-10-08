@@ -1,35 +1,32 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+
 from sqlalchemy.orm import Session
 
 from app.database.database import get_db
 
-from app.auth.permissions import (
-    require_permission,
-    get_access_scope,
-)
-from app.auth.visibility import get_visible_user_ids
-from app.auth.access import ensure_user_in_scope
-from app.auth.scopes import AccessScope
-
-from app.models.audit import Audit
 from app.models.audit_finding import AuditFinding
 from app.models.corrective_action import CorrectiveAction
 from app.models.user import User
 
 from app.schemas.corrective_action import (
     CorrectiveActionCreate,
-    CorrectiveActionUpdate,
     CorrectiveActionResponse,
+    CorrectiveActionUpdate,
     CorrectiveActionAssigneeResponse,
 )
 
 from app.services.corrective_action_service import (
     create_corrective_action,
     get_corrective_action_by_id,
+    get_corrective_actions_for_finding,
     update_corrective_action,
     delete_corrective_action,
-    _serialize_corrective_action,
+    serialize_corrective_action,
 )
+
+from app.auth.dependencies import get_current_user
+from app.auth.permissions import require_permission
+from app.auth.visibility import get_visible_user_ids
 
 
 router = APIRouter(
@@ -38,167 +35,38 @@ router = APIRouter(
 )
 
 
-def _build_scoped_corrective_action_query(
-    db: Session,
+# ==========================================================
+# PERMISSION HELPERS
+# ==========================================================
+
+
+def _ensure_permission(
     current_user: User,
+    resource: str,
+    action: str,
 ):
     """
-    Build the corrective-action query according to the
-    user's corrective-action visibility scope.
+    Enforce the project's existing permission dependency.
 
-    OWN:
-        Visibility is determined by assigned_to.
-
-    SUBORDINATES / ORGANIZATION:
-        Both assigned_to and the parent audit must be
-        within the user's corrective-action scope.
-
-    This preserves the distinction between a user's own
-    assigned remediation work and management-level
-    organizational visibility.
+    require_permission() returns a FastAPI dependency callable,
+    so permission checking is performed against the authenticated
+    user through the existing project permission mechanism.
     """
 
-    visible_user_ids = get_visible_user_ids(
-        db,
-        current_user,
-        "corrective_actions",
+    permission_dependency = require_permission(
+        resource,
+        action,
     )
 
-    query = (
-        db.query(CorrectiveAction)
-        .join(
-            AuditFinding,
-            CorrectiveAction.finding_id == AuditFinding.id,
-        )
-        .join(
-            Audit,
-            AuditFinding.audit_id == Audit.id,
-        )
-        .filter(
-            CorrectiveAction.assigned_to.in_(
-                visible_user_ids
-            )
-        )
-    )
-
-    scope = get_access_scope(
-        current_user,
-        "corrective_actions",
-    )
-
-    if scope in (
-        AccessScope.SUBORDINATES,
-        AccessScope.ORGANIZATION,
-    ):
-        query = query.filter(
-            Audit.auditor_id.in_(
-                visible_user_ids
-            )
-        )
-
-    return query
+    try:
+        permission_dependency(current_user)
+    except HTTPException:
+        raise
 
 
-@router.post(
-    "/",
-    response_model=CorrectiveActionResponse,
-)
-def create_action(
-    action_data: CorrectiveActionCreate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(
-        require_permission("corrective_actions", "create")
-    ),
-):
-    """
-    Create a corrective action.
-
-    Creation requires BOTH:
-    1. The parent audit to be within the creator's scope.
-    2. The assigned user to be within the creator's scope.
-
-    This prevents creation against an out-of-scope finding
-    or assignment to an out-of-scope user.
-    """
-
-    finding = (
-        db.query(AuditFinding)
-        .join(
-            Audit,
-            AuditFinding.audit_id == Audit.id,
-        )
-        .filter(
-            AuditFinding.id == action_data.finding_id,
-        )
-        .first()
-    )
-
-    if finding is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Audit finding not found.",
-        )
-
-    audit = (
-        db.query(Audit)
-        .filter(
-            Audit.id == finding.audit_id,
-        )
-        .first()
-    )
-
-    if audit is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Audit not found.",
-        )
-
-    # --------------------------------------------------
-    # Parent audit authorization
-    # --------------------------------------------------
-
-    ensure_user_in_scope(
-        db,
-        current_user,
-        audit.auditor_id,
-        "corrective_actions",
-    )
-
-    # --------------------------------------------------
-    # Assignee authorization
-    # --------------------------------------------------
-
-    ensure_user_in_scope(
-        db,
-        current_user,
-        action_data.assigned_to,
-        "corrective_actions",
-    )
-
-    action = create_corrective_action(
-        db,
-        action_data,
-    )
-
-    if action == "FINDING_NOT_FOUND":
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Audit finding not found.",
-        )
-
-    if action == "USER_NOT_FOUND":
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Assigned user not found.",
-        )
-
-    if action == "INVALID_DATES":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Completion date cannot be before due date.",
-        )
-
-    return action
+# ==========================================================
+# LIST CORRECTIVE ACTIONS
+# ==========================================================
 
 
 @router.get(
@@ -207,33 +75,43 @@ def create_action(
 )
 def list_actions(
     db: Session = Depends(get_db),
-    current_user: User = Depends(
-        require_permission("corrective_actions", "view")
-    ),
+    current_user: User = Depends(get_current_user),
 ):
     """
-    Return corrective actions according to the caller's
-    corrective-action scope.
+    List corrective actions visible to the current user.
 
-    OWN:
-        Return actions assigned to the current user.
+    Tenant isolation is enforced before RBAC visibility.
 
-    SUBORDINATES / ORGANIZATION:
-        Return actions where both the assignee and the
-        parent audit are within the caller's scope.
+    Response objects are explicitly serialized so that the
+    relationship-derived fields required by CorrectiveActionResponse
+    are included.
     """
 
-    query = _build_scoped_corrective_action_query(
+    visible_user_ids = get_visible_user_ids(
         db,
         current_user,
+        resource="corrective_actions",
     )
 
-    actions = query.all()
+    actions = (
+        db.query(CorrectiveAction)
+        .filter(
+            CorrectiveAction.organization_id
+            == current_user.organization_id,
+            CorrectiveAction.assigned_to.in_(visible_user_ids),
+        )
+        .all()
+    )
 
     return [
-        _serialize_corrective_action(action)
+        serialize_corrective_action(action)
         for action in actions
     ]
+
+
+# ==========================================================
+# LIST ASSIGNEES
+# ==========================================================
 
 
 @router.get(
@@ -242,25 +120,28 @@ def list_actions(
 )
 def list_assignees(
     db: Session = Depends(get_db),
-    current_user: User = Depends(
-        require_permission("corrective_actions", "view")
-    ),
+    current_user: User = Depends(get_current_user),
 ):
     """
-    Return users that can be selected as corrective-action
-    assignees within the current user's visibility scope.
+    Get users that can be selected when assigning
+    a corrective action.
+
+    Only users belonging to the current organization
+    and visible under the existing RBAC hierarchy
+    are returned.
     """
 
     visible_user_ids = get_visible_user_ids(
         db,
         current_user,
-        "corrective_actions",
+        resource="corrective_actions",
     )
 
     users = (
         db.query(User)
         .filter(
-            User.id.in_(visible_user_ids)
+            User.id.in_(visible_user_ids),
+            User.organization_id == current_user.organization_id,
         )
         .order_by(
             User.full_name.asc()
@@ -277,6 +158,98 @@ def list_assignees(
     ]
 
 
+# ==========================================================
+# CREATE CORRECTIVE ACTION
+# ==========================================================
+
+
+@router.post(
+    "/",
+    response_model=CorrectiveActionResponse,
+)
+def create_action(
+    action_data: CorrectiveActionCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Create a corrective action.
+
+    Tenant rules:
+    - Finding must belong to current organization.
+    - Assignee must belong to current organization.
+    - Organization is derived from authenticated context.
+    """
+
+    _ensure_permission(
+        current_user,
+        "corrective_actions",
+        "create",
+    )
+
+    finding = (
+        db.query(AuditFinding)
+        .filter(
+            AuditFinding.id == action_data.finding_id,
+            AuditFinding.organization_id
+            == current_user.organization_id,
+        )
+        .first()
+    )
+
+    if finding is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Finding not found.",
+        )
+
+    assignee = (
+        db.query(User)
+        .filter(
+            User.id == action_data.assigned_to,
+            User.organization_id
+            == current_user.organization_id,
+        )
+        .first()
+    )
+
+    if assignee is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Assignee not found.",
+        )
+
+    result = create_corrective_action(
+        db,
+        action_data,
+    )
+
+    if result == "FINDING_NOT_FOUND":
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Finding not found.",
+        )
+
+    if result == "USER_NOT_FOUND":
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Assignee not found.",
+        )
+
+    if result == "INVALID_DATES":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Completed date cannot be earlier than due date.",
+        )
+
+    return result
+
+
+# ==========================================================
+# GET CORRECTIVE ACTION
+# ==========================================================
+
+
 @router.get(
     "/{action_id}",
     response_model=CorrectiveActionResponse,
@@ -284,22 +257,27 @@ def list_assignees(
 def get_action(
     action_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(
-        require_permission("corrective_actions", "view")
-    ),
+    current_user: User = Depends(get_current_user),
 ):
     """
-    Return a corrective action according to the caller's
-    corrective-action visibility scope.
+    Get a corrective action.
+
+    Tenant isolation is enforced directly on the resource.
     """
 
+    visible_user_ids = get_visible_user_ids(
+        db,
+        current_user,
+        resource="corrective_actions",
+    )
+
     action = (
-        _build_scoped_corrective_action_query(
-            db,
-            current_user,
-        )
+        db.query(CorrectiveAction)
         .filter(
             CorrectiveAction.id == action_id,
+            CorrectiveAction.organization_id
+            == current_user.organization_id,
+            CorrectiveAction.assigned_to.in_(visible_user_ids),
         )
         .first()
     )
@@ -310,7 +288,72 @@ def get_action(
             detail="Corrective action not found.",
         )
 
-    return _serialize_corrective_action(action)
+    return serialize_corrective_action(action)
+
+
+# ==========================================================
+# LIST ACTIONS FOR FINDING
+# ==========================================================
+
+
+@router.get(
+    "/finding/{finding_id}",
+    response_model=list[CorrectiveActionResponse],
+)
+def list_actions_for_finding(
+    finding_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Get corrective actions belonging to a finding.
+
+    Both finding and corrective actions must belong to
+    the authenticated user's organization.
+    """
+
+    finding = (
+        db.query(AuditFinding)
+        .filter(
+            AuditFinding.id == finding_id,
+            AuditFinding.organization_id
+            == current_user.organization_id,
+        )
+        .first()
+    )
+
+    if finding is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Finding not found.",
+        )
+
+    visible_user_ids = get_visible_user_ids(
+        db,
+        current_user,
+        resource="corrective_actions",
+    )
+
+    actions = (
+        db.query(CorrectiveAction)
+        .filter(
+            CorrectiveAction.finding_id == finding_id,
+            CorrectiveAction.organization_id
+            == current_user.organization_id,
+            CorrectiveAction.assigned_to.in_(visible_user_ids),
+        )
+        .all()
+    )
+
+    return [
+        serialize_corrective_action(action)
+        for action in actions
+    ]
+
+
+# ==========================================================
+# UPDATE CORRECTIVE ACTION
+# ==========================================================
 
 
 @router.patch(
@@ -321,22 +364,44 @@ def update_action(
     action_id: int,
     action_data: CorrectiveActionUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(
-        require_permission("corrective_actions", "update")
-    ),
+    current_user: User = Depends(get_current_user),
 ):
     """
-    Update a corrective action according to the caller's
-    corrective-action visibility scope.
+    Update a corrective action.
+
+    Tenant enforcement:
+    - Existing action must belong to current organization.
+    - finding_id, when supplied, must reference a finding
+      in the same organization.
+    - assigned_to, when supplied, must reference a user
+      in the same organization.
+    - organization_id is never mutable.
+    - Cross-tenant parent/assignee changes are rejected.
     """
 
+    _ensure_permission(
+        current_user,
+        "corrective_actions",
+        "update",
+    )
+
+    # ------------------------------------------------------
+    # 1. Resolve existing action inside current tenant
+    # ------------------------------------------------------
+
+    visible_user_ids = get_visible_user_ids(
+        db,
+        current_user,
+        resource="corrective_actions",
+    )
+
     action = (
-        _build_scoped_corrective_action_query(
-            db,
-            current_user,
-        )
+        db.query(CorrectiveAction)
         .filter(
             CorrectiveAction.id == action_id,
+            CorrectiveAction.organization_id
+            == current_user.organization_id,
+            CorrectiveAction.assigned_to.in_(visible_user_ids),
         )
         .first()
     )
@@ -347,25 +412,190 @@ def update_action(
             detail="Corrective action not found.",
         )
 
-    updated_action = update_corrective_action(
+    # ------------------------------------------------------
+    # 2. Validate finding relationship
+    # ------------------------------------------------------
+
+    if action_data.finding_id is not None:
+
+        target_finding = (
+            db.query(AuditFinding)
+            .filter(
+                AuditFinding.id == action_data.finding_id,
+                AuditFinding.organization_id
+                == current_user.organization_id,
+            )
+            .first()
+        )
+
+        if target_finding is None:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=(
+                    "Corrective action cannot be moved "
+                    "to a finding in another organization."
+                ),
+            )
+
+        if target_finding.organization_id != action.organization_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=(
+                    "Corrective action cannot be moved "
+                    "across organizations."
+                ),
+            )
+
+    # ------------------------------------------------------
+    # 3. Validate assignee relationship
+    # ------------------------------------------------------
+
+    if action_data.assigned_to is not None:
+
+        target_assignee = (
+            db.query(User)
+            .filter(
+                User.id == action_data.assigned_to,
+                User.organization_id
+                == current_user.organization_id,
+            )
+            .first()
+        )
+
+        if target_assignee is None:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=(
+                    "Corrective action cannot be assigned "
+                    "to a user in another organization."
+                ),
+            )
+
+        if target_assignee.organization_id != action.organization_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=(
+                    "Corrective action assignee must belong "
+                    "to the same organization."
+                ),
+            )
+
+    # ------------------------------------------------------
+    # 4. Update relationship fields
+    # ------------------------------------------------------
+
+    if action_data.finding_id is not None:
+        action.finding_id = action_data.finding_id
+
+    if action_data.assigned_to is not None:
+        action.assigned_to = action_data.assigned_to
+
+    # ------------------------------------------------------
+    # 5. Update normal fields through service
+    # ------------------------------------------------------
+
+    result = update_corrective_action(
         db,
         action_id,
         action_data,
     )
 
-    if updated_action is None:
+    if result == "INVALID_DATES":
+        db.rollback()
+
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Completed date cannot be earlier than due date.",
+        )
+
+    if result is None:
+        db.rollback()
+
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Corrective action not found.",
         )
 
-    if updated_action == "INVALID_DATES":
+    # ------------------------------------------------------
+    # 6. Final tenant integrity validation
+    # ------------------------------------------------------
+
+    db.refresh(
+        db.query(CorrectiveAction)
+        .filter(CorrectiveAction.id == action_id)
+        .first()
+    )
+
+    final_action = (
+        db.query(CorrectiveAction)
+        .filter(
+            CorrectiveAction.id == action_id,
+            CorrectiveAction.organization_id
+            == current_user.organization_id,
+        )
+        .first()
+    )
+
+    if final_action is None:
+        db.rollback()
+
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Completion date cannot be before due date.",
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cross-organization corrective action detected.",
         )
 
-    return updated_action
+    final_assignee = (
+        db.query(User)
+        .filter(
+            User.id == final_action.assigned_to,
+        )
+        .first()
+    )
+
+    if (
+        final_assignee is None
+        or final_assignee.organization_id
+        != current_user.organization_id
+    ):
+        db.rollback()
+
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                "Corrective action assignee must belong "
+                "to the same organization."
+            ),
+        )
+
+    final_finding = (
+        db.query(AuditFinding)
+        .filter(
+            AuditFinding.id == final_action.finding_id,
+        )
+        .first()
+    )
+
+    if (
+        final_finding is None
+        or final_finding.organization_id
+        != current_user.organization_id
+    ):
+        db.rollback()
+
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                "Corrective action finding must belong "
+                "to the same organization."
+            ),
+        )
+
+    return serialize_corrective_action(final_action)
+
+
+# ==========================================================
+# DELETE CORRECTIVE ACTION
+# ==========================================================
 
 
 @router.delete(
@@ -374,22 +604,33 @@ def update_action(
 def delete_action(
     action_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(
-        require_permission("corrective_actions", "delete")
-    ),
+    current_user: User = Depends(get_current_user),
 ):
     """
-    Delete a corrective action according to the caller's
-    corrective-action visibility scope.
+    Delete a corrective action.
+
+    Tenant isolation is enforced before deletion.
     """
 
+    _ensure_permission(
+        current_user,
+        "corrective_actions",
+        "delete",
+    )
+
+    visible_user_ids = get_visible_user_ids(
+        db,
+        current_user,
+        resource="corrective_actions",
+    )
+
     action = (
-        _build_scoped_corrective_action_query(
-            db,
-            current_user,
-        )
+        db.query(CorrectiveAction)
         .filter(
             CorrectiveAction.id == action_id,
+            CorrectiveAction.organization_id
+            == current_user.organization_id,
+            CorrectiveAction.assigned_to.in_(visible_user_ids),
         )
         .first()
     )
@@ -400,12 +641,12 @@ def delete_action(
             detail="Corrective action not found.",
         )
 
-    deleted = delete_corrective_action(
+    result = delete_corrective_action(
         db,
         action_id,
     )
 
-    if deleted is None:
+    if result is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Corrective action not found.",

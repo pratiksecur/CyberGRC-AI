@@ -41,9 +41,10 @@ def create_audit_finding(
     finding_data: AuditFindingCreate,
 ):
     """
-    Create a new audit finding.
+    Create an audit finding within the organization of its parent audit.
 
-    Organizational authorization is handled by the route.
+    The organization is derived from the audit and cannot be supplied
+    by the client.
     """
 
     audit = (
@@ -68,7 +69,14 @@ def create_audit_finding(
     if control is None:
         return "CONTROL_NOT_FOUND"
 
+    if (
+        audit.organization_id is None
+        or control.organization_id != audit.organization_id
+    ):
+        return "ORGANIZATION_MISMATCH"
+
     finding = AuditFinding(
+        organization_id=audit.organization_id,
         audit_id=finding_data.audit_id,
         control_id=finding_data.control_id,
         title=finding_data.title,

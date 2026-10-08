@@ -11,13 +11,22 @@ def create_evidence(
     evidence_data: EvidenceCreate,
     uploaded_by: int,
 ):
+    """
+    Create evidence within the organization of its parent control.
+
+    The organization is derived from the control and authenticated
+    uploader. It cannot be supplied by the client.
+    """
+
     control = (
         db.query(Control)
-        .filter(Control.id == evidence_data.control_id)
+        .filter(
+            Control.id == evidence_data.control_id
+        )
         .first()
     )
 
-    if not control:
+    if control is None:
         return None
 
     user = (
@@ -26,10 +35,17 @@ def create_evidence(
         .first()
     )
 
-    if not user:
+    if user is None:
+        return None
+
+    if (
+        control.organization_id is None
+        or control.organization_id != user.organization_id
+    ):
         return None
 
     evidence = Evidence(
+        organization_id=control.organization_id,
         control_id=evidence_data.control_id,
         title=evidence_data.title,
         description=evidence_data.description,

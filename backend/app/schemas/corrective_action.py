@@ -88,6 +88,13 @@ class CorrectiveActionUpdate(BaseModel):
 
     comments: Optional[str] = None
 
+    # Tenant-aware relationship updates.
+    # organization_id is intentionally excluded because
+    # the corrective action tenant is immutable.
+    finding_id: Optional[int] = None
+
+    assigned_to: Optional[int] = None
+
     @model_validator(mode="after")
     def validate_dates(self):
         if (

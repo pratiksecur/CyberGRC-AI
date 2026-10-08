@@ -6,6 +6,7 @@ from app.database.database import get_db
 from app.auth.permissions import require_permission
 from app.auth.visibility import get_visible_user_ids
 from app.auth.access import ensure_user_in_scope
+from app.auth.tenant import apply_tenant_filter
 
 from app.models.user import User
 from app.models.audit import Audit
@@ -124,7 +125,11 @@ def list_all_audits(
     )
 
     return (
-        db.query(Audit)
+        apply_tenant_filter(
+            db.query(Audit),
+            Audit,
+            current_user,
+        )
         .filter(
             Audit.auditor_id.in_(visible_user_ids)
         )
@@ -158,7 +163,11 @@ def get_audit(
     )
 
     audit = (
-        db.query(Audit)
+        apply_tenant_filter(
+            db.query(Audit),
+            Audit,
+            current_user,
+        )
         .filter(
             Audit.id == audit_id,
             Audit.auditor_id.in_(visible_user_ids),
@@ -202,7 +211,11 @@ def update_existing_audit(
     )
 
     audit = (
-        db.query(Audit)
+        apply_tenant_filter(
+            db.query(Audit),
+            Audit,
+            current_user,
+        )
         .filter(
             Audit.id == audit_id,
             Audit.auditor_id.in_(visible_user_ids),
@@ -231,7 +244,9 @@ def update_existing_audit(
         auditor = (
             db.query(User)
             .filter(
-                User.id == audit_data.auditor_id
+                User.id == audit_data.auditor_id,
+                User.organization_id
+                == current_user.organization_id,
             )
             .first()
         )
@@ -288,7 +303,11 @@ def delete_existing_audit(
     )
 
     audit = (
-        db.query(Audit)
+        apply_tenant_filter(
+            db.query(Audit),
+            Audit,
+            current_user,
+        )
         .filter(
             Audit.id == audit_id,
             Audit.auditor_id.in_(visible_user_ids),

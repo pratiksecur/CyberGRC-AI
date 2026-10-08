@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 
 from app.models.framework import Framework
 from app.models.framework_control import FrameworkControl
+from app.models.user import User
 
 from app.schemas.framework_control import (
     FrameworkControlCreate,
@@ -11,16 +12,15 @@ from app.schemas.framework_control import (
 
 def create_framework_control(
     db: Session,
-    control_data: FrameworkControlCreate
+    control_data: FrameworkControlCreate,
+    current_user: User,
 ):
-    """
-    Create a new framework control.
-    """
-
     framework = (
         db.query(Framework)
         .filter(
-            Framework.id == control_data.framework_id
+            Framework.id == control_data.framework_id,
+            Framework.organization_id
+            == current_user.organization_id,
         )
         .first()
     )
@@ -31,8 +31,10 @@ def create_framework_control(
     existing = (
         db.query(FrameworkControl)
         .filter(
-            FrameworkControl.framework_id == control_data.framework_id,
-            FrameworkControl.control_code == control_data.control_code
+            FrameworkControl.framework_id
+            == control_data.framework_id,
+            FrameworkControl.control_code
+            == control_data.control_code,
         )
         .first()
     )
@@ -48,37 +50,50 @@ def create_framework_control(
     )
 
     db.add(control)
-
     db.commit()
-
     db.refresh(control)
 
     return control
 
 
-def get_all_framework_controls(db: Session):
-    """
-    Get all framework controls.
-    """
-
+def get_all_framework_controls(
+    db: Session,
+    current_user: User,
+):
     return (
         db.query(FrameworkControl)
+        .join(
+            Framework,
+            Framework.id
+            == FrameworkControl.framework_id,
+        )
+        .filter(
+            Framework.organization_id
+            == current_user.organization_id,
+        )
+        .order_by(
+            FrameworkControl.id.asc()
+        )
         .all()
     )
 
 
 def get_framework_control_by_id(
     db: Session,
-    control_id: int
+    control_id: int,
+    current_user: User,
 ):
-    """
-    Get framework control by ID.
-    """
-
     return (
         db.query(FrameworkControl)
+        .join(
+            Framework,
+            Framework.id
+            == FrameworkControl.framework_id,
+        )
         .filter(
-            FrameworkControl.id == control_id
+            FrameworkControl.id == control_id,
+            Framework.organization_id
+            == current_user.organization_id,
         )
         .first()
     )
@@ -87,18 +102,13 @@ def get_framework_control_by_id(
 def update_framework_control(
     db: Session,
     control_id: int,
-    control_data: FrameworkControlUpdate
+    control_data: FrameworkControlUpdate,
+    current_user: User,
 ):
-    """
-    Update framework control.
-    """
-
-    control = (
-        db.query(FrameworkControl)
-        .filter(
-            FrameworkControl.id == control_id
-        )
-        .first()
+    control = get_framework_control_by_id(
+        db,
+        control_id,
+        current_user,
     )
 
     if control is None:
@@ -114,7 +124,6 @@ def update_framework_control(
         control.description = control_data.description
 
     db.commit()
-
     db.refresh(control)
 
     return control
@@ -122,25 +131,19 @@ def update_framework_control(
 
 def delete_framework_control(
     db: Session,
-    control_id: int
+    control_id: int,
+    current_user: User,
 ):
-    """
-    Delete framework control.
-    """
-
-    control = (
-        db.query(FrameworkControl)
-        .filter(
-            FrameworkControl.id == control_id
-        )
-        .first()
+    control = get_framework_control_by_id(
+        db,
+        control_id,
+        current_user,
     )
 
     if control is None:
         return None
 
     db.delete(control)
-
     db.commit()
 
     return True

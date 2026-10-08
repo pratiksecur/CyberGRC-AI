@@ -62,7 +62,8 @@ def list_visible_users(
 
     return get_visible_users(
         db,
-        visible_user_ids
+        visible_user_ids,
+        current_user,
     )
 
 
@@ -86,7 +87,7 @@ def list_users(
     Only Administrators can access this endpoint.
     """
 
-    return get_all_users(db)
+    return get_all_users(db, current_user)
 
 
 @router.get(
@@ -108,7 +109,8 @@ def get_user(
 
     user = get_user_by_id(
         db,
-        user_id
+        user_id,
+        current_user,
     )
 
     if user is None:
@@ -144,7 +146,8 @@ def change_user_role(
     user = update_user_role(
         db,
         user_id,
-        role_data.role.value
+        role_data.role.value,
+        current_user,
     )
 
     if user is None:
@@ -188,7 +191,8 @@ def change_user_organization(
             db,
             user_id,
             organization_data.manager_id,
-            organization_data.department
+            organization_data.department,
+            current_user,
         )
 
     except ValueError as e:

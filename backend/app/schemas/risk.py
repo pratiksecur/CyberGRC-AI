@@ -5,9 +5,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class RiskCreate(BaseModel):
-    model_config = ConfigDict(
-        extra="forbid"
-    )
+    model_config = ConfigDict(extra="ignore")
 
     title: str = Field(
         ...,

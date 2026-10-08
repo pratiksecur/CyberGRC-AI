@@ -6,6 +6,7 @@ from app.database.database import get_db
 from app.auth.permissions import require_permission, require_roles
 from app.auth.visibility import get_visible_user_ids
 from app.auth.access import ensure_resource_owner_in_scope
+from app.auth.tenant import apply_tenant_filter
 
 from app.core.roles import UserRole
 
@@ -115,7 +116,11 @@ def _get_visible_risk(
     )
 
     risk = (
-        db.query(Risk)
+        apply_tenant_filter(
+            db.query(Risk),
+            Risk,
+            current_user,
+        )
         .filter(
             Risk.id == risk_id,
             Risk.owner_id.in_(visible_user_ids),
@@ -287,7 +292,11 @@ def list_all_risks(
     )
 
     return (
-        db.query(Risk)
+        apply_tenant_filter(
+            db.query(Risk),
+            Risk,
+            current_user,
+        )
         .filter(
             Risk.owner_id.in_(visible_user_ids)
         )

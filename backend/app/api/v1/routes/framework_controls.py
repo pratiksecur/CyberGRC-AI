@@ -45,7 +45,8 @@ def create_new_framework_control(
 
     control = create_framework_control(
         db,
-        control_data
+        control_data,
+        current_user,
     )
 
     if control == "FRAMEWORK_NOT_FOUND":
@@ -82,7 +83,10 @@ def list_all_framework_controls(
     Framework controls are organization-wide resources.
     """
 
-    return get_all_framework_controls(db)
+    return get_all_framework_controls(
+        db,
+        current_user,
+    )
 
 
 @router.get(
@@ -105,7 +109,8 @@ def get_framework_control(
 
     control = get_framework_control_by_id(
         db,
-        control_id
+        control_id,
+        current_user,
     )
 
     if control is None:
@@ -139,7 +144,8 @@ def update_existing_framework_control(
     control = update_framework_control(
         db,
         control_id,
-        control_data
+        control_data,
+        current_user,
     )
 
     if control is None:
@@ -170,7 +176,8 @@ def delete_existing_framework_control(
 
     deleted = delete_framework_control(
         db,
-        control_id
+        control_id,
+        current_user,
     )
 
     if deleted is None:

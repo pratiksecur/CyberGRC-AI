@@ -13,6 +13,7 @@ from app.models import risk_response_workflow
 from app.database.database import Base
 
 from app.models import (
+    organization,
     user,
     risk,
     risk_treatment,
@@ -26,6 +27,10 @@ from app.models import (
     risk_control,
     framework_control,
     control_framework_control,
+    business_unit,
+    department,
+    grc_team,
+    enterprise_configuration,
 )
 
 

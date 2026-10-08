@@ -15,6 +15,7 @@ from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from app.auth.access import ensure_user_in_scope
+from app.auth.tenant import apply_tenant_filter
 from app.auth.permissions import require_permission
 from app.auth.visibility import get_visible_user_ids
 from app.core.config import (
@@ -221,7 +222,11 @@ def create_new_evidence(
     """
 
     control = (
-        db.query(Control)
+        apply_tenant_filter(
+            db.query(Control),
+            Control,
+            current_user,
+        )
         .filter(
             Control.id == control_id
         )
@@ -311,7 +316,11 @@ def list_all_evidence(
     )
 
     return (
-        db.query(Evidence)
+        apply_tenant_filter(
+            db.query(Evidence),
+            Evidence,
+            current_user,
+        )
         .join(
             Control,
             Evidence.control_id
@@ -503,7 +512,11 @@ def get_evidence(
     )
 
     evidence = (
-        db.query(Evidence)
+        apply_tenant_filter(
+            db.query(Evidence),
+            Evidence,
+            current_user,
+        )
         .join(
             Control,
             Evidence.control_id
@@ -568,7 +581,11 @@ def download_evidence_file(
     )
 
     evidence = (
-        db.query(Evidence)
+        apply_tenant_filter(
+            db.query(Evidence),
+            Evidence,
+            current_user,
+        )
         .join(
             Control,
             Evidence.control_id
@@ -694,7 +711,11 @@ def update_existing_evidence(
     )
 
     evidence = (
-        db.query(Evidence)
+        apply_tenant_filter(
+            db.query(Evidence),
+            Evidence,
+            current_user,
+        )
         .join(
             Control,
             Evidence.control_id
@@ -763,7 +784,11 @@ def delete_existing_evidence(
     )
 
     evidence = (
-        db.query(Evidence)
+        apply_tenant_filter(
+            db.query(Evidence),
+            Evidence,
+            current_user,
+        )
         .join(
             Control,
             Evidence.control_id

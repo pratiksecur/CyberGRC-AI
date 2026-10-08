@@ -22,6 +22,17 @@ class Audit(Base):
         index=True
     )
 
+    # ======================================================
+    # Tenant Ownership
+    # ======================================================
+
+    organization_id = Column(
+        Integer,
+        ForeignKey("organizations.id"),
+        nullable=True,
+        index=True,
+    )
+
     name = Column(
         String(255),
         nullable=False
@@ -74,6 +85,15 @@ class Audit(Base):
         DateTime(timezone=True),
         server_default=func.now(),
         onupdate=func.now()
+    )
+
+    # ======================================================
+    # Relationships
+    # ======================================================
+
+    organization = relationship(
+        "Organization",
+        foreign_keys=[organization_id],
     )
 
     framework = relationship(

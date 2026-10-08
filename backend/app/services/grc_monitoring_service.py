@@ -35,10 +35,18 @@ from app.schemas.monitoring import (
     RiskMonitoringResponse,
 )
 
+from app.services.enterprise_configuration_service import (
+    get_or_create_enterprise_configuration,
+)
+
 
 # ==========================================================
 # CONFIGURATION
 # ==========================================================
+
+# Legacy defaults retained as safe fallbacks/documentation.
+# Tenant-specific values are loaded from EnterpriseConfiguration
+# for actual monitoring decisions.
 
 CRITICAL_RISK_THRESHOLD = 15
 
@@ -52,10 +60,12 @@ TREATMENT_STUCK_DAYS = 30
 
 TREATMENT_RESIDUAL_THRESHOLD = 15
 
+
 OPEN_FINDING_STATUSES = {
     "Open",
     "In Progress",
 }
+
 
 COMPLETED_ACTION_STATUSES = {
     "Completed",
@@ -66,6 +76,7 @@ COMPLETED_ACTION_STATUSES = {
 # ==========================================================
 # TIME
 # ==========================================================
+
 
 def _utc_now() -> datetime:
     """
@@ -80,6 +91,7 @@ def _utc_now() -> datetime:
 # ==========================================================
 # ALERT FACTORY
 # ==========================================================
+
 
 def _alert(
     alert_type: str,
@@ -106,6 +118,7 @@ def _alert(
 # ==========================================================
 # RISK -> CONTROL LOOKUP
 # ==========================================================
+
 
 def _get_visible_risk_controls(
     db: Session,
@@ -140,6 +153,7 @@ def _get_visible_risk_controls(
 # ==========================================================
 # RISK TREATMENT MONITORING
 # ==========================================================
+
 
 def _get_visible_risk_treatments(
     db: Session,
@@ -176,11 +190,13 @@ def _monitor_risk_treatments(
     db: Session,
     risk: Risk,
     visible_treatment_owners: set[int],
+    configuration,
 ) -> list[MonitoringAlert]:
     """
     Evaluate treatment lifecycle state for one visible risk.
 
     Alerts are deterministic and derived from current database state.
+
     No treatment data outside the caller's treatment visibility scope is
     included.
 
@@ -227,7 +243,10 @@ def _monitor_risk_treatments(
         ):
             severity = (
                 "CRITICAL"
-                if risk.risk_score >= CRITICAL_RISK_NOTIFICATION_THRESHOLD
+                if (
+                    risk.risk_score
+                    >= configuration.critical_risk_notification_threshold
+                )
                 else "HIGH"
             )
 
@@ -247,23 +266,28 @@ def _monitor_risk_treatments(
             )
 
         if treatment.status == "In Progress":
+
             updated_at = treatment.updated_at
 
             if updated_at is not None:
+
                 if updated_at.tzinfo is None:
                     updated_at = updated_at.replace(
                         tzinfo=timezone.utc
                     )
 
                 if updated_at <= now - timedelta(
-                    days=TREATMENT_STUCK_DAYS
+                    days=configuration.treatment_stuck_days
                 ):
                     alerts.append(
                         _alert(
                             alert_type="STUCK_RISK_TREATMENT",
                             severity=(
                                 "HIGH"
-                                if risk.risk_score > CRITICAL_RISK_THRESHOLD
+                                if (
+                                    risk.risk_score
+                                    > configuration.default_risk_threshold
+                                )
                                 else "MEDIUM"
                             ),
                             resource_type="risk_treatment",
@@ -272,7 +296,7 @@ def _monitor_risk_treatments(
                             message=(
                                 f"Treatment #{treatment.id} for {risk.title} "
                                 f"has remained In Progress for at least "
-                                f"{TREATMENT_STUCK_DAYS} days."
+                                f"{configuration.treatment_stuck_days} days."
                             ),
                             risk_id=risk.id,
                         )
@@ -280,14 +304,18 @@ def _monitor_risk_treatments(
 
         if (
             treatment.status == "Planned"
-            and risk.risk_score > CRITICAL_RISK_THRESHOLD
+            and risk.risk_score
+            > configuration.default_risk_threshold
         ):
             alerts.append(
                 _alert(
                     alert_type="PLANNED_HIGH_RISK_TREATMENT",
                     severity=(
                         "CRITICAL"
-                        if risk.risk_score >= CRITICAL_RISK_NOTIFICATION_THRESHOLD
+                        if (
+                            risk.risk_score
+                            >= configuration.critical_risk_notification_threshold
+                        )
                         else "HIGH"
                     ),
                     resource_type="risk_treatment",
@@ -311,7 +339,10 @@ def _monitor_risk_treatments(
                     alert_type="PENDING_RISK_ACCEPTANCE",
                     severity=(
                         "HIGH"
-                        if risk.risk_score > CRITICAL_RISK_THRESHOLD
+                        if (
+                            risk.risk_score
+                            > configuration.default_risk_threshold
+                        )
                         else "MEDIUM"
                     ),
                     resource_type="risk_treatment",
@@ -359,7 +390,10 @@ def _monitor_risk_treatments(
                 alert_type="CANCELLED_TREATMENT_WITHOUT_REPLACEMENT",
                 severity=(
                     "CRITICAL"
-                    if risk.risk_score >= CRITICAL_RISK_NOTIFICATION_THRESHOLD
+                    if (
+                        risk.risk_score
+                        >= configuration.critical_risk_notification_threshold
+                    )
                     else "HIGH"
                 ),
                 resource_type="risk",
@@ -378,20 +412,25 @@ def _monitor_risk_treatments(
     # ------------------------------------------------------
 
     if effective_treatment is not None:
+
         residual_score = (
             effective_treatment.residual_risk_score
         )
 
         if (
             residual_score is not None
-            and residual_score > TREATMENT_RESIDUAL_THRESHOLD
+            and residual_score
+            > configuration.treatment_residual_threshold
         ):
             alerts.append(
                 _alert(
                     alert_type="ELEVATED_TREATMENT_RESIDUAL_RISK",
                     severity=(
                         "CRITICAL"
-                        if residual_score >= CRITICAL_RISK_NOTIFICATION_THRESHOLD
+                        if (
+                            residual_score
+                            >= configuration.critical_risk_notification_threshold
+                        )
                         else "HIGH"
                     ),
                     resource_type="risk_treatment",
@@ -412,10 +451,12 @@ def _monitor_risk_treatments(
 # RISK MONITORING
 # ==========================================================
 
+
 def _monitor_risk(
     db: Session,
     risk: Risk,
     current_user: User,
+    configuration,
 ) -> list[MonitoringAlert]:
     """
     Evaluate one risk and its visible downstream GRC state.
@@ -433,7 +474,10 @@ def _monitor_risk(
         current_user=current_user,
     )
 
-    if continuous_state.risk_state.value == "REASSESSMENT_REQUIRED":
+    if (
+        continuous_state.risk_state.value
+        == "REASSESSMENT_REQUIRED"
+    ):
 
         reason_text = "; ".join(
             reason.message
@@ -455,7 +499,10 @@ def _monitor_risk(
             )
         )
 
-    elif continuous_state.risk_state.value == "DEGRADED":
+    elif (
+        continuous_state.risk_state.value
+        == "DEGRADED"
+    ):
 
         reason_text = "; ".join(
             reason.message
@@ -479,6 +526,7 @@ def _monitor_risk(
 
     # Treatment lifecycle is evaluated within the same risk and treatment
     # visibility boundaries as the API.
+
     alerts.extend(
         _monitor_risk_treatments(
             db,
@@ -490,6 +538,7 @@ def _monitor_risk(
                     "risk_treatments",
                 )
             ),
+            configuration,
         )
     )
 
@@ -533,12 +582,17 @@ def _monitor_risk(
     # CRITICAL RISK
     # ------------------------------------------------------
 
-    if risk.risk_score > CRITICAL_RISK_THRESHOLD:
+    if (
+        risk.risk_score
+        > configuration.default_risk_threshold
+    ):
 
         severity = (
             "CRITICAL"
-            if risk.risk_score
-            >= CRITICAL_RISK_NOTIFICATION_THRESHOLD
+            if (
+                risk.risk_score
+                >= configuration.critical_risk_notification_threshold
+            )
             else "HIGH"
         )
 
@@ -631,7 +685,7 @@ def _monitor_risk(
 
         if (
             control.effectiveness
-            <= INEFFECTIVE_CONTROL_THRESHOLD
+            <= configuration.ineffective_control_threshold
         ):
 
             alerts.append(
@@ -656,7 +710,7 @@ def _monitor_risk(
         stale_cutoff = (
             _utc_now()
             - timedelta(
-                days=STALE_EVIDENCE_DAYS
+                days=configuration.stale_evidence_days
             )
         )
 
@@ -689,7 +743,7 @@ def _monitor_risk(
                         message=(
                             f"{evidence_item.title} has not "
                             "been refreshed within the configured "
-                            f"{STALE_EVIDENCE_DAYS}-day window."
+                            f"{configuration.stale_evidence_days}-day window."
                         ),
                         risk_id=risk.id,
                     )
@@ -850,11 +904,17 @@ def _monitor_risk(
 # SINGLE RISK MONITORING
 # ==========================================================
 
+
 def get_risk_monitoring(
     db: Session,
     risk_id: int,
     current_user: User,
 ) -> RiskMonitoringResponse | None:
+
+    configuration = get_or_create_enterprise_configuration(
+        db,
+        current_user,
+    )
 
     visible_risks = set(
         get_visible_user_ids(
@@ -882,6 +942,7 @@ def get_risk_monitoring(
         db,
         risk,
         current_user,
+        configuration,
     )
 
     continuous_state = get_continuous_risk_state(
@@ -927,10 +988,16 @@ def get_risk_monitoring(
 # MONITORING OVERVIEW
 # ==========================================================
 
+
 def get_monitoring_overview(
     db: Session,
     current_user: User,
 ) -> MonitoringOverviewResponse:
+
+    configuration = get_or_create_enterprise_configuration(
+        db,
+        current_user,
+    )
 
     visible_risks = set(
         get_visible_user_ids(
@@ -1082,6 +1149,7 @@ def get_monitoring_overview(
                 db,
                 risk,
                 current_user,
+                configuration,
             )
         )
 
@@ -1116,8 +1184,10 @@ def get_monitoring_overview(
     critical_risks = sum(
         1
         for risk in risks
-        if risk.risk_score
-        > CRITICAL_RISK_THRESHOLD
+        if (
+            risk.risk_score
+            > configuration.default_risk_threshold
+        )
     )
 
     risks_without_controls = sum(
@@ -1191,7 +1261,7 @@ def get_monitoring_overview(
 
         if (
             control.effectiveness
-            <= INEFFECTIVE_CONTROL_THRESHOLD
+            <= configuration.ineffective_control_threshold
         ):
 
             ineffective_controls += 1
@@ -1256,43 +1326,50 @@ def get_monitoring_overview(
     overdue_treatments = sum(
         1
         for alert in alerts
-        if alert.alert_type == "OVERDUE_RISK_TREATMENT"
+        if alert.alert_type
+        == "OVERDUE_RISK_TREATMENT"
     )
 
     stuck_treatments = sum(
         1
         for alert in alerts
-        if alert.alert_type == "STUCK_RISK_TREATMENT"
+        if alert.alert_type
+        == "STUCK_RISK_TREATMENT"
     )
 
     planned_high_risk_treatments = sum(
         1
         for alert in alerts
-        if alert.alert_type == "PLANNED_HIGH_RISK_TREATMENT"
+        if alert.alert_type
+        == "PLANNED_HIGH_RISK_TREATMENT"
     )
 
     pending_acceptances = sum(
         1
         for alert in alerts
-        if alert.alert_type == "PENDING_RISK_ACCEPTANCE"
+        if alert.alert_type
+        == "PENDING_RISK_ACCEPTANCE"
     )
 
     elevated_residual_risks = sum(
         1
         for alert in alerts
-        if alert.alert_type == "ELEVATED_TREATMENT_RESIDUAL_RISK"
+        if alert.alert_type
+        == "ELEVATED_TREATMENT_RESIDUAL_RISK"
     )
 
     cancelled_without_replacement = sum(
         1
         for alert in alerts
-        if alert.alert_type == "CANCELLED_TREATMENT_WITHOUT_REPLACEMENT"
+        if alert.alert_type
+        == "CANCELLED_TREATMENT_WITHOUT_REPLACEMENT"
     )
 
     approved_acceptances = sum(
         1
         for alert in alerts
-        if alert.alert_type == "APPROVED_RISK_ACCEPTANCE"
+        if alert.alert_type
+        == "APPROVED_RISK_ACCEPTANCE"
     )
 
     # ------------------------------------------------------
@@ -1353,12 +1430,19 @@ def get_monitoring_overview(
         stale_evidence=stale_evidence,
 
         treatment_alerts=treatment_alerts,
+
         overdue_treatments=overdue_treatments,
+
         stuck_treatments=stuck_treatments,
+
         planned_high_risk_treatments=planned_high_risk_treatments,
+
         pending_acceptances=pending_acceptances,
+
         elevated_residual_risks=elevated_residual_risks,
+
         cancelled_without_replacement=cancelled_without_replacement,
+
         approved_acceptances=approved_acceptances,
 
         # --------------------------------------------------

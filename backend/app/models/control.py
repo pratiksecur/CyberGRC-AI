@@ -41,11 +41,21 @@ class Control(Base):
         default="Active"
     )
 
-    # Control effectiveness (0–100%)
     effectiveness = Column(
         Integer,
         default=0,
         nullable=False
+    )
+
+    # ======================================================
+    # Tenant Ownership
+    # ======================================================
+
+    organization_id = Column(
+        Integer,
+        ForeignKey("organizations.id"),
+        nullable=True,
+        index=True,
     )
 
     owner_id = Column(
@@ -71,7 +81,14 @@ class Control(Base):
         onupdate=func.now()
     )
 
+    # ======================================================
     # Relationships
+    # ======================================================
+
+    organization = relationship(
+        "Organization",
+        foreign_keys=[organization_id],
+    )
 
     owner = relationship(
         "User",

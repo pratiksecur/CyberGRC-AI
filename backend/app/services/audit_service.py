@@ -16,15 +16,26 @@ def create_audit(
     created_by_id: int,
 ):
     """
-    Create a new audit.
+    Create an audit within the authenticated creator's organization.
 
-    The creator is always derived from the authenticated user.
+    The organization is derived from the authenticated creator.
     """
+
+    creator = (
+        db.query(User)
+        .filter(User.id == created_by_id)
+        .first()
+    )
+
+    if creator is None:
+        return "CREATOR_NOT_FOUND"
 
     framework = (
         db.query(Framework)
         .filter(
-            Framework.id == audit_data.framework_id
+            Framework.id == audit_data.framework_id,
+            Framework.organization_id
+            == creator.organization_id,
         )
         .first()
     )
@@ -35,7 +46,8 @@ def create_audit(
     auditor = (
         db.query(User)
         .filter(
-            User.id == audit_data.auditor_id
+            User.id == audit_data.auditor_id,
+            User.organization_id == creator.organization_id,
         )
         .first()
     )
@@ -43,18 +55,6 @@ def create_audit(
     if auditor is None:
         return "AUDITOR_NOT_FOUND"
 
-    creator = (
-        db.query(User)
-        .filter(
-            User.id == created_by_id
-        )
-        .first()
-    )
-
-    if creator is None:
-        return "CREATOR_NOT_FOUND"
-
-    # Business validation
     if audit_data.end_date < audit_data.start_date:
         return "INVALID_DATES"
 
@@ -63,6 +63,7 @@ def create_audit(
         framework_id=audit_data.framework_id,
         auditor_id=audit_data.auditor_id,
         created_by_id=created_by_id,
+        organization_id=creator.organization_id,
         scope=audit_data.scope,
         status=audit_data.status,
         start_date=audit_data.start_date,

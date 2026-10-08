@@ -52,6 +52,17 @@ class Risk(Base):
     )
 
     # ======================================================
+    # Tenant Ownership
+    # ======================================================
+
+    organization_id = Column(
+        Integer,
+        ForeignKey("organizations.id"),
+        nullable=True,
+        index=True,
+    )
+
+    # ======================================================
     # Ownership
     # ======================================================
 
@@ -89,6 +100,11 @@ class Risk(Base):
     # ======================================================
     # Relationships
     # ======================================================
+
+    organization = relationship(
+        "Organization",
+        foreign_keys=[organization_id],
+    )
 
     owner = relationship(
         "User",

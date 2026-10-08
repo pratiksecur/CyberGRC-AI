@@ -21,6 +21,17 @@ class Evidence(Base):
         index=True
     )
 
+    # ======================================================
+    # Tenant Ownership
+    # ======================================================
+
+    organization_id = Column(
+        Integer,
+        ForeignKey("organizations.id"),
+        nullable=True,
+        index=True,
+    )
+
     control_id = Column(
         Integer,
         ForeignKey("controls.id"),
@@ -47,7 +58,6 @@ class Evidence(Base):
         nullable=False
     )
 
-    # User who uploaded the evidence
     uploaded_by = Column(
         Integer,
         ForeignKey("users.id"),
@@ -62,6 +72,11 @@ class Evidence(Base):
     # ======================================================
     # Relationships
     # ======================================================
+
+    organization = relationship(
+        "Organization",
+        foreign_keys=[organization_id],
+    )
 
     control = relationship(
         "Control",

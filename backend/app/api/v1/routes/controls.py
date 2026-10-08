@@ -14,6 +14,7 @@ from app.auth.visibility import (
 from app.auth.access import (
     ensure_resource_owner_in_scope,
 )
+from app.auth.tenant import apply_tenant_filter
 
 from app.models.control import Control
 from app.models.user import User
@@ -112,7 +113,11 @@ def list_all_controls(
     )
 
     return (
-        db.query(Control)
+        apply_tenant_filter(
+            db.query(Control),
+            Control,
+            current_user,
+        )
         .filter(
             Control.owner_id.in_(
                 visible_user_ids
@@ -182,7 +187,11 @@ def get_control(
     )
 
     control = (
-        db.query(Control)
+        apply_tenant_filter(
+            db.query(Control),
+            Control,
+            current_user,
+        )
         .filter(
             Control.id == control_id,
             Control.owner_id.in_(
@@ -228,7 +237,11 @@ def update_existing_control(
     )
 
     control = (
-        db.query(Control)
+        apply_tenant_filter(
+            db.query(Control),
+            Control,
+            current_user,
+        )
         .filter(
             Control.id == control_id,
             Control.owner_id.in_(
@@ -293,7 +306,11 @@ def delete_existing_control(
     )
 
     control = (
-        db.query(Control)
+        apply_tenant_filter(
+            db.query(Control),
+            Control,
+            current_user,
+        )
         .filter(
             Control.id == control_id,
             Control.owner_id.in_(
