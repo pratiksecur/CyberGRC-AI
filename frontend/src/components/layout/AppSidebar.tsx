@@ -76,6 +76,7 @@ export default function AppSidebar() {
               <NavLink
                 key={item.path}
                 to={item.path}
+                end
                 className={({
                   isActive,
                 }) =>

@@ -63,6 +63,7 @@ import EditRiskTreatment from "@/pages/risk-treatments/EditRiskTreatment";
 import KnowledgeGraph from "@/pages/intelligence/KnowledgeGraph";
 
 import AI from "@/pages/ai/AI";
+import AIGRCAnalyst from "@/pages/ai/AIGRCAnalyst";
 import Settings from "@/pages/settings/Settings";
 
 import Login from "@/pages/auth/Login";
@@ -696,6 +697,19 @@ export default function AppRouter() {
           }
         />
 
+        {/* AI GRC ANALYST */}
+        <Route
+          path="/ai/grc-analyst"
+          element={
+            <ProtectedRoute
+              resource="ai"
+              action="view"
+            >
+              <AIGRCAnalyst />
+            </ProtectedRoute>
+          }
+        />
+        
         {/* ================================================== */}
         {/* SETTINGS */}
         {/* ================================================== */}
