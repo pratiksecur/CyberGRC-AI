@@ -18,6 +18,11 @@ from app.schemas.framework import (
     FrameworkResponse,
 )
 
+from app.auth.visibility import get_visible_user_ids
+from app.services.regulatory_intelligence_service import (
+    build_regulatory_intelligence_report,
+)
+
 from app.services.framework_service import (
     create_framework,
     get_all_frameworks,
@@ -70,6 +75,33 @@ def list_all_frameworks(
     return get_all_frameworks(
         db,
         current_user,
+    )
+
+
+@router.get(
+    "/intelligence",
+)
+def get_framework_intelligence(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_permission(
+            "frameworks",
+            "view",
+        )
+    ),
+):
+    """Return a tenant-scoped regulatory intelligence report."""
+    visible_user_ids = set(
+        get_visible_user_ids(
+            db,
+            current_user,
+            resource="frameworks",
+        )
+    )
+    return build_regulatory_intelligence_report(
+        db,
+        visible_user_ids,
+        organization_id=current_user.organization_id,
     )
 
 

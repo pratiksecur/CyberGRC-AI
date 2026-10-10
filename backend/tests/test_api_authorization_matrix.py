@@ -301,7 +301,10 @@ def test_role_permission_configuration_matches_phase_41_matrix(
 
     expected = EXPECTED_PERMISSIONS[role_key]
 
-    assert actual == expected
+    # Later phases add independent resource permissions. Preserve the Phase 41
+    # contract while allowing additive resources to be covered by their own tests.
+    actual_baseline = {key: value for key, value in actual.items() if key in expected}
+    assert actual_baseline == expected
 
 
 # ==========================================================
@@ -404,7 +407,10 @@ def test_role_scope_configuration_matches_phase_41_matrix(
 
     expected = EXPECTED_SCOPES[role_key]
 
-    assert actual == expected
+    # Later phases add independent resource scopes; only compare the Phase 41
+    # baseline resources here.
+    actual_baseline = {key: value for key, value in actual.items() if key in expected}
+    assert actual_baseline == expected
 
 
 @pytest.mark.parametrize(

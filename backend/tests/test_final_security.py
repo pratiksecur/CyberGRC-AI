@@ -21,6 +21,7 @@ def corrective_action_data(db, users, resource_data):
     """
 
     framework = Framework(
+        organization_id=users["admin"].organization_id,
         name="Phase 40 Test Framework",
         version="1.0",
         description=(
@@ -67,6 +68,7 @@ def corrective_action_data(db, users, resource_data):
     db.refresh(audit_admin)
 
     finding_manager = AuditFinding(
+        organization_id=users["manager"].organization_id,
         audit_id=audit_manager.id,
         control_id=resource_data["controls"]["analyst"].id,
         title="Manager Finding",
@@ -79,6 +81,7 @@ def corrective_action_data(db, users, resource_data):
     )
 
     finding_admin = AuditFinding(
+        organization_id=users["manager"].organization_id,
         audit_id=audit_admin.id,
         control_id=resource_data["controls"]["admin"].id,
         title="Admin Finding",
@@ -108,6 +111,7 @@ def corrective_action_data(db, users, resource_data):
     # --------------------------------------------------
 
     action_manager_on_manager_audit = CorrectiveAction(
+        organization_id=users["manager"].organization_id,
         finding_id=finding_manager.id,
         assigned_to=users["manager"].id,
         title="Manager Assigned Action",
@@ -123,6 +127,7 @@ def corrective_action_data(db, users, resource_data):
     # --------------------------------------------------
 
     action_admin_on_manager_audit = CorrectiveAction(
+        organization_id=users["manager"].organization_id,
         finding_id=finding_manager.id,
         assigned_to=users["admin"].id,
         title="Admin Assigned Manager-Audit Action",
@@ -138,6 +143,7 @@ def corrective_action_data(db, users, resource_data):
     # --------------------------------------------------
 
     action_manager_on_admin_audit = CorrectiveAction(
+        organization_id=users["manager"].organization_id,
         finding_id=finding_admin.id,
         assigned_to=users["manager"].id,
         title="Manager Assigned Admin-Audit Action",
@@ -160,6 +166,7 @@ def corrective_action_data(db, users, resource_data):
     # --------------------------------------------------
 
     action_analyst_on_manager_audit = CorrectiveAction(
+        organization_id=users["manager"].organization_id,
         finding_id=finding_manager.id,
         assigned_to=users["analyst"].id,
         title="Analyst Assigned Manager-Audit Action",

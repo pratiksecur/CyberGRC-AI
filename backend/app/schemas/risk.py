@@ -2,6 +2,14 @@ from datetime import datetime
 from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field
+from enum import Enum
+
+
+class RiskStatus(str, Enum):
+    OPEN = "Open"
+    IN_PROGRESS = "In Progress"
+    PENDING = "Pending"
+    CLOSED = "Closed"
 
 
 class RiskCreate(BaseModel):
@@ -32,6 +40,10 @@ class RiskCreate(BaseModel):
 
     owner_id: int
 
+    # Accept and validate legacy clients that send status, but the create
+    # service deliberately initializes lifecycle state server-side.
+    status: Optional[RiskStatus] = None
+
 
 class RiskUpdate(BaseModel):
     model_config = ConfigDict(
@@ -61,7 +73,7 @@ class RiskUpdate(BaseModel):
         le=5
     )
 
-    status: Optional[str] = Field(
+    status: Optional[RiskStatus] = Field(
         None
     )
 

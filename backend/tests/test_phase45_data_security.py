@@ -1007,6 +1007,7 @@ def test_corrective_action_response_does_not_expose_sensitive_fields(
     finding = resource_data["findings"]["admin"]
 
     action = CorrectiveAction(
+        organization_id=users["admin"].organization_id,
         finding_id=finding.id,
         assigned_to=users["admin"].id,
         title="Sensitive Field Response Test",

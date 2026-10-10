@@ -5,7 +5,6 @@ ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-# Install only required system packages.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         libpq5 \
@@ -20,7 +19,6 @@ RUN pip install --no-cache-dir --upgrade pip \
 
 COPY . .
 
-# Create application user and required directories.
 RUN useradd \
         --create-home \
         --shell /usr/sbin/nologin \
@@ -32,4 +30,6 @@ USER appuser
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers"]
+# Database migrations are a deployment concern. Run them once before
+# starting the application rather than once per application worker.
+CMD ["sh", "-c", "if [ \"$PROXY_HEADERS_ENABLED\" = \"true\" ]; then exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips \"$FORWARDED_ALLOW_IPS\"; else exec uvicorn app.main:app --host 0.0.0.0 --port 8000; fi"]

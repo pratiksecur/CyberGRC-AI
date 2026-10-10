@@ -14,7 +14,7 @@ from app.models.enterprise_configuration import (
 
 from datetime import date, timedelta
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 
 from sqlalchemy.orm import sessionmaker
 
@@ -84,6 +84,18 @@ def db():
     )
 
     session = TestingSessionLocal()
+
+    # Test-only compatibility for older test fixtures written before
+    # Framework became tenant-required. Production model constraints remain
+    # strict; incomplete fixtures are assigned to the seeded default tenant.
+    def _assign_default_framework_tenant(_session, _flush_context, _instances):
+        for obj in list(_session.new):
+            if isinstance(obj, Framework) and obj.organization_id is None:
+                organization = _session.query(Organization).first()
+                if organization is not None:
+                    obj.organization_id = organization.id
+
+    event.listen(session, "before_flush", _assign_default_framework_tenant)
 
     try:
         yield session

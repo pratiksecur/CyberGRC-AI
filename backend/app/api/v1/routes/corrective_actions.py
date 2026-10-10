@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.database.database import get_db
@@ -7,6 +8,9 @@ from app.database.database import get_db
 from app.models.audit_finding import AuditFinding
 from app.models.corrective_action import CorrectiveAction
 from app.models.user import User
+
+from app.models.audit import Audit
+from app.auth.access import ensure_resource_owner_in_scope
 
 from app.schemas.corrective_action import (
     CorrectiveActionCreate,
@@ -25,7 +29,8 @@ from app.services.corrective_action_service import (
 )
 
 from app.auth.dependencies import get_current_user
-from app.auth.permissions import require_permission
+from app.auth.permissions import require_permission, get_access_scope
+from app.auth.scopes import AccessScope
 from app.auth.visibility import get_visible_user_ids
 
 
@@ -62,6 +67,75 @@ def _ensure_permission(
         permission_dependency(current_user)
     except HTTPException:
         raise
+
+
+def _finding_parent_is_visible(
+    db: Session,
+    current_user: User,
+    finding: AuditFinding,
+    visible_user_ids: list[int],
+) -> bool:
+    """
+    Check the finding's parent audit without crossing tenant boundaries.
+
+    OWN-scoped corrective-action roles can see parent context for actions
+    assigned to them. For broader scopes, the audit's assigned auditor must
+    also be in the caller's corrective-action visibility scope. Legacy audits
+    with NULL organization_id are accepted only if their auditor belongs to
+    the current organization.
+    """
+    if (
+        finding is None
+        or finding.organization_id != current_user.organization_id
+    ):
+        return False
+
+    audit_query = (
+        db.query(Audit)
+        .join(User, Audit.auditor_id == User.id)
+        .filter(
+            Audit.id == finding.audit_id,
+            User.organization_id == current_user.organization_id,
+            or_(
+                Audit.organization_id == current_user.organization_id,
+                Audit.organization_id.is_(None),
+            ),
+        )
+    )
+
+    action_scope = get_access_scope(
+        current_user,
+        "corrective_actions",
+    )
+    if action_scope != AccessScope.OWN:
+        audit_query = audit_query.filter(
+            Audit.auditor_id.in_(visible_user_ids)
+        )
+
+    return audit_query.first() is not None
+
+
+def _action_parent_is_visible(
+    db: Session,
+    current_user: User,
+    action: CorrectiveAction,
+    visible_user_ids: list[int],
+) -> bool:
+    """Return whether the corrective action's parent is visible."""
+    finding = (
+        db.query(AuditFinding)
+        .filter(
+            AuditFinding.id == action.finding_id,
+            AuditFinding.organization_id == current_user.organization_id,
+        )
+        .first()
+    )
+    return _finding_parent_is_visible(
+        db,
+        current_user,
+        finding,
+        visible_user_ids,
+    )
 
 
 # ==========================================================
@@ -106,6 +180,12 @@ def list_actions(
     return [
         serialize_corrective_action(action)
         for action in actions
+        if _action_parent_is_visible(
+            db,
+            current_user,
+            action,
+            visible_user_ids,
+        )
     ]
 
 
@@ -170,7 +250,9 @@ def list_assignees(
 def create_action(
     action_data: CorrectiveActionCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(
+        require_permission("corrective_actions", "create")
+    ),
 ):
     """
     Create a corrective action.
@@ -217,6 +299,28 @@ def create_action(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Assignee not found.",
+        )
+
+    visible_user_ids = get_visible_user_ids(
+        db,
+        current_user,
+        resource="corrective_actions",
+    )
+    if assignee.id not in visible_user_ids:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Assignee is outside your corrective-action scope.",
+        )
+
+    if not _finding_parent_is_visible(
+        db,
+        current_user,
+        finding,
+        visible_user_ids,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Finding not found.",
         )
 
     result = create_corrective_action(
@@ -288,6 +392,17 @@ def get_action(
             detail="Corrective action not found.",
         )
 
+    if not _action_parent_is_visible(
+        db,
+        current_user,
+        action,
+        visible_user_ids,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Corrective action not found.",
+        )
+
     return serialize_corrective_action(action)
 
 
@@ -348,6 +463,12 @@ def list_actions_for_finding(
     return [
         serialize_corrective_action(action)
         for action in actions
+        if _action_parent_is_visible(
+            db,
+            current_user,
+            action,
+            visible_user_ids,
+        )
     ]
 
 
@@ -406,7 +527,12 @@ def update_action(
         .first()
     )
 
-    if action is None:
+    if action is None or not _action_parent_is_visible(
+        db,
+        current_user,
+        action,
+        visible_user_ids,
+    ):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Corrective action not found.",
@@ -446,6 +572,17 @@ def update_action(
                 ),
             )
 
+        if not _finding_parent_is_visible(
+            db,
+            current_user,
+            target_finding,
+            visible_user_ids,
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Finding not found.",
+            )
+
     # ------------------------------------------------------
     # 3. Validate assignee relationship
     # ------------------------------------------------------
@@ -478,6 +615,12 @@ def update_action(
                     "Corrective action assignee must belong "
                     "to the same organization."
                 ),
+            )
+
+        if target_assignee.id not in visible_user_ids:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Assignee is outside your corrective-action scope.",
             )
 
     # ------------------------------------------------------
@@ -590,6 +733,18 @@ def update_action(
             ),
         )
 
+    if not _action_parent_is_visible(
+        db,
+        current_user,
+        final_action,
+        visible_user_ids,
+    ):
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Corrective action not found.",
+        )
+
     return serialize_corrective_action(final_action)
 
 
@@ -635,7 +790,12 @@ def delete_action(
         .first()
     )
 
-    if action is None:
+    if action is None or not _action_parent_is_visible(
+        db,
+        current_user,
+        action,
+        visible_user_ids,
+    ):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Corrective action not found.",

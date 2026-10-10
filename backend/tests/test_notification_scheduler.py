@@ -182,3 +182,22 @@ def test_scheduler_closes_database_session():
         source = file.read()
 
     assert "db.close()" in source
+
+def test_scheduler_uses_bounded_limit_queries():
+    module_source = notification_scheduler.__file__
+    with open(module_source, "r", encoding="utf-8") as file:
+        source = file.read()
+
+    assert source.count(".limit(SCHEDULER_BATCH_SIZE)") >= 2
+    assert ".yield_per(SCHEDULER_BATCH_SIZE)" not in source
+
+
+def test_scheduler_rotates_through_batches():
+    module_source = notification_scheduler.__file__
+    with open(module_source, "r", encoding="utf-8") as file:
+        source = file.read()
+
+    assert "_last_corrective_action_id" in source
+    assert "_last_risk_id" in source
+    assert "if not batch and _last_corrective_action_id" in source
+    assert "if not batch and _last_risk_id" in source

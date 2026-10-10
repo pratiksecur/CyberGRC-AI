@@ -18,9 +18,10 @@ from app.services.regulatory_intelligence_service import (
 )
 
 
-def test_requirement_without_control_is_gap(db):
+def test_requirement_without_control_is_gap(db, users):
 
     framework = Framework(
+        organization_id=users["admin"].organization_id,
         name="Gap Framework",
         version="1.0",
         description="Regulatory gap test.",
@@ -55,10 +56,11 @@ def test_requirement_without_control_is_gap(db):
 
 
 def test_healthy_control_with_fresh_evidence_is_covered(
-    db,
+    db, users,
 ):
 
     framework = Framework(
+        organization_id=users["admin"].organization_id,
         name="Coverage Framework",
         version="1.0",
         description="Coverage test.",
@@ -134,10 +136,11 @@ def test_healthy_control_with_fresh_evidence_is_covered(
 
 
 def test_weak_control_creates_partial_requirement(
-    db,
+    db, users,
 ):
 
     framework = Framework(
+        organization_id=users["admin"].organization_id,
         name="Weak Control Framework",
         version="1.0",
         description="Weak control test.",
@@ -198,10 +201,11 @@ def test_weak_control_creates_partial_requirement(
 
 
 def test_high_risk_control_creates_high_exposure(
-    db,
+    db, users,
 ):
 
     framework = Framework(
+        organization_id=users["admin"].organization_id,
         name="Risk Exposure Framework",
         version="1.0",
         description="Risk exposure test.",
@@ -280,10 +284,11 @@ def test_high_risk_control_creates_high_exposure(
 
 
 def test_framework_report_calculates_coverage(
-    db,
+    db, users,
 ):
 
     framework = Framework(
+        organization_id=users["admin"].organization_id,
         name="Posture Framework",
         version="1.0",
         description="Posture test.",
@@ -381,16 +386,18 @@ def test_framework_report_calculates_coverage(
 
 
 def test_cross_framework_overlap_is_detected(
-    db,
+    db, users,
 ):
 
     framework_a = Framework(
+        organization_id=users["admin"].organization_id,
         name="Framework A",
         version="1.0",
         description="First framework.",
     )
 
     framework_b = Framework(
+        organization_id=users["admin"].organization_id,
         name="Framework B",
         version="1.0",
         description="Second framework.",

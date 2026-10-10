@@ -37,6 +37,7 @@ def _load_config(monkeypatch, **values):
         "MAX_REQUEST_BODY_BYTES",
         "MAX_UPLOAD_SIZE_BYTES",
         "CORS_ORIGINS",
+        "ALLOWED_HOSTS",
         "AI_PROVIDER",
         "OLLAMA_BASE_URL",
         "OLLAMA_MODEL",
@@ -111,6 +112,8 @@ def test_production_accepts_strong_secret_and_postgresql(
             "http://localhost:5173, "
             "http://127.0.0.1:5173"
         ),
+        ALLOWED_HOSTS="localhost,127.0.0.1",
+        FORWARDED_ALLOW_IPS="127.0.0.1",
     )
 
     assert config["ENVIRONMENT"] == "production"

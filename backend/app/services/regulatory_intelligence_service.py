@@ -499,15 +499,17 @@ def build_regulatory_intelligence_report(
     db: Session,
     visible_user_ids: set[int],
     now: datetime | None = None,
+    organization_id: int | None = None,
 ) -> dict[str, Any]:
 
     now = now or _utc_now()
 
-    frameworks = (
-        db.query(Framework)
-        .order_by(Framework.name.asc())
-        .all()
-    )
+    framework_query = db.query(Framework)
+    if organization_id is not None:
+        framework_query = framework_query.filter(
+            Framework.organization_id == organization_id
+        )
+    frameworks = framework_query.order_by(Framework.name.asc()).all()
 
     overlap_counts = _get_overlap_counts(
         db,

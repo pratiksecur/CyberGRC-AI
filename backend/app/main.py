@@ -3,12 +3,15 @@ import logging
 import time
 from contextlib import asynccontextmanager
 from uuid import uuid4
+import hmac
 
 from fastapi import (
     FastAPI,
     Request,
 )
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastapi.responses import PlainTextResponse
 from fastapi.responses import JSONResponse
 
 import app.services.notification_events
@@ -84,9 +87,19 @@ from app.api.v1.routes.users import (
 )
 
 from app.core.config import (
+    ALLOWED_HOSTS,
+    API_DOCS_ENABLED,
     CORS_ORIGINS,
+    ENABLE_HSTS,
     MAX_REQUEST_BODY_BYTES,
+    METRICS_AUTH_TOKEN,
+    METRICS_ENABLED,
+    PROJECT_NAME,
+    PROJECT_VERSION,
+    SCHEDULER_ENABLED,
+    TRUSTED_HOSTS_ENABLED,
 )
+from app.core.observability import observe_request, prometheus_text
 from app.database.database import engine
 from app.exceptions.handlers import (
     register_exception_handlers,
@@ -126,9 +139,15 @@ async def lifespan(app: FastAPI):
         "application_startup"
     )
 
-    scheduler_task = asyncio.create_task(
-        notification_scheduler_loop()
-    )
+    scheduler_task = None
+
+    if SCHEDULER_ENABLED:
+        scheduler_task = asyncio.create_task(
+            notification_scheduler_loop()
+        )
+        logger.info("notification_scheduler_enabled")
+    else:
+        logger.info("notification_scheduler_disabled")
 
     try:
         yield
@@ -138,18 +157,18 @@ async def lifespan(app: FastAPI):
             "application_shutdown_started"
         )
 
-        scheduler_task.cancel()
+        if scheduler_task is not None:
+            scheduler_task.cancel()
 
-        try:
-            await scheduler_task
+            try:
+                await scheduler_task
 
-        except asyncio.CancelledError:
-            logger.info(
-                "notification_scheduler_cancelled"
-            )
+            except asyncio.CancelledError:
+                logger.info(
+                    "notification_scheduler_cancelled"
+                )
 
-        finally:
-            engine.dispose()
+        engine.dispose()
 
         logger.info(
             "application_shutdown_completed"
@@ -162,14 +181,30 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="CyberGRC AI",
+    title=PROJECT_NAME,
     description=(
         "AI-Powered Governance, Risk & "
         "Compliance Platform"
     ),
-    version="1.0.0",
+    version=PROJECT_VERSION,
     lifespan=lifespan,
+    docs_url="/docs" if API_DOCS_ENABLED else None,
+    redoc_url="/redoc" if API_DOCS_ENABLED else None,
+    openapi_url="/openapi.json" if API_DOCS_ENABLED else None,
 )
+
+
+# ==========================================================
+# HOST VALIDATION
+# ==========================================================
+
+
+if TRUSTED_HOSTS_ENABLED:
+    app.add_middleware(
+        TrustedHostMiddleware,
+        allowed_hosts=ALLOWED_HOSTS,
+    )
+
 
 
 # ==========================================================
@@ -296,6 +331,17 @@ async def request_context_middleware(
         duration_ms,
     )
 
+    route = request.scope.get("route")
+    metric_path = getattr(route, "path", request.url.path)
+
+    if metric_path != "/metrics":
+        observe_request(
+            request.method,
+            metric_path,
+            response.status_code,
+            duration_ms / 1000,
+        )
+
     return response
 
 
@@ -309,113 +355,36 @@ async def security_headers_middleware(
     request: Request,
     call_next,
 ):
-    """
-    Apply baseline browser security headers to all
-    application responses.
-
-    The normal application uses a strict CSP.
-
-    FastAPI's Swagger UI and ReDoc pages require narrowly
-    scoped documentation assets from jsDelivr, so those
-    documentation routes receive a dedicated CSP exception.
-
-    The exception is limited to /docs and /redoc and does not
-    weaken the CSP used by the application's API or frontend.
-    """
+    """Apply browser security headers without leaking infrastructure details."""
 
     response = await call_next(request)
 
-    response.headers[
-        "X-Content-Type-Options"
-    ] = "nosniff"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
+    response.headers["Cross-Origin-Resource-Policy"] = "same-origin"
 
-    response.headers[
-        "X-Frame-Options"
-    ] = "DENY"
+    if ENABLE_HSTS:
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
 
-    response.headers[
-        "Referrer-Policy"
-    ] = "no-referrer"
-
-    response.headers[
-        "Permissions-Policy"
-    ] = (
-        "camera=(), microphone=(), "
-        "geolocation=()"
-    )
-
-    # ------------------------------------------------------
-    # Swagger UI
-    # ------------------------------------------------------
-
-    if request.url.path == "/docs":
-
-        response.headers[
-            "Content-Security-Policy"
-        ] = (
+    if request.url.path in {"/docs", "/redoc"} and API_DOCS_ENABLED:
+        response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
-            "img-src 'self' data: blob: "
-            "https://fastapi.tiangolo.com; "
-            "style-src 'self' 'unsafe-inline' "
-            "https://cdn.jsdelivr.net; "
-            "script-src 'self' 'unsafe-inline' "
-            "https://cdn.jsdelivr.net; "
-            "font-src 'self' data: "
-            "https://cdn.jsdelivr.net; "
-            "connect-src 'self' "
-            "http://localhost:8000 "
-            "http://127.0.0.1:8000; "
-            "frame-ancestors 'none'; "
-            "base-uri 'self'; "
-            "form-action 'self';"
+            "img-src 'self' data: blob: https://fastapi.tiangolo.com; "
+            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+            "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+            "font-src 'self' data: https://cdn.jsdelivr.net; "
+            "connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self';"
         )
-
-    # ------------------------------------------------------
-    # ReDoc
-    # ------------------------------------------------------
-
-    elif request.url.path == "/redoc":
-
-        response.headers[
-            "Content-Security-Policy"
-        ] = (
-            "default-src 'self'; "
-            "img-src 'self' data: blob: "
-            "https://fastapi.tiangolo.com; "
-            "style-src 'self' 'unsafe-inline' "
-            "https://cdn.jsdelivr.net; "
-            "script-src 'self' 'unsafe-inline' "
-            "https://cdn.jsdelivr.net; "
-            "font-src 'self' data: "
-            "https://cdn.jsdelivr.net; "
-            "connect-src 'self' "
-            "http://localhost:8000 "
-            "http://127.0.0.1:8000; "
-            "frame-ancestors 'none'; "
-            "base-uri 'self'; "
-            "form-action 'self';"
-        )
-
-    # ------------------------------------------------------
-    # Normal application/API
-    # ------------------------------------------------------
-
     else:
-
-        response.headers[
-            "Content-Security-Policy"
-        ] = (
+        response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
             "img-src 'self' data: blob:; "
             "style-src 'self' 'unsafe-inline'; "
-            "script-src 'self'; "
-            "font-src 'self' data:; "
-            "connect-src 'self' "
-            "http://localhost:8000 "
-            "http://127.0.0.1:8000; "
-            "frame-ancestors 'none'; "
-            "base-uri 'self'; "
-            "form-action 'self';"
+            "script-src 'self'; font-src 'self' data:; "
+            "connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self';"
         )
 
     return response
@@ -455,6 +424,27 @@ app.add_middleware(
 
 
 register_exception_handlers(app)
+
+
+# ==========================================================
+# METRICS
+# ==========================================================
+
+
+@app.get("/metrics", include_in_schema=False)
+def metrics(request: Request):
+    if not METRICS_ENABLED:
+        return JSONResponse(status_code=404, content={"detail": "Not found"})
+
+    if METRICS_AUTH_TOKEN:
+        supplied = request.headers.get("X-Metrics-Token", "")
+        if not hmac.compare_digest(supplied, METRICS_AUTH_TOKEN):
+            return JSONResponse(status_code=401, content={"detail": "Unauthorized"})
+
+    return PlainTextResponse(
+        prometheus_text(),
+        media_type="text/plain; version=0.0.4; charset=utf-8",
+    )
 
 
 # ==========================================================
