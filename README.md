@@ -417,6 +417,12 @@ High-level architecture:
 - SQLite test database
 - StaticPool for isolated test execution
 
+Production and operations documentation is available in `docs/`:
+
+- `docs/PRODUCTION_DEPLOYMENT.md` — deployment guidance
+- `docs/SECURITY_RUNBOOK.md` — security operations and response
+- `docs/DISASTER_RECOVERY.md` — backup and recovery guidance
+
 ---
 
 # 🐳 Docker Architecture
@@ -538,12 +544,12 @@ Security and authorization are a major part of the project.
 The backend currently contains:
 
 ```text
-1,251 tests
-1,251 passed
+1,833 tests
+1,833 passed
 0 failed
 ```
 
-The complete backend test suite currently passes successfully.
+The latest reported complete backend test run passed all 1,833 tests with zero failures (October 2026).
 
 Run the complete test suite:
 
@@ -1046,9 +1052,9 @@ Current major capabilities include:
 
 ### Current test status
 
-**1,478 tests passing — 0 failures**
+**1,833 tests passing — 0 failures**
 
-The current backend regression includes coverage for continuous risk state, response intelligence, treatment governance, notification governance, governed response decisions, execution controls and authorization boundaries.
+The backend regression suite includes coverage for continuous risk state, response intelligence, treatment governance, notification governance, governed response decisions, execution controls, authorization boundaries and production hardening.
 
 ---
 
