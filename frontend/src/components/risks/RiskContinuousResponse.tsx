@@ -80,39 +80,16 @@ function priorityClass(
 }
 
 
-function decisionIcon(
-  decision: string
-) {
-  switch (decision) {
-
-    case "MONITOR":
-      return Eye;
-
-    case "REVIEW":
-      return Clock3;
-
-    case "REASSESS_RISK":
-      return ShieldAlert;
-
-    case "UPDATE_TREATMENT":
-      return GitBranch;
-
-    case "CONTROL_REVIEW":
-      return ShieldAlert;
-
-    case "EVIDENCE_REVIEW":
-      return CheckCircle2;
-
-    case "CORRECTIVE_ACTION_REVIEW":
-      return AlertTriangle;
-
-    case "ESCALATE":
-      return UserCheck;
-
-    default:
-      return AlertTriangle;
-  }
-}
+const DECISION_ICONS: Record<string, typeof Eye> = {
+  MONITOR: Eye,
+  REVIEW: Clock3,
+  REASSESS_RISK: ShieldAlert,
+  UPDATE_TREATMENT: GitBranch,
+  CONTROL_REVIEW: ShieldAlert,
+  EVIDENCE_REVIEW: CheckCircle2,
+  CORRECTIVE_ACTION_REVIEW: AlertTriangle,
+  ESCALATE: UserCheck,
+};
 
 
 // ==========================================================
@@ -128,9 +105,8 @@ function DecisionCard({
 }: DecisionCardProps) {
 
   const Icon =
-    decisionIcon(
-      decision.decision
-    );
+    DECISION_ICONS[decision.decision] ??
+    AlertTriangle;
 
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-5">

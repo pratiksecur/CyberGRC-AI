@@ -443,9 +443,12 @@ def test_analyst_cannot_promote_self(
 
 def test_employee_cannot_create_admin_role_through_registration(
     client,
+    users,
+    auth_headers,
 ):
     response = client.post(
         "/api/v1/auth/register",
+        headers=auth_headers(users["employee"]),
         json={
             "full_name": "Malicious Admin",
             "email": "malicious-admin@example.com",
@@ -454,15 +457,9 @@ def test_employee_cannot_create_admin_role_through_registration(
         },
     )
 
-    # The role field is not part of UserCreate.
-    # Pydantic's default behavior is to ignore the extra
-    # field rather than allowing privilege escalation.
-    assert response.status_code == 201
-
-    data = response.json()
-
-    assert data["role"] != UserRole.ADMIN.value
-
+    # Only administrators can create users, so an employee
+    # cannot create an administrator.
+    assert response.status_code == 403
 
 def test_risk_owner_cannot_be_injected_to_admin(
     client,

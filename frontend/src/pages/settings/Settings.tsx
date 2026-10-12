@@ -5,9 +5,12 @@ import {
   Info,
   LogOut,
   CheckCircle2,
+  UserPlus,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 
 import AppLayout from "@/layouts/AppLayout";
+import Can from "@/components/auth/Can";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useAuth } from "@/contexts/useAuth";
 
@@ -236,6 +239,39 @@ export default function Settings() {
           </div>
 
         </section>
+
+        <Can resource="users" action="create">
+          <section className="rounded-2xl border bg-white shadow-sm">
+
+            <div className="flex items-center justify-between gap-3 px-6 py-5">
+
+              <div className="flex items-center gap-3">
+                <div className="rounded-xl bg-blue-50 p-3">
+                  <UserPlus className="h-5 w-5 text-blue-600" />
+                </div>
+
+                <div>
+                  <h2 className="font-semibold text-slate-900">
+                    User Management
+                  </h2>
+
+                  <p className="text-sm text-slate-500">
+                    Add people to your organization.
+                  </p>
+                </div>
+              </div>
+
+              <Link
+                to="/register"
+                className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+              >
+                Create user
+              </Link>
+
+            </div>
+
+          </section>
+        </Can>
 
         {/* ================================================== */}
         {/* PLATFORM */}

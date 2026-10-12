@@ -1,14 +1,24 @@
 from sqlalchemy.orm import Session
 
+from app.core.roles import UserRole
 from app.models.user import User
 from app.schemas.user import UserCreate
 from app.auth.hashing import hash_password, verify_password
 from app.auth.jwt_handler import create_access_token
 
 
-def create_user(db: Session, user: UserCreate):
+def create_user(
+    db: Session,
+    user: UserCreate,
+    *,
+    organization_id: int,
+    role: str = UserRole.EMPLOYEE.value,
+):
     """
-    Register a new user.
+    Create a user inside the given organization.
+
+    The organization is always chosen by the caller (the signed-in
+    administrator's own organization), never by the request body.
     """
 
     # Check if email already exists
@@ -26,6 +36,8 @@ def create_user(db: Session, user: UserCreate):
         full_name=user.full_name,
         email=user.email,
         hashed_password=hash_password(user.password),
+        role=role,
+        organization_id=organization_id,
     )
 
     db.add(new_user)

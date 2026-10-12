@@ -704,30 +704,13 @@ export default function RiskResponseWorkflows({
       workflows[0]?.id ?? null
     );
 
-  React.useEffect(() => {
-    if (
-      workflows.length === 0
-    ) {
-      setSelectedWorkflowId(null);
-      return;
-    }
-
-    const selectedStillExists =
-      workflows.some(
-        (workflow) =>
-          workflow.id ===
-          selectedWorkflowId
-      );
-
-    if (!selectedStillExists) {
-      setSelectedWorkflowId(
-        workflows[0].id
-      );
-    }
-  }, [
-    workflows,
-    selectedWorkflowId,
-  ]);
+  const activeWorkflowId =
+    workflows.some(
+      (workflow) =>
+        workflow.id === selectedWorkflowId
+    )
+      ? selectedWorkflowId
+      : (workflows[0]?.id ?? null);
 
   if (isLoading) {
     return (
@@ -801,7 +784,7 @@ export default function RiskResponseWorkflows({
               riskId={riskId}
               workflow={workflow}
               selected={
-                selectedWorkflowId ===
+                activeWorkflowId ===
                 workflow.id
               }
               onSelect={() =>

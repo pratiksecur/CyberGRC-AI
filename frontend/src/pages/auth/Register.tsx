@@ -1,20 +1,24 @@
 import { useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 
-import { Shield } from "lucide-react";
-
-import { register } from "@/api/auth";
-import { useAuth } from "@/contexts/useAuth";
-
+import { UserPlus } from "lucide-react";
 import { AxiosError } from "axios";
 
+import AppLayout from "@/layouts/AppLayout";
+import { register } from "@/api/auth";
+
+const ROLES = [
+  "Employee",
+  "Risk Analyst",
+  "GRC Manager",
+  "Auditor",
+  "Admin",
+] as const;
+
 export default function Register() {
-  const navigate = useNavigate();
-
-  const { isAuthenticated } = useAuth();
-
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
+  const [role, setRole] = useState<string>("Employee");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] =
     useState("");
@@ -22,10 +26,6 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-
-  if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
-  }
 
   async function handleSubmit(
     e: React.FormEvent
@@ -54,15 +54,18 @@ export default function Register() {
         full_name: fullName,
         email,
         password,
+        role,
       });
 
       setSuccess(
-        "Account created successfully. Redirecting to login..."
+        `User ${email} was created as ${role}.`
       );
 
-      setTimeout(() => {
-        navigate("/login");
-      }, 1500);
+      setFullName("");
+      setEmail("");
+      setRole("Employee");
+      setPassword("");
+      setConfirmPassword("");
     } catch (error: unknown) {
       const axiosError =
         error instanceof AxiosError
@@ -76,7 +79,7 @@ export default function Register() {
         setError(detail);
       } else {
         setError(
-          "Unable to create account. Please try again."
+          "Unable to create the user. Please try again."
         );
       }
     } finally {
@@ -85,140 +88,166 @@ export default function Register() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-100 p-6">
-      <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl">
+    <AppLayout>
+      <div className="mx-auto max-w-xl space-y-6">
 
-        <div className="mb-8 text-center">
-
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-600 text-white">
-            <Shield size={32} />
-          </div>
-
-          <h1 className="text-3xl font-bold">
-            Create Account
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900">
+            Create User
           </h1>
 
-          <p className="mt-2 text-slate-500">
-            Create your CyberGRC AI account
+          <p className="mt-1 text-slate-500">
+            Add a person to your organization. They can
+            sign in straight away with the password you
+            set here.
           </p>
-
         </div>
 
-        <form
-          onSubmit={handleSubmit}
-          className="space-y-5"
-        >
+        <div className="rounded-2xl border bg-white p-8 shadow-sm">
 
-          <div>
-            <label className="mb-2 block text-sm font-medium">
-              Full Name
-            </label>
-
-            <input
-              type="text"
-              value={fullName}
-              onChange={(e) =>
-                setFullName(e.target.value)
-              }
-              required
-              minLength={2}
-              maxLength={100}
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:border-blue-500 focus:outline-none"
-              placeholder="Enter your full name"
-            />
+          <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-xl bg-blue-600 text-white">
+            <UserPlus size={24} />
           </div>
 
-          <div>
-            <label className="mb-2 block text-sm font-medium">
-              Email
-            </label>
-
-            <input
-              type="email"
-              value={email}
-              onChange={(e) =>
-                setEmail(e.target.value)
-              }
-              required
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:border-blue-500 focus:outline-none"
-              placeholder="Enter your email"
-            />
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-medium">
-              Password
-            </label>
-
-            <input
-              type="password"
-              value={password}
-              onChange={(e) =>
-                setPassword(e.target.value)
-              }
-              required
-              minLength={8}
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:border-blue-500 focus:outline-none"
-              placeholder="Minimum 8 characters"
-            />
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-medium">
-              Confirm Password
-            </label>
-
-            <input
-              type="password"
-              value={confirmPassword}
-              onChange={(e) =>
-                setConfirmPassword(
-                  e.target.value
-                )
-              }
-              required
-              minLength={8}
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:border-blue-500 focus:outline-none"
-              placeholder="Confirm your password"
-            />
-          </div>
-
-          {error && (
-            <div className="rounded-lg bg-red-100 p-3 text-sm text-red-700">
-              {error}
-            </div>
-          )}
-
-          {success && (
-            <div className="rounded-lg bg-green-100 p-3 text-sm text-green-700">
-              {success}
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-xl bg-blue-600 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50"
+          <form
+            onSubmit={handleSubmit}
+            className="space-y-5"
           >
-            {loading
-              ? "Creating Account..."
-              : "Create Account"}
-          </button>
 
-        </form>
+            <div>
+              <label className="mb-2 block text-sm font-medium">
+                Full Name
+              </label>
 
-        <div className="mt-6 text-center text-sm text-slate-500">
-          Already have an account?{" "}
-          <button
-            type="button"
-            onClick={() => navigate("/login")}
-            className="font-semibold text-blue-600 hover:text-blue-700"
-          >
-            Sign In
-          </button>
+              <input
+                type="text"
+                value={fullName}
+                onChange={(e) =>
+                  setFullName(e.target.value)
+                }
+                required
+                minLength={2}
+                maxLength={100}
+                className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:border-blue-500 focus:outline-none"
+                placeholder="Enter the full name"
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-medium">
+                Email
+              </label>
+
+              <input
+                type="email"
+                value={email}
+                onChange={(e) =>
+                  setEmail(e.target.value)
+                }
+                required
+                className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:border-blue-500 focus:outline-none"
+                placeholder="Enter the email address"
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-medium">
+                Role
+              </label>
+
+              <select
+                value={role}
+                onChange={(e) =>
+                  setRole(e.target.value)
+                }
+                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 focus:border-blue-500 focus:outline-none"
+              >
+                {ROLES.map((option) => (
+                  <option
+                    key={option}
+                    value={option}
+                  >
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-medium">
+                Password
+              </label>
+
+              <input
+                type="password"
+                value={password}
+                onChange={(e) =>
+                  setPassword(e.target.value)
+                }
+                required
+                minLength={8}
+                autoComplete="new-password"
+                className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:border-blue-500 focus:outline-none"
+                placeholder="Minimum 8 characters"
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-medium">
+                Confirm Password
+              </label>
+
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) =>
+                  setConfirmPassword(
+                    e.target.value
+                  )
+                }
+                required
+                minLength={8}
+                autoComplete="new-password"
+                className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:border-blue-500 focus:outline-none"
+                placeholder="Repeat the password"
+              />
+            </div>
+
+            {error && (
+              <div className="rounded-lg bg-red-100 p-3 text-sm text-red-700">
+                {error}
+              </div>
+            )}
+
+            {success && (
+              <div className="rounded-lg bg-green-100 p-3 text-sm text-green-700">
+                {success}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full rounded-xl bg-blue-600 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50"
+            >
+              {loading
+                ? "Creating User..."
+                : "Create User"}
+            </button>
+
+          </form>
+
+          <div className="mt-6 text-center text-sm text-slate-500">
+            <Link
+              to="/settings"
+              className="font-semibold text-blue-600 hover:text-blue-700"
+            >
+              Back to Settings
+            </Link>
+          </div>
+
         </div>
-
       </div>
-    </div>
+    </AppLayout>
   );
 }

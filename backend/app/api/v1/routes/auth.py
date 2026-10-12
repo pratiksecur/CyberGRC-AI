@@ -21,13 +21,22 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 )
 def register(
     user: UserCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.ADMIN)),
 ):
     """
-    Register a new user.
+    Create a user inside the signed-in administrator's organization.
+
+    Self-registration is closed. The organization is always the
+    administrator's own and is never taken from the request.
     """
     try:
-        return create_user(db, user)
+        return create_user(
+            db,
+            user,
+            organization_id=current_user.organization_id,
+            role=user.role.value,
+        )
 
     except ValueError as e:
         raise HTTPException(

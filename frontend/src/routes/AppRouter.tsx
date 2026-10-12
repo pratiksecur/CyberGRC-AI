@@ -87,7 +87,14 @@ export default function AppRouter() {
 
         <Route
           path="/register"
-          element={<Register />}
+          element={
+            <ProtectedRoute
+              resource="users"
+              action="create"
+            >
+              <Register />
+            </ProtectedRoute>
+          }
         />
 
         {/* ================================================== */}

@@ -129,7 +129,7 @@ def test_evidence_quality_identifies_stale_data():
     )
 
 
-def test_evidence_maps_to_risk(db):
+def test_evidence_maps_to_risk(db, users):
     risk = Risk(
         title="Test Risk",
         description="Risk supported by control",

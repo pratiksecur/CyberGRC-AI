@@ -5,6 +5,8 @@ from sqlalchemy import (
     Text,
     DateTime,
     ForeignKey,
+    event,
+    select,
 )
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
@@ -58,7 +60,7 @@ class Risk(Base):
     organization_id = Column(
         Integer,
         ForeignKey("organizations.id"),
-        nullable=True,
+        nullable=False,
         index=True,
     )
 
@@ -151,3 +153,30 @@ class Risk(Base):
         cascade="all, delete-orphan",
         order_by="RiskResponseWorkflowRecord.created_at",
     )
+
+
+@event.listens_for(Risk, "before_insert")
+def _default_risk_organization(mapper, connection, target):
+    """
+    A risk always belongs to a tenant.
+
+    When no organization is given, use the owner's organization. If the
+    owner cannot be found the column stays empty and the database rejects
+    the insert (NOT NULL), so a risk can never be stored without a tenant.
+    """
+
+    if target.organization_id is not None:
+        return
+
+    from app.models.user import User
+
+    users = User.__table__
+
+    organization_id = connection.execute(
+        select(users.c.organization_id).where(
+            users.c.id == target.owner_id
+        )
+    ).scalar_one_or_none()
+
+    if organization_id is not None:
+        target.organization_id = organization_id
