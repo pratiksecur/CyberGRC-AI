@@ -65,7 +65,7 @@ type SearchResult = {
 
 const API_BASE_URL =
   import.meta.env.VITE_API_URL ||
-  "http://127.0.0.1:8000/api/v1";
+  "http://localhost:8000/api/v1";
 
 export default function TopNavbar() {
   const navigate = useNavigate();
@@ -138,21 +138,11 @@ export default function TopNavbar() {
     }
 
     const runSearch = async () => {
-      const token =
-        localStorage.getItem(
-          "access_token"
-        );
-
-      if (!token) {
-        return;
-      }
-
       setSearchLoading(true);
       setSearchOpen(true);
 
       try {
         const headers = {
-          Authorization: `Bearer ${token}`,
           "Content-Type":
             "application/json",
         };
@@ -204,6 +194,7 @@ export default function TopNavbar() {
                     `${API_BASE_URL}${endpoint.path}`,
                     {
                       headers,
+                      credentials: "include",
                     }
                   );
 

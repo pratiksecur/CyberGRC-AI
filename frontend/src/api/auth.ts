@@ -55,6 +55,16 @@ export async function getCurrentUser(): Promise<CurrentUser> {
   return response.data;
 }
 
+export async function getCsrfToken(): Promise<string> {
+  const response = await api.get("/auth/csrf");
+
+  return response.data.csrf_token;
+}
+
+export async function logout(): Promise<void> {
+  await api.post("/auth/logout");
+}
+
 export async function register(
   data: RegisterRequest
 ): Promise<RegisterResponse> {

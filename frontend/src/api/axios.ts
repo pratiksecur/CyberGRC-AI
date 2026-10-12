@@ -3,23 +3,51 @@ import axios from "axios";
 const api = axios.create({
   baseURL:
     import.meta.env.VITE_API_URL ||
-    "http://127.0.0.1:8000/api/v1",
+    "http://localhost:8000/api/v1",
+
+  /*
+   * The session lives in an httpOnly cookie that JavaScript cannot read.
+   * The browser must be told to send it with every API request.
+   */
+  withCredentials: true,
 });
 
 
 /*
- * Attach the current access token to every API request.
+ * CSRF token for the current session.
+ *
+ * It is kept in memory only (never in localStorage) and is loaded by the
+ * AuthContext after login or session restore.
+ */
+let csrfToken: string | null = null;
+
+export function setCsrfToken(token: string | null) {
+  csrfToken = token;
+}
+
+const STATE_CHANGING_METHODS = new Set([
+  "post",
+  "put",
+  "patch",
+  "delete",
+]);
+
+
+/*
+ * Attach the CSRF token to requests that change state.
  */
 api.interceptors.request.use(
   (config) => {
-    const token =
-      localStorage.getItem(
-        "access_token"
-      );
+    const method = (
+      config.method ?? "get"
+    ).toLowerCase();
 
-    if (token) {
-      config.headers.Authorization =
-        `Bearer ${token}`;
+    if (
+      csrfToken &&
+      STATE_CHANGING_METHODS.has(method)
+    ) {
+      config.headers["X-CSRF-Token"] =
+        csrfToken;
     }
 
     return config;
@@ -30,11 +58,10 @@ api.interceptors.request.use(
 
 
 /*
- * Handle expired / invalid JWTs centrally.
+ * Handle expired / invalid sessions centrally.
  *
- * A 401 means authentication failed.
- * Remove the invalid token and notify the AuthContext so
- * React state is cleared immediately as well.
+ * A 401 means authentication failed. Notify the AuthContext so
+ * React state is cleared immediately.
  */
 api.interceptors.response.use(
   (response) => response,
@@ -43,9 +70,7 @@ api.interceptors.response.use(
     if (
       error.response?.status === 401
     ) {
-      localStorage.removeItem(
-        "access_token"
-      );
+      setCsrfToken(null);
 
       window.dispatchEvent(
         new CustomEvent(

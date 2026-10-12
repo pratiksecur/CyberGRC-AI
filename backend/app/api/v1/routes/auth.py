@@ -1,11 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 from app.database.database import get_db
 from app.schemas.user import UserCreate, UserLogin, UserResponse, Token
 from app.auth.auth_service import create_user, login_user
-from app.auth.dependencies import get_current_user
+from app.auth.cookies import clear_access_cookie, csrf_token_for, set_access_cookie
+from app.auth.dependencies import extract_access_token, get_current_user, oauth2_scheme
 from app.auth.permissions import require_roles
 from app.core.roles import UserRole
 from app.models.user import User
@@ -40,11 +41,12 @@ def register(
     response_model=Token
 )
 def login(
+    response: Response,
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db)
 ):
     try:
-        return login_user(
+        result = login_user(
             db,
             form_data.username,
             form_data.password
@@ -55,6 +57,39 @@ def login(
             status_code=401,
             detail=str(e)
         )
+
+    # The browser app relies on this httpOnly cookie. The token is still
+    # returned in the body for API clients that send an Authorization header.
+    set_access_cookie(response, result["access_token"])
+
+    return result
+
+
+@router.post("/logout")
+def logout(response: Response):
+    """
+    End the browser session by clearing the session cookie.
+    """
+    clear_access_cookie(response)
+
+    return {"detail": "Logged out."}
+
+
+@router.get("/csrf")
+def get_csrf_token(
+    request: Request,
+    header_token: str | None = Depends(oauth2_scheme),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Return the CSRF token for the current session.
+
+    The browser app sends it back in the X-CSRF-Token header on every
+    state-changing request.
+    """
+    token, _ = extract_access_token(request, header_token)
+
+    return {"csrf_token": csrf_token_for(token)}
 
 @router.get(
     "/me",

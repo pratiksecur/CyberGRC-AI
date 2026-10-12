@@ -3,7 +3,6 @@ import { createContext } from "react";
 import type { CurrentUser } from "@/api/auth";
 
 export interface AuthContextType {
-  token: string | null;
   user: CurrentUser | null;
 
   isAuthenticated: boolean;

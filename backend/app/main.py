@@ -411,6 +411,7 @@ app.add_middleware(
         "Authorization",
         "Content-Type",
         "Accept",
+        "X-CSRF-Token",
     ],
     expose_headers=[
         "X-Request-ID",

@@ -8,8 +8,12 @@ import type { CurrentUser } from "@/api/auth";
 
 import {
   login as loginRequest,
+  logout as logoutRequest,
   getCurrentUser,
+  getCsrfToken,
 } from "@/api/auth";
+
+import { setCsrfToken } from "@/api/axios";
 
 import { AuthContext } from "./auth-context";
 
@@ -23,11 +27,6 @@ export function AuthProvider({
   children,
 }: Props) {
   const [
-    token,
-    setToken,
-  ] = useState<string | null>(null);
-
-  const [
     user,
     setUser,
   ] = useState<CurrentUser | null>(null);
@@ -39,16 +38,33 @@ export function AuthProvider({
 
 
   // ==================================================
-  // CLEAR SESSION
+  // CLEAR SESSION (React state only)
   // ==================================================
 
   function clearSession() {
-    localStorage.removeItem(
-      "access_token"
-    );
-
-    setToken(null);
+    setCsrfToken(null);
     setUser(null);
+  }
+
+
+  // ==================================================
+  // LOAD THE SESSION FROM THE SERVER
+  // ==================================================
+
+  /*
+   * The access token lives in an httpOnly cookie that the browser sends
+   * automatically. The server tells us who the user is, and gives us the
+   * CSRF token that must accompany state-changing requests.
+   */
+  async function loadSession() {
+    const currentUser =
+      await getCurrentUser();
+
+    const csrfToken =
+      await getCsrfToken();
+
+    setCsrfToken(csrfToken);
+    setUser(currentUser);
   }
 
 
@@ -58,23 +74,20 @@ export function AuthProvider({
 
   useEffect(() => {
     async function restoreSession() {
-      const savedToken =
-        localStorage.getItem(
+      /*
+       * Earlier versions kept the token in localStorage. Remove any
+       * leftover copy so it cannot be read by scripts.
+       */
+      try {
+        localStorage.removeItem(
           "access_token"
         );
-
-      if (!savedToken) {
-        setIsLoading(false);
-        return;
+      } catch {
+        // Storage may be unavailable; nothing to clean up then.
       }
 
-      setToken(savedToken);
-
       try {
-        const currentUser =
-          await getCurrentUser();
-
-        setUser(currentUser);
+        await loadSession();
 
       } catch {
         clearSession();
@@ -120,38 +133,29 @@ export function AuthProvider({
     email: string,
     password: string
   ) {
-    const response =
-      await loginRequest(
-        email,
-        password
-      );
-
     /*
-     * Store the token temporarily so the authenticated
-     * /auth/me request can use the normal Axios interceptor.
+     * A successful login makes the server set the session cookie.
      */
-    localStorage.setItem(
-      "access_token",
-      response.access_token
-    );
-
-    setToken(
-      response.access_token
+    await loginRequest(
+      email,
+      password
     );
 
     try {
-      const currentUser =
-        await getCurrentUser();
-
-      setUser(currentUser);
+      await loadSession();
 
     } catch (error) {
       /*
-       * If authentication succeeds but the user session
-       * cannot be established, do not leave a stale token
-       * behind.
+       * If authentication succeeds but the user session cannot be
+       * established, do not leave a half-open session behind.
        */
       clearSession();
+
+      try {
+        await logoutRequest();
+      } catch {
+        // The original error is more useful to the caller.
+      }
 
       throw error;
     }
@@ -163,10 +167,16 @@ export function AuthProvider({
   // ==================================================
 
   function logout() {
-    clearSession();
+    logoutRequest()
+      .catch(() => {
+        // Even if the request fails, leave the app.
+      })
+      .finally(() => {
+        clearSession();
 
-    window.location.href =
-      "/login";
+        window.location.href =
+          "/login";
+      });
   }
 
 
@@ -177,10 +187,9 @@ export function AuthProvider({
   return (
     <AuthContext.Provider
       value={{
-        token,
         user,
         isAuthenticated:
-          !!token && !!user,
+          !!user,
         isLoading,
         login,
         logout,
