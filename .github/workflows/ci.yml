@@ -1,0 +1,115 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: cybergrc_test
+          POSTGRES_USER: cybergrc_test
+          POSTGRES_PASSWORD: cybergrc_test_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U cybergrc_test -d cybergrc_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    env:
+      TEST_DATABASE_URL: postgresql://cybergrc_test:cybergrc_test_only@localhost:5432/cybergrc_test
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements.txt
+            backend/requirements-dev.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Run tests (SQLite suite and PostgreSQL migration tests)
+        run: python -m pytest -q -n auto
+
+  frontend:
+    name: Frontend lint and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type-check and build
+        run: npm run build
+
+  dependency-audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    # Reports known vulnerabilities in dependencies. It does not block merges:
+    # a new advisory can appear overnight for code nobody touched. Read the log
+    # and update the package when it shows something relevant.
+    continue-on-error: true
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Python packages
+        run: |
+          pip install pip-audit
+          pip-audit -r backend/requirements.txt
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: npm packages (production dependencies)
+        working-directory: frontend
+        run: npm audit --omit=dev --audit-level=high

@@ -68,6 +68,8 @@ import Settings from "@/pages/settings/Settings";
 
 import Login from "@/pages/auth/Login";
 import Register from "@/pages/auth/Register";
+import Users from "@/pages/users/Users";
+import AuditLog from "@/pages/audit-log/AuditLog";
 
 import ProtectedRoute from "./ProtectedRoute";
 
@@ -717,6 +719,35 @@ export default function AppRouter() {
           }
         />
         
+        {/* ================================================== */}
+        {/* USERS */}
+        {/* ================================================== */}
+
+        <Route
+          path="/users"
+          element={
+            <ProtectedRoute
+              resource="users"
+              action="create"
+            >
+              <Users />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* ================================================== */}
+        {/* AUDIT TRAIL */}
+        {/* ================================================== */}
+
+        <Route
+          path="/audit-log"
+          element={
+            <ProtectedRoute>
+              <AuditLog />
+            </ProtectedRoute>
+          }
+        />
+
         {/* ================================================== */}
         {/* SETTINGS */}
         {/* ================================================== */}

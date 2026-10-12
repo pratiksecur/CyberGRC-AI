@@ -12,9 +12,15 @@ from app.core.roles import UserRole
 from app.models.user import User
 
 from app.schemas.user import (
+    AdminPasswordReset,
     UserListResponse,
     UserRoleUpdate,
     UserOrganizationUpdate,
+)
+
+from app.services.account_service import (
+    admin_reset_password,
+    set_user_active,
 )
 
 from app.services.user_service import (
@@ -214,4 +220,123 @@ def change_user_organization(
             "updated successfully."
         ),
         "user": user
+    }
+
+
+# ==========================================================
+# ACCOUNT STATE AND PASSWORD RESET
+# ==========================================================
+
+def _target_user(
+    db: Session,
+    user_id: int,
+    current_user: User,
+) -> User:
+    user = get_user_by_id(db, user_id, current_user)
+
+    if user is None:
+        raise HTTPException(
+            status_code=404,
+            detail="User not found."
+        )
+
+    return user
+
+
+@router.post(
+    "/{user_id}/deactivate"
+)
+def deactivate_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_roles(UserRole.ADMIN)
+    )
+):
+    """
+    Deactivate a user (offboarding).
+
+    The user can no longer sign in and every existing session stops
+    working. Records they own are kept. You cannot deactivate yourself or
+    the last active administrator.
+    """
+
+    target = _target_user(db, user_id, current_user)
+
+    try:
+        user = set_user_active(db, current_user, target, False)
+
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=str(e)
+        )
+
+    return {
+        "message": "User deactivated.",
+        "user": UserListResponse.model_validate(user),
+    }
+
+
+@router.post(
+    "/{user_id}/activate"
+)
+def activate_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_roles(UserRole.ADMIN)
+    )
+):
+    """
+    Reactivate a previously deactivated user.
+    """
+
+    target = _target_user(db, user_id, current_user)
+
+    user = set_user_active(db, current_user, target, True)
+
+    return {
+        "message": "User activated.",
+        "user": UserListResponse.model_validate(user),
+    }
+
+
+@router.post(
+    "/{user_id}/reset-password"
+)
+def reset_user_password(
+    user_id: int,
+    data: AdminPasswordReset,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_roles(UserRole.ADMIN)
+    )
+):
+    """
+    Set a new password for another user.
+
+    All of that user's sessions are signed out. Administrators change
+    their own password with /auth/change-password instead.
+    """
+
+    target = _target_user(db, user_id, current_user)
+
+    try:
+        user = admin_reset_password(
+            db,
+            current_user,
+            target,
+            data.new_password,
+        )
+
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=str(e)
+        )
+
+    return {
+        "message": "Password reset. The user must sign in again.",
+        "user": UserListResponse.model_validate(user),
     }

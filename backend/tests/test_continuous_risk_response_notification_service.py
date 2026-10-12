@@ -47,6 +47,7 @@ def _create_user(
         role=role,
         manager_id=manager_id,
         department="Testing",
+        organization_id=1,
     )
 
     db.add(user)

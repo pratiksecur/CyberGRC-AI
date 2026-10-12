@@ -1,6 +1,8 @@
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
+from sqlalchemy import func
 from sqlalchemy.orm import Session
+from app.audit.actor import set_audit_actor
 
 from app.database.database import get_db
 from app.auth.cookies import (
@@ -57,6 +59,8 @@ def get_current_user(
 
     Authentication failures intentionally return 401 and do
     not expose authorization or organizational information.
+    A deactivated user, or a token from before the user's last logout or
+    password change, is treated as not authenticated.
     """
 
     token, came_from_cookie = extract_access_token(request, header_token)
@@ -107,11 +111,11 @@ def get_current_user(
 
     user = (
         db.query(User)
-        .filter(User.email == subject)
+        .filter(func.lower(User.email) == subject.strip().lower())
         .first()
     )
 
-    if user is None:
+    if user is None or not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authentication credentials.",
@@ -119,5 +123,26 @@ def get_current_user(
                 "WWW-Authenticate": "Bearer",
             },
         )
+
+    # Tokens issued before a logout, password change or deactivation carry
+    # an older version number and stop working. Tokens without the claim
+    # count as version 0.
+    if payload.get("ver", 0) != user.token_version:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token.",
+            headers={
+                "WWW-Authenticate": "Bearer",
+            },
+        )
+
+    # The audit trail records who made any change during this request.
+    set_audit_actor(
+        db,
+        user_id=user.id,
+        email=user.email,
+        organization_id=user.organization_id,
+        ip_address=request.client.host if request.client else None,
+    )
 
     return user

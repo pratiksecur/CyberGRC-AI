@@ -99,4 +99,6 @@ uploads/
 # Local project backups / archives
 # ==========================
 *.zip
-*.bak
+.rar
+*.bak*.rar
+*.zip

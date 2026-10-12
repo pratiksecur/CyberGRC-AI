@@ -1,4 +1,4 @@
-import api from "./axios";
+import api, { setCsrfToken } from "./axios";
 
 export interface LoginResponse {
   access_token: string;
@@ -75,4 +75,23 @@ export async function register(
   );
 
   return response.data;
+}
+
+/*
+ * Change the signed-in user's own password.
+ *
+ * The server signs out every other session and replaces this one's cookie
+ * with a fresh one. The CSRF token is tied to the session token, so it has
+ * to be fetched again or the next change would be rejected.
+ */
+export async function changePassword(
+  currentPassword: string,
+  newPassword: string
+): Promise<void> {
+  await api.post("/auth/change-password", {
+    current_password: currentPassword,
+    new_password: newPassword,
+  });
+
+  setCsrfToken(await getCsrfToken());
 }

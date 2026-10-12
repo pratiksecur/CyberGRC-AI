@@ -12,6 +12,7 @@ import {
   Bot,
   FileBarChart,
   Network,
+  ScrollText,
   Settings,
 } from "lucide-react";
 
@@ -33,6 +34,8 @@ export interface NavigationItem {
   resource?: PermissionResource;
 
   action?: PermissionAction;
+
+  roles?: string[];
 }
 
 export const navigation: NavigationItem[] = [
@@ -144,6 +147,13 @@ export const navigation: NavigationItem[] = [
     icon: Bot,
     resource: "ai",
     action: "view",
+  },
+
+  {
+    label: "Audit Trail",
+    path: "/audit-log",
+    icon: ScrollText,
+    roles: ["Admin", "Auditor"],
   },
 
   {

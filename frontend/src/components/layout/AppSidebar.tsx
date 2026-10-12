@@ -12,6 +12,13 @@ export default function AppSidebar() {
   const visibleNavigation =
     navigation.filter((item) => {
       if (
+        item.roles &&
+        !item.roles.includes(user?.role ?? "")
+      ) {
+        return false;
+      }
+
+      if (
         !item.resource ||
         !item.action
       ) {

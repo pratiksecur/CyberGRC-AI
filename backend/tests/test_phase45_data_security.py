@@ -782,6 +782,7 @@ def test_duplicate_user_email_does_not_create_second_user(
         role=users["employee"].role,
         manager_id=users["employee"].manager_id,
         department="Duplicate",
+        organization_id=users["analyst"].organization_id,
     )
 
     db.add(duplicate)

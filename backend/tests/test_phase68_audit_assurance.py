@@ -144,7 +144,7 @@ def test_audit_assurance_detects_overdue_audit(
 
     audit.end_date = (
         date.today()
-        - timedelta(days=1)
+        - timedelta(days=2)
     )
 
     db.commit()
@@ -314,7 +314,7 @@ def test_audit_assurance_detects_overdue_corrective_action(
         status="In Progress",
         due_date=(
             date.today()
-            - timedelta(days=1)
+            - timedelta(days=2)
         ),
     )
 

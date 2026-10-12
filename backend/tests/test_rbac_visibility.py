@@ -162,6 +162,7 @@ def test_recursive_subordinate_visibility(
         role="Employee",
         manager_id=users["analyst"].id,
         department="Operations",
+        organization_id=users["analyst"].organization_id,
     )
 
     db.add(nested_employee)

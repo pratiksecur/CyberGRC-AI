@@ -6,13 +6,17 @@ import {
   LogOut,
   CheckCircle2,
   UserPlus,
+  KeyRound,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useState } from "react";
 
 import AppLayout from "@/layouts/AppLayout";
 import Can from "@/components/auth/Can";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useAuth } from "@/contexts/useAuth";
+import { changePassword } from "@/api/auth";
+import { apiErrorMessage } from "@/lib/apiError";
 
 export default function Settings() {
   const { logout, isAuthenticated } = useAuth();
@@ -22,6 +26,49 @@ export default function Settings() {
     isLoading,
     isError,
   } = useCurrentUser();
+
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordSuccess, setPasswordSuccess] = useState("");
+
+  async function handlePasswordChange(e: React.FormEvent) {
+    e.preventDefault();
+
+    setPasswordError("");
+    setPasswordSuccess("");
+
+    if (newPassword.length < 10) {
+      setPasswordError("The new password must be at least 10 characters.");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError("The new passwords do not match.");
+      return;
+    }
+
+    setPasswordSaving(true);
+
+    try {
+      await changePassword(currentPassword, newPassword);
+
+      setPasswordSuccess(
+        "Password changed. Your other sessions were signed out."
+      );
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (err: unknown) {
+      setPasswordError(
+        apiErrorMessage(err, "Could not change the password.")
+      );
+    } finally {
+      setPasswordSaving(false);
+    }
+  }
 
   return (
     <AppLayout>
@@ -240,6 +287,109 @@ export default function Settings() {
 
         </section>
 
+        {/* ================================================== */}
+        {/* CHANGE PASSWORD */}
+        {/* ================================================== */}
+
+        <section className="rounded-2xl border bg-white shadow-sm">
+
+          <div className="flex items-center gap-3 border-b px-6 py-5">
+
+            <div className="rounded-xl bg-amber-50 p-3">
+              <KeyRound className="h-5 w-5 text-amber-600" />
+            </div>
+
+            <div>
+              <h2 className="font-semibold text-slate-900">
+                Change Password
+              </h2>
+
+              <p className="text-sm text-slate-500">
+                Use at least 10 characters. Changing it signs you out
+                everywhere else.
+              </p>
+            </div>
+
+          </div>
+
+          <form
+            onSubmit={handlePasswordChange}
+            className="grid gap-4 p-6 md:grid-cols-3"
+          >
+
+            <div>
+              <label className="mb-2 block text-sm font-medium">
+                Current password
+              </label>
+
+              <input
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                required
+                autoComplete="current-password"
+                className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:border-blue-500 focus:outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-medium">
+                New password
+              </label>
+
+              <input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                required
+                minLength={10}
+                autoComplete="new-password"
+                className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:border-blue-500 focus:outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-medium">
+                Confirm new password
+              </label>
+
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                minLength={10}
+                autoComplete="new-password"
+                className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:border-blue-500 focus:outline-none"
+              />
+            </div>
+
+            {passwordError && (
+              <div className="rounded-lg bg-red-100 p-3 text-sm text-red-700 md:col-span-3">
+                {passwordError}
+              </div>
+            )}
+
+            {passwordSuccess && (
+              <div className="rounded-lg bg-green-100 p-3 text-sm text-green-700 md:col-span-3">
+                {passwordSuccess}
+              </div>
+            )}
+
+            <div className="md:col-span-3">
+              <button
+                type="submit"
+                disabled={passwordSaving}
+                className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50"
+              >
+                {passwordSaving ? "Saving..." : "Change password"}
+              </button>
+            </div>
+
+          </form>
+
+        </section>
+
         <Can resource="users" action="create">
           <section className="rounded-2xl border bg-white shadow-sm">
 
@@ -256,17 +406,26 @@ export default function Settings() {
                   </h2>
 
                   <p className="text-sm text-slate-500">
-                    Add people to your organization.
+                    Add people, reset passwords and deactivate accounts.
                   </p>
                 </div>
               </div>
 
-              <Link
-                to="/register"
-                className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
-              >
-                Create user
-              </Link>
+              <div className="flex items-center gap-2">
+                <Link
+                  to="/users"
+                  className="rounded-xl border px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                >
+                  Manage users
+                </Link>
+
+                <Link
+                  to="/register"
+                  className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+                >
+                  Create user
+                </Link>
+              </div>
 
             </div>
 

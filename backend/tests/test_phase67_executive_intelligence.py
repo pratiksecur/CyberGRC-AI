@@ -172,7 +172,7 @@ def test_executive_intelligence_detects_overdue_treatment(
         owner_id=admin.id,
         target_date=(
             date.today()
-            - timedelta(days=1)
+            - timedelta(days=2)
         ),
         residual_likelihood=3,
         residual_impact=3,

@@ -82,6 +82,11 @@ from app.api.v1.routes.risk_trend import (
 from app.api.v1.routes.risks import (
     router as risks_router,
 )
+
+from app.api.v1.routes.audit_logs import (
+    router as audit_logs_router,
+)
+
 from app.api.v1.routes.users import (
     router as users_router,
 )
@@ -465,6 +470,11 @@ app.include_router(
 
 app.include_router(
     users_router,
+    prefix="/api/v1",
+)
+
+app.include_router(
+    audit_logs_router,
     prefix="/api/v1",
 )
 

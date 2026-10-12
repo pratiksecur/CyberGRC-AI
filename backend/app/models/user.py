@@ -1,9 +1,12 @@
 from sqlalchemy import (
+    Boolean,
     Column,
     Integer,
     String,
     DateTime,
     ForeignKey,
+    Index,
+    true as sql_true,
 )
 
 from sqlalchemy.orm import relationship
@@ -33,6 +36,15 @@ class User(Base):
         nullable=False
     )
 
+    # Emails are unique regardless of capitalisation.
+    __table_args__ = (
+        Index(
+            "uq_users_email_lower",
+            func.lower(email),
+            unique=True,
+        ),
+    )
+
     hashed_password = Column(
         String(255),
         nullable=False
@@ -44,6 +56,32 @@ class User(Base):
     )
 
     # ======================================================
+    # Account State
+    # ======================================================
+
+    # A deactivated user cannot sign in and existing sessions stop working.
+    is_active = Column(
+        Boolean,
+        nullable=False,
+        default=True,
+        server_default=sql_true(),
+    )
+
+    # Every access token carries this number. Raising it signs the user out
+    # everywhere (logout, password change or reset, deactivation).
+    token_version = Column(
+        Integer,
+        nullable=False,
+        default=0,
+        server_default="0",
+    )
+
+    password_changed_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+    # ======================================================
     # Organization / Tenant
     # ======================================================
 
@@ -51,7 +89,6 @@ class User(Base):
         Integer,
         ForeignKey("organizations.id"),
         nullable=False,
-        default=1,
         index=True,
     )
 

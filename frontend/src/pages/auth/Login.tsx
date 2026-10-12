@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Navigate } from "react-router-dom";
 
 import { Shield } from "lucide-react";
+import { AxiosError } from "axios";
 
 import { useAuth } from "@/contexts/useAuth";
 
@@ -38,11 +39,32 @@ export default function Login() {
         password
       );
 
-    } catch {
+    } catch (err: unknown) {
 
-      setError(
-        "Invalid email or password."
-      );
+      const status =
+        err instanceof AxiosError
+          ? err.response?.status
+          : undefined;
+
+      if (status === 429) {
+
+        setError(
+          "Too many failed sign-in attempts. Please wait about 15 minutes and try again."
+        );
+
+      } else if (status === 401) {
+
+        setError(
+          "Invalid email or password."
+        );
+
+      } else {
+
+        setError(
+          "Could not sign in. Check your connection and try again."
+        );
+
+      }
 
     } finally {
 
