@@ -6,11 +6,13 @@ from sqlalchemy import (
     Date,
     DateTime,
     ForeignKey,
+    event,
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from app.database.database import Base
+from app.models.tenant import inherit_organization
 
 
 class CorrectiveAction(Base):
@@ -29,7 +31,7 @@ class CorrectiveAction(Base):
     organization_id = Column(
         Integer,
         ForeignKey("organizations.id"),
-        nullable=True,
+        nullable=False,
         index=True,
     )
 
@@ -106,4 +108,21 @@ class CorrectiveAction(Base):
 
     assignee = relationship(
         "User"
+    )
+
+
+@event.listens_for(CorrectiveAction, "before_insert")
+def _default_corrective_action_organization(mapper, connection, target):
+    """
+    A corrective action belongs to its finding's organization (or its assignee's).
+
+    Used only when no organization is given. If nothing resolves, the
+    database rejects the insert (NOT NULL).
+    """
+
+    inherit_organization(
+        connection,
+        target,
+        ("audit_findings", target.finding_id),
+        ("users", target.assigned_to),
     )

@@ -5,11 +5,13 @@ from sqlalchemy import (
     Text,
     DateTime,
     ForeignKey,
+    event,
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from app.database.database import Base
+from app.models.tenant import inherit_organization
 
 
 class Evidence(Base):
@@ -28,7 +30,7 @@ class Evidence(Base):
     organization_id = Column(
         Integer,
         ForeignKey("organizations.id"),
-        nullable=True,
+        nullable=False,
         index=True,
     )
 
@@ -87,4 +89,21 @@ class Evidence(Base):
         "User",
         foreign_keys=[uploaded_by],
         back_populates="uploaded_evidence"
+    )
+
+
+@event.listens_for(Evidence, "before_insert")
+def _default_evidence_organization(mapper, connection, target):
+    """
+    Evidence belongs to its control's organization (or its uploader's).
+
+    Used only when no organization is given. If nothing resolves, the
+    database rejects the insert (NOT NULL).
+    """
+
+    inherit_organization(
+        connection,
+        target,
+        ("controls", target.control_id),
+        ("users", target.uploaded_by),
     )

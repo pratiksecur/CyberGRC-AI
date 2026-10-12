@@ -5,11 +5,13 @@ from sqlalchemy import (
     Text,
     DateTime,
     ForeignKey,
+    event,
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from app.database.database import Base
+from app.models.tenant import inherit_organization
 
 
 class AuditFinding(Base):
@@ -28,7 +30,7 @@ class AuditFinding(Base):
     organization_id = Column(
         Integer,
         ForeignKey("organizations.id"),
-        nullable=True,
+        nullable=False,
         index=True,
     )
 
@@ -95,4 +97,21 @@ class AuditFinding(Base):
 
     control = relationship(
         "Control"
+    )
+
+
+@event.listens_for(AuditFinding, "before_insert")
+def _default_audit_finding_organization(mapper, connection, target):
+    """
+    A finding belongs to its audit's organization (or its control's).
+
+    Used only when no organization is given. If nothing resolves, the
+    database rejects the insert (NOT NULL).
+    """
+
+    inherit_organization(
+        connection,
+        target,
+        ("audits", target.audit_id),
+        ("controls", target.control_id),
     )

@@ -6,11 +6,13 @@ from sqlalchemy import (
     Date,
     DateTime,
     ForeignKey,
+    event,
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from app.database.database import Base
+from app.models.tenant import inherit_organization
 
 
 class Audit(Base):
@@ -29,7 +31,7 @@ class Audit(Base):
     organization_id = Column(
         Integer,
         ForeignKey("organizations.id"),
-        nullable=True,
+        nullable=False,
         index=True,
     )
 
@@ -108,4 +110,21 @@ class Audit(Base):
     created_by = relationship(
         "User",
         foreign_keys=[created_by_id]
+    )
+
+
+@event.listens_for(Audit, "before_insert")
+def _default_audit_organization(mapper, connection, target):
+    """
+    An audit belongs to its auditor's organization (or its creator's).
+
+    Used only when no organization is given. If nothing resolves, the
+    database rejects the insert (NOT NULL).
+    """
+
+    inherit_organization(
+        connection,
+        target,
+        ("users", target.auditor_id),
+        ("users", target.created_by_id),
     )

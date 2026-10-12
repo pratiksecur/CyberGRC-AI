@@ -5,11 +5,13 @@ from sqlalchemy import (
     Text,
     DateTime,
     ForeignKey,
+    event,
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from app.database.database import Base
+from app.models.tenant import inherit_organization
 
 
 class Control(Base):
@@ -54,7 +56,7 @@ class Control(Base):
     organization_id = Column(
         Integer,
         ForeignKey("organizations.id"),
-        nullable=True,
+        nullable=False,
         index=True,
     )
 
@@ -118,4 +120,21 @@ class Control(Base):
         "Evidence",
         back_populates="control",
         cascade="all, delete-orphan"
+    )
+
+
+@event.listens_for(Control, "before_insert")
+def _default_control_organization(mapper, connection, target):
+    """
+    A control belongs to its owner's organization (or its creator's).
+
+    Used only when no organization is given. If nothing resolves, the
+    database rejects the insert (NOT NULL).
+    """
+
+    inherit_organization(
+        connection,
+        target,
+        ("users", target.owner_id),
+        ("users", target.created_by_id),
     )
