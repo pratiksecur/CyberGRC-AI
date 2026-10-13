@@ -16,8 +16,6 @@ import argparse
 import getpass
 import sys
 
-MIN_PASSWORD_LENGTH = 8
-
 
 def create_admin(
     db,
@@ -31,6 +29,7 @@ def create_admin(
 
     from app.core.roles import UserRole
     from app.auth.hashing import hash_password
+    from app.auth.password_policy import validate_password
     from app.models.organization import Organization
     from app.models.user import User
 
@@ -43,10 +42,7 @@ def create_admin(
     if len(full_name) < 2:
         raise ValueError("Full name must be at least 2 characters.")
 
-    if len(password) < MIN_PASSWORD_LENGTH:
-        raise ValueError(
-            f"Password must be at least {MIN_PASSWORD_LENGTH} characters."
-        )
+    validate_password(password, email=email, full_name=full_name)
 
     organization = (
         db.query(Organization)

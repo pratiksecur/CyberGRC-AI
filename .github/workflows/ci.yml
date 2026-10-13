@@ -41,9 +41,9 @@ jobs:
         working-directory: backend
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: pip
@@ -54,7 +54,7 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements-dev.txt
 
-      - name: Run tests (SQLite suite and PostgreSQL migration tests)
+      - name: Run tests (in-memory SQLite suite and the PostgreSQL suite)
         run: python -m pytest -q -n auto
 
   frontend:
@@ -67,9 +67,9 @@ jobs:
         working-directory: frontend
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: "22"
           cache: npm
@@ -95,9 +95,9 @@ jobs:
     continue-on-error: true
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 
@@ -106,10 +106,13 @@ jobs:
           pip install pip-audit
           pip-audit -r backend/requirements.txt
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
+        # Run the npm audit even when the Python audit above found something.
+        if: ${{ !cancelled() }}
         with:
           node-version: "22"
 
       - name: npm packages (production dependencies)
+        if: ${{ !cancelled() }}
         working-directory: frontend
         run: npm audit --omit=dev --audit-level=high

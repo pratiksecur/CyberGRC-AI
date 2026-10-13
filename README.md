@@ -182,8 +182,9 @@ Security considerations include:
 - Object-level authorization
 - IDOR/BOLA prevention
 - Organizational access boundaries
-- Authentication and JWT security
-- Password security
+- Authentication with httpOnly cookies and CSRF protection
+- Account lockout and a password policy
+- Audit trail of every change
 - Input validation
 - Secure resource visibility
 - AI authorization
@@ -205,6 +206,24 @@ The API follows explicit authorization semantics:
 
 404 → Resource is outside the user's visibility scope
 ```
+
+### Account security
+
+- **Sign-in:** the access token lives in an httpOnly cookie, and state-changing requests carry an HMAC CSRF token. Tokens carry a version number, so logging out, changing a password, resetting one or deactivating a user ends every session of that user.
+- **Lockout:** 5 failed sign-ins for one email within 15 minutes (or 20 from one IP address) return `429` with a `Retry-After` header. Unknown emails are counted too, so the response does not reveal which accounts exist. Limits are set with `LOGIN_MAX_FAILED_ATTEMPTS`, `LOGIN_MAX_FAILED_PER_IP` and `LOGIN_LOCKOUT_MINUTES`.
+- **Passwords:** at least 10 characters, at most 72 bytes (the bcrypt limit), not on a list of common passwords, and not the user's name or email name.
+- **Emails** are case-insensitive: `Ana@x.com` and `ana@x.com` are the same account.
+- **Users:** there is no self-registration. Administrators create, edit, deactivate and reset users in the **Users** page. The first administrator is created from the command line (see Getting Started).
+
+### Audit trail
+
+Every create, update and delete on the main records (users, risks, controls, evidence, audits, findings, corrective actions, risk treatments, frameworks and more) is written to an `audit_logs` table in the same database transaction as the change, so a change cannot be saved without its log entry. Each entry records who, when, what and the old and new values. Passwords are logged as `[changed]`, never as values. Administrators and Auditors can read the trail in the **Audit Trail** page (read-only, filterable, limited to their own organization).
+
+Limits to be aware of: the trail starts when the feature is deployed (nothing is backfilled), bulk SQL updates that bypass the application are not logged, and someone with direct database access could edit the table, so it is not tamper-proof on its own.
+
+### Uploads
+
+Evidence files are checked three ways: the extension must be on the allow list, the declared content type must be allowed, and the first bytes of the file must match the extension (a `.pdf` must start like a PDF; a `.txt` must not contain binary data). Files are stored under server-generated names, size-limited, and only served through an authorized endpoint.
 
 ---
 
@@ -381,16 +400,18 @@ High-level architecture:
 - PostgreSQL
 - Alembic
 - Pydantic
-- JWT Authentication
+- JWT in httpOnly cookies, with CSRF protection
 - Passlib / bcrypt
 - Uvicorn
 
 ## Frontend
 
-- React
-- TypeScript
+- React 19 and TypeScript
 - Vite
-- Nginx
+- Tailwind CSS
+- TanStack Query
+- Recharts
+- Nginx (serves the built app in Docker)
 
 ## AI
 
@@ -407,15 +428,15 @@ High-level architecture:
 
 ## Monitoring
 
-- Prometheus
-- Grafana
+The backend can expose its metrics in Prometheus text format at `/metrics`. It is off by default; enable it with `METRICS_ENABLED=true` and protect it with `METRICS_AUTH_TOKEN` (sent as the `X-Metrics-Token` header). Prometheus and Grafana are **not** included in this repository; point your own Prometheus at the endpoint if you want dashboards.
 
 ## Testing
 
-- Pytest
+- Pytest, with `pytest-xdist` for parallel runs
 - FastAPI TestClient
-- SQLite test database
-- StaticPool for isolated test execution
+- In-memory SQLite for most of the suite (fast)
+- A separate suite in `tests/postgres/` that runs against real PostgreSQL: migrations, a check that the models match the migrated schema, and the Alembic single-head check
+- GitHub Actions runs the backend tests, the frontend lint and build, and a dependency audit on every push
 
 Production and operations documentation is available in `docs/`:
 
@@ -462,127 +483,144 @@ PostgreSQL uses a persistent Docker volume.
 
 ## Prerequisites
 
-Install:
-
-- Docker
-- Docker Compose
+- Docker Desktop (or Docker Engine with the Compose plugin)
 - Git
+- Optional, for the AI features: [Ollama](https://ollama.com) running on the same computer, with a model pulled (`ollama pull mistral`). Everything else works without it.
 
-For local backend development and testing:
+For running the tests or developing outside Docker you also need Python 3.12 or newer (the Docker image and CI use 3.12) and Node.js 22.
 
-- Python 3.13+
-- pip
-- Virtual environment support
-
----
-
-## Clone the Repository
+## 1. Clone and configure
 
 ```bash
 git clone https://github.com/pratiksecur/CyberGRC-AI.git
 cd CyberGRC-AI
 ```
 
----
+Create your settings file from the example (`copy` on Windows Command Prompt, `cp` on Linux/macOS):
 
-## Start with Docker Compose
+```bash
+cp .env.example .env
+```
+
+Open `.env` and set at least `POSTGRES_PASSWORD` and `SECRET_KEY` to long random values. One way to make them:
+
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(48))"
+```
+
+`.env` is ignored by git. Never commit it. To replace the secrets later, `python ops/rotate_env.py` writes a new `.env.new` with fresh values and leaves your current `.env` untouched.
+
+## 2. Create the database
+
+The database schema is applied by a one-off migration job, not when the backend starts:
+
+```bash
+docker compose --profile migrate build migrate
+docker compose --profile migrate run --rm migrate
+```
+
+Run the same two commands again after pulling a version that adds migrations.
+
+## 3. Start the application
 
 ```bash
 docker compose up -d --build
-```
-
-Check running services:
-
-```bash
 docker compose ps
 ```
 
----
+## 4. Create the first administrator
 
-## Backend API
+There is no self-registration, and a fresh database has no users. Create the first administrator from the command line; the password is asked for without being shown:
 
-The FastAPI backend is available at:
-
-```text
-http://localhost:8000
+```bash
+docker compose exec backend python -m app.seed.create_admin --email you@example.com --full-name "Your Name"
 ```
 
-Swagger API documentation:
+Passwords need at least 10 characters. After that, sign in and add everyone else from the **Users** page.
 
-```text
-http://localhost:8000/docs
+## 5. Load the framework catalogs (optional)
+
+The repository includes control catalogs for NIST CSF, ISO 27001, GDPR, NIS2 and DORA. Preview first, then load:
+
+```bash
+docker compose exec backend python -m app.seed.frameworks --organization-id 1 --dry-run
+docker compose exec backend python -m app.seed.frameworks --organization-id 1
 ```
 
-ReDoc:
+It is safe to run again: existing frameworks are skipped, and nothing is edited or deleted.
 
-```text
-http://localhost:8000/redoc
-```
+## 6. Open the app
 
-OpenAPI specification:
+| What | Address |
+|---|---|
+| Web app | http://localhost:5173 |
+| API | http://localhost:8000 |
+| API documentation (Swagger) | http://localhost:8000/docs |
 
-```text
-http://localhost:8000/openapi.json
-```
+Use `localhost` exactly as written. Sign-in uses cookies, and the app is built to call the API at `http://localhost:8000` (`VITE_API_URL` in `.env`), so opening it through another address, such as a network IP, needs matching `VITE_API_URL`, `VITE_API_ORIGIN` and `CORS_ORIGINS` settings. The API documentation pages are turned off when `API_DOCS_ENABLED=false`, which is the recommended production setting.
 
----
-
-## Frontend
-
-The frontend is available at:
-
-```text
-http://localhost:5173
-```
+For production settings (hosts, HTTPS, proxy, metrics), read `docs/PRODUCTION_DEPLOYMENT.md`.
 
 ---
 
 # 🧪 Testing
 
-Security and authorization are a major part of the project.
+The backend has roughly 2,000 automated tests (2,023 passing as of October 2026), covering authentication, RBAC, visibility boundaries, negative authorization cases, account lockout, the audit trail, uploads, pagination, GRC intelligence, risk treatment, continuous monitoring and production hardening.
 
-The backend currently contains:
+Most tests run against an in-memory SQLite database, which is fast. The tests in `backend/tests/postgres/` run against a real PostgreSQL database and are **skipped unless `TEST_DATABASE_URL` is set**, so run them before a release.
 
-```text
-1,833 tests
-1,833 passed
-0 failed
+## Backend
+
+Start the throw-away test database (port 55432, data in memory, never touches your real database):
+
+```bash
+docker compose -f docker-compose.test.yml up -d
 ```
 
-The latest reported complete backend test run passed all 1,833 tests with zero failures (October 2026).
-
-Run the complete test suite:
+Install the test dependencies once, then run everything in parallel:
 
 ```bash
 cd backend
-pytest
+pip install -r requirements-dev.txt
 ```
 
-Run endpoint authorization tests:
+Point the PostgreSQL tests at the test database, then run:
 
 ```bash
-pytest tests/test_endpoint_authorization.py
+# Windows Command Prompt
+set TEST_DATABASE_URL=postgresql://cybergrc_test:cybergrc_test_only@127.0.0.1:55432/cybergrc_test
+
+# PowerShell
+$env:TEST_DATABASE_URL = "postgresql://cybergrc_test:cybergrc_test_only@127.0.0.1:55432/cybergrc_test"
+
+# Linux / macOS
+export TEST_DATABASE_URL=postgresql://cybergrc_test:cybergrc_test_only@127.0.0.1:55432/cybergrc_test
+
+python -m pytest -q -n auto
 ```
 
-The test suite covers areas including:
+A full run takes about a minute. Without `TEST_DATABASE_URL` the PostgreSQL tests are reported as skipped. Stop the test database with `docker compose -f docker-compose.test.yml down -v`.
 
-- Authentication
-- RBAC
-- Authorization
-- Visibility boundaries
-- Negative authorization cases
-- AI authorization
-- Dashboard scope
-- GRC intelligence
-- Continuous monitoring
-- Risk treatment
-- Risk treatment finality
-- Cross-layer consistency
-- Production hardening
-- Docker reliability
-- Logging
-- AI lifecycle
-- Security controls
+## Frontend
+
+```bash
+cd frontend
+npm ci
+npm run lint
+npm run build
+```
+
+The frontend has no automated tests yet; lint and the TypeScript build are the checks.
+
+## Continuous integration
+
+`.github/workflows/ci.yml` runs on every push and pull request:
+
+- **Backend tests** — the full suite against a PostgreSQL service.
+- **Frontend lint and build** — `npm ci`, `npm run lint`, `npm run build`.
+- **Dependency audit** — `pip-audit` and `npm audit`. It reports known vulnerabilities but does not block a merge. Read its log and update the package when something relevant shows up.
+
+Dependabot proposes dependency updates automatically (`.github/dependabot.yml`).
 
 ---
 
@@ -1021,7 +1059,8 @@ CyberGRC-AI is an actively developed project.
 
 Current major capabilities include:
 
-- ✅ Authentication
+- ✅ Authentication with account lockout and a password policy
+- ✅ Audit trail and user management
 - ✅ Fine-grained RBAC
 - ✅ Organizational visibility
 - ✅ Object-level authorization
@@ -1052,9 +1091,16 @@ Current major capabilities include:
 
 ### Current test status
 
-**1,833 tests passing — 0 failures**
+**2,023 backend tests passing — 0 failures** (October 2026, including the PostgreSQL suite)
 
-The backend regression suite includes coverage for continuous risk state, response intelligence, treatment governance, notification governance, governed response decisions, execution controls, authorization boundaries and production hardening.
+The backend regression suite includes coverage for continuous risk state, response intelligence, treatment governance, notification governance, governed response decisions, execution controls, authorization boundaries, account security, the audit trail, upload checks and production hardening.
+
+### Known limitations
+
+- The frontend has no automated tests yet, and the production bundle is one large file (route-based code splitting is planned).
+- List pages load up to 500 records per request (the API supports `limit`, `offset` and an `X-Total-Count` header; paging controls in the interface are planned).
+- The audit trail is not tamper-proof against direct database access, and bulk SQL updates that bypass the application are not logged.
+- The AI features need a local Ollama server and a pulled model; without it they are unavailable and the rest of the platform works normally.
 
 ---
 
