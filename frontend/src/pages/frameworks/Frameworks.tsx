@@ -15,6 +15,8 @@ import FrameworkTable from "@/components/frameworks/FrameworkTable";
 import RecentFrameworks from "@/components/frameworks/RecentFrameworks";
 import FrameworkVersionChart from "@/components/frameworks/FrameworkVersionChart";
 import FrameworkCards from "@/components/frameworks/FrameworkCards";
+import { notify, confirmAction } from "@/lib/notify";
+import { apiErrorMessage } from "@/lib/apiError";
 
 
 export default function Frameworks() {
@@ -258,9 +260,9 @@ export default function Frameworks() {
           onDelete={async (id) => {
 
             if (
-              !window.confirm(
+              !(await confirmAction(
                 "Delete this framework?"
-              )
+              ))
             ) {
               return;
             }
@@ -271,11 +273,9 @@ export default function Frameworks() {
                 id
               );
 
-            } catch {
+            } catch (error) {
 
-              alert(
-                "Failed to delete framework."
-              );
+              notify.error(apiErrorMessage(error, "Failed to delete framework."));
 
             }
 

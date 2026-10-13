@@ -16,6 +16,7 @@ import DashboardSkeleton from "@/components/dashboard/DashboardSkeleton";
 
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
+import { confirmAction } from "@/lib/notify";
 
 export default function CorrectiveActions() {
   const navigate = useNavigate();
@@ -114,9 +115,9 @@ export default function CorrectiveActions() {
     sort,
   ]);
 
-  function handleDelete(id: number) {
+  async function handleDelete(id: number) {
     const confirmed =
-      window.confirm(
+      await confirmAction(
         "Are you sure you want to delete this corrective action?"
       );
 

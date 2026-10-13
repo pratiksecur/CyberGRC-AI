@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 
 import AppLayout from "@/layouts/AppLayout";
 import { useCreateControl } from "@/hooks/useCreateControl";
+import { notify } from "@/lib/notify";
+import { apiErrorMessage } from "@/lib/apiError";
 
 export default function CreateControl() {
 
@@ -33,12 +35,12 @@ export default function CreateControl() {
     e.preventDefault();
 
     if (!title.trim()) {
-      alert("Control title is required.");
+      notify.error("Control title is required.");
       return;
     }
 
     if (!description.trim()) {
-      alert("Description is required.");
+      notify.error("Description is required.");
       return;
     }
 
@@ -60,13 +62,13 @@ export default function CreateControl() {
 
       });
 
-      alert("Control created successfully!");
+      notify.success("Control created successfully!");
 
       navigate("/controls");
 
-    } catch {
+    } catch (error) {
 
-      alert("Failed to create control.");
+      notify.error(apiErrorMessage(error, "Failed to create control."));
 
     }
 

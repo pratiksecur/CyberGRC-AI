@@ -6,6 +6,8 @@ import AppLayout from "@/layouts/AppLayout";
 import { useCreateFramework } from "@/hooks/useCreateFramework";
 
 import Can from "@/components/auth/Can";
+import { notify } from "@/lib/notify";
+import { apiErrorMessage } from "@/lib/apiError";
 
 export default function CreateFramework() {
   const navigate = useNavigate();
@@ -32,7 +34,7 @@ export default function CreateFramework() {
       navigate("/frameworks");
     } catch (error) {
       console.error(error);
-      alert("Failed to create framework.");
+      notify.error(apiErrorMessage(error, "Failed to create framework."));
     }
   };
 

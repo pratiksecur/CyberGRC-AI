@@ -13,6 +13,7 @@ import {
 import {
   getControls,
 } from "@/api/controls";
+import { notify } from "@/lib/notify";
 
 
 interface Props {
@@ -109,25 +110,25 @@ export default function AuditFindingForm({
 
 
     if (!auditId) {
-      alert("Please select an audit.");
+      notify.error("Please select an audit.");
       return;
     }
 
 
     if (!controlId) {
-      alert("Please select a control.");
+      notify.error("Please select a control.");
       return;
     }
 
 
     if (!title.trim()) {
-      alert("Please enter a title.");
+      notify.error("Please enter a title.");
       return;
     }
 
 
     if (!description.trim()) {
-      alert(
+      notify.error(
         "Please enter a description."
       );
       return;
@@ -135,7 +136,7 @@ export default function AuditFindingForm({
 
 
     if (!recommendation.trim()) {
-      alert(
+      notify.error(
         "Please enter a recommendation."
       );
       return;

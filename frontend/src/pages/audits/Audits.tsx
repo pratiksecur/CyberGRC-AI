@@ -13,6 +13,8 @@ import AuditCards from "@/components/audits/AuditCards";
 import RecentAudits from "@/components/audits/RecentAudits";
 import AuditTable from "@/components/audits/AuditTable";
 import AuditAssurance from "@/components/audits/AuditAssurance";
+import { notify, confirmAction } from "@/lib/notify";
+import { apiErrorMessage } from "@/lib/apiError";
 
 export default function Audits() {
   const navigate = useNavigate();
@@ -160,7 +162,7 @@ export default function Audits() {
             navigate(`/audits/${id}/edit`)
           }
           onDelete={async (id) => {
-            const confirmed = window.confirm(
+            const confirmed = await confirmAction(
               "Are you sure you want to delete this audit?\n\nThis action cannot be undone."
             );
 
@@ -169,13 +171,11 @@ export default function Audits() {
             try {
               await deleteMutation.mutateAsync(id);
 
-              window.alert("Audit deleted successfully.");
+              notify.success("Audit deleted successfully.");
             } catch (error) {
               console.error(error);
 
-              window.alert(
-                "Unable to delete the audit. Please try again."
-              );
+              notify.error(apiErrorMessage(error, "Unable to delete the audit. Please try again."));
             }
           }}
         />

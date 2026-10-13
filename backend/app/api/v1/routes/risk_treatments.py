@@ -2,6 +2,7 @@ from fastapi import (
     APIRouter,
     Depends,
     HTTPException,
+    Response,
     status,
 )
 from sqlalchemy.orm import Session
@@ -16,6 +17,12 @@ from app.auth.visibility import (
     get_visible_user_ids,
 )
 from app.core.roles import UserRole
+from app.core.pagination import (
+    PageParams,
+    get_page_params,
+    paginate,
+    paginate_list,
+)
 from app.database.database import get_db
 from app.models.risk import Risk
 from app.models.risk_treatment import RiskTreatment
@@ -231,6 +238,8 @@ def create_new_risk_treatment(
     response_model=list[RiskTreatmentResponse],
 )
 def list_risk_treatments(
+    response: Response,
+    page: PageParams = Depends(get_page_params),
     db: Session = Depends(get_db),
     current_user: User = Depends(
         require_permission(
@@ -239,15 +248,16 @@ def list_risk_treatments(
         )
     ),
 ):
-    return (
+    return paginate(
         _visible_risk_treatments_query(
             db,
             current_user,
-        )
-        .order_by(
-            RiskTreatment.created_at.desc()
-        )
-        .all()
+        ).order_by(
+            RiskTreatment.created_at.desc(),
+            RiskTreatment.id.desc(),
+        ),
+        page,
+        response,
     )
 
 

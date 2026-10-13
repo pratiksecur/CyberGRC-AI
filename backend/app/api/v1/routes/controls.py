@@ -1,6 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 
+from app.core.pagination import (
+    PageParams,
+    get_page_params,
+    paginate,
+    paginate_list,
+)
 from app.database.database import get_db
 
 from app.auth.permissions import (
@@ -94,6 +100,8 @@ def create_new_control(
     response_model=list[ControlResponse]
 )
 def list_all_controls(
+    response: Response,
+    page: PageParams = Depends(get_page_params),
     db: Session = Depends(get_db),
     current_user: User = Depends(
         require_permission(
@@ -112,7 +120,7 @@ def list_all_controls(
         "controls",
     )
 
-    return (
+    return paginate(
         apply_tenant_filter(
             db.query(Control),
             Control,
@@ -122,8 +130,9 @@ def list_all_controls(
             Control.owner_id.in_(
                 visible_user_ids
             )
-        )
-        .all()
+        ),
+        page,
+        response,
     )
 
 

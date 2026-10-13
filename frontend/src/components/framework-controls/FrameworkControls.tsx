@@ -9,6 +9,8 @@ import { useDeleteFrameworkControl } from "@/hooks/useDeleteFrameworkControl";
 
 import FrameworkControlFilters from "@/components/framework-controls/FrameworkControlFilters";
 import FrameworkControlTable from "@/components/framework-controls/FrameworkControlTable";
+import { notify, confirmAction } from "@/lib/notify";
+import { apiErrorMessage } from "@/lib/apiError";
 
 export default function FrameworkControls() {
   const navigate = useNavigate();
@@ -140,9 +142,9 @@ export default function FrameworkControls() {
           }
           onDelete={async (id) => {
             if (
-              !window.confirm(
+              !(await confirmAction(
                 "Are you sure you want to delete this framework control?"
-              )
+              ))
             ) {
               return;
             }
@@ -153,9 +155,7 @@ export default function FrameworkControls() {
               );
             } catch (error) {
               console.error(error);
-              alert(
-                "Failed to delete framework control."
-              );
+              notify.error(apiErrorMessage(error, "Failed to delete framework control."));
             }
           }}
         />

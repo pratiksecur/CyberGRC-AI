@@ -1,8 +1,14 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
+from app.core.pagination import (
+    PageParams,
+    get_page_params,
+    paginate,
+    paginate_list,
+)
 from app.database.database import get_db
 
 from app.models.audit_finding import AuditFinding
@@ -148,6 +154,8 @@ def _action_parent_is_visible(
     response_model=list[CorrectiveActionResponse],
 )
 def list_actions(
+    response: Response,
+    page: PageParams = Depends(get_page_params),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -174,10 +182,13 @@ def list_actions(
             == current_user.organization_id,
             CorrectiveAction.assigned_to.in_(visible_user_ids),
         )
+        .order_by(CorrectiveAction.id)
         .all()
     )
 
-    return [
+    # The parent-visibility rule runs in Python, so paging is applied to
+    # the final list to keep X-Total-Count and the pages consistent.
+    visible_actions = [
         serialize_corrective_action(action)
         for action in actions
         if _action_parent_is_visible(
@@ -187,6 +198,8 @@ def list_actions(
             visible_user_ids,
         )
     ]
+
+    return paginate_list(visible_actions, page, response)
 
 
 # ==========================================================

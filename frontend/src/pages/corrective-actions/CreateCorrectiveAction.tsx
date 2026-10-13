@@ -9,6 +9,8 @@ import { useCreateCorrectiveAction } from "@/hooks/useCreateCorrectiveAction";
 import type {
   CreateCorrectiveActionRequest,
 } from "@/api/correctiveActions";
+import { notify } from "@/lib/notify";
+import { apiErrorMessage } from "@/lib/apiError";
 
 export default function CreateCorrectiveAction() {
   const navigate = useNavigate();
@@ -25,10 +27,8 @@ export default function CreateCorrectiveAction() {
       );
 
       navigate("/corrective-actions");
-    } catch {
-      alert(
-        "Failed to create corrective action."
-      );
+    } catch (error) {
+      notify.error(apiErrorMessage(error, "Failed to create corrective action."));
     }
   }
 

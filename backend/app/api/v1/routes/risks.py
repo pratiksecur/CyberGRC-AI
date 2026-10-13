@@ -1,6 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
+from app.core.pagination import (
+    PageParams,
+    get_page_params,
+    paginate,
+    paginate_list,
+)
 from app.database.database import get_db
 
 from app.auth.permissions import require_permission, require_roles
@@ -273,6 +279,8 @@ def create_new_risk(
     response_model=list[RiskResponse],
 )
 def list_all_risks(
+    response: Response,
+    page: PageParams = Depends(get_page_params),
     db: Session = Depends(get_db),
     current_user: User = Depends(
         require_permission(
@@ -291,7 +299,7 @@ def list_all_risks(
         "risks",
     )
 
-    return (
+    return paginate(
         apply_tenant_filter(
             db.query(Risk),
             Risk,
@@ -299,8 +307,9 @@ def list_all_risks(
         )
         .filter(
             Risk.owner_id.in_(visible_user_ids)
-        )
-        .all()
+        ),
+        page,
+        response,
     )
 
 

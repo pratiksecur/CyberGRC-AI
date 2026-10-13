@@ -13,6 +13,7 @@ import { useUpdateAuditFinding } from "@/hooks/useUpdateAuditFinding";
 import type {
   CreateAuditFindingRequest,
 } from "@/api/auditFindings";
+import { notify } from "@/lib/notify";
 
 export default function EditAuditFinding() {
 
@@ -81,7 +82,7 @@ export default function EditAuditFinding() {
           ? detail
           : "Failed to update audit finding.";
 
-      alert(message);
+      notify.error(message);
 
     }
 

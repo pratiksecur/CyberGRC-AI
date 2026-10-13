@@ -19,6 +19,8 @@ import type {
 import type {
   CreateRiskTreatmentRequest,
 } from "@/api/riskTreatments";
+import { notify } from "@/lib/notify";
+import { apiErrorMessage } from "@/lib/apiError";
 
 
 export default function CreateRiskTreatment() {
@@ -93,9 +95,7 @@ export default function CreateRiskTreatment() {
         error
       );
 
-      alert(
-        "Failed to create risk treatment."
-      );
+      notify.error(apiErrorMessage(error, "Failed to create risk treatment."));
 
     }
   }

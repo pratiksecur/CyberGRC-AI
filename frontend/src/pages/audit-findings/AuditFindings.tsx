@@ -11,6 +11,8 @@ import { useAudits } from "@/hooks/useAudits";
 import AuditFindingFilters from "@/components/audit-findings/AuditFindingFilters";
 import AuditFindingStats from "@/components/audit-findings/AuditFindingStats";
 import AuditFindingTable from "@/components/audit-findings/AuditFindingTable";
+import { notify, confirmAction } from "@/lib/notify";
+import { apiErrorMessage } from "@/lib/apiError";
 
 export default function AuditFindings() {
   const navigate = useNavigate();
@@ -96,7 +98,7 @@ export default function AuditFindings() {
     id: number
   ) {
     const confirmed =
-      window.confirm(
+      await confirmAction(
         "Are you sure you want to delete this audit finding?"
       );
 
@@ -110,11 +112,9 @@ export default function AuditFindings() {
         id
       );
 
-    } catch {
+    } catch (error) {
 
-      window.alert(
-        "Failed to delete audit finding."
-      );
+      notify.error(apiErrorMessage(error, "Failed to delete audit finding."));
 
     }
   }

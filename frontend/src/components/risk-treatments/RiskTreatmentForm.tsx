@@ -12,6 +12,7 @@ import type {
   RiskTreatment,
   CreateRiskTreatmentRequest,
 } from "@/api/riskTreatments";
+import { notify } from "@/lib/notify";
 
 
 export type RiskTreatmentFormValues =
@@ -237,7 +238,7 @@ export default function RiskTreatmentForm({
 
 
     if (!effectiveOwnerId) {
-      window.alert(
+      notify.error(
         "Please select a treatment owner."
       );
 
@@ -248,7 +249,7 @@ export default function RiskTreatmentForm({
     if (
       treatmentPlan.trim().length < 10
     ) {
-      window.alert(
+      notify.error(
         "Treatment plan must contain at least 10 characters."
       );
 
@@ -263,7 +264,7 @@ export default function RiskTreatmentForm({
         residualImpact === null
       )
     ) {
-      window.alert(
+      notify.error(
         "Please provide both residual likelihood and residual impact."
       );
 
@@ -280,7 +281,7 @@ export default function RiskTreatmentForm({
       finalAcceptanceDecision &&
       !acceptanceReason.trim()
     ) {
-      window.alert(
+      notify.error(
         "A final risk acceptance decision requires an acceptance reason."
       );
 
@@ -292,7 +293,7 @@ export default function RiskTreatmentForm({
       hasFinalAcceptanceDecision &&
       strategy !== "Accept"
     ) {
-      window.alert(
+      notify.error(
         "A finalized risk acceptance decision cannot change treatment strategy."
       );
 

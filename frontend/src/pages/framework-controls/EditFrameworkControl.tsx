@@ -9,6 +9,8 @@ import { useUpdateFrameworkControl } from "@/hooks/useUpdateFrameworkControl";
 import Can from "@/components/auth/Can";
 
 import FrameworkControlForm from "@/components/framework-controls/FrameworkControlForm";
+import { notify } from "@/lib/notify";
+import { apiErrorMessage } from "@/lib/apiError";
 
 export default function EditFrameworkControl() {
   const { id } = useParams();
@@ -96,9 +98,7 @@ export default function EditFrameworkControl() {
               } catch (error) {
                 console.error(error);
 
-                alert(
-                  "Failed to update framework control."
-                );
+                notify.error(apiErrorMessage(error, "Failed to update framework control."));
               }
             }}
           />

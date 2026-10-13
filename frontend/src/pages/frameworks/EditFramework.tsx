@@ -9,6 +9,7 @@ import { useUpdateFramework } from "@/hooks/useUpdateFramework";
 import { AxiosError } from "axios";
 
 import Can from "@/components/auth/Can";
+import { notify } from "@/lib/notify";
 
 export default function EditFramework() {
   const { id } = useParams();
@@ -69,7 +70,7 @@ export default function EditFramework() {
             }
           | undefined;
 
-      alert(
+      notify.error(
         responseData?.error?.message ??
           "Failed to update framework."
       );

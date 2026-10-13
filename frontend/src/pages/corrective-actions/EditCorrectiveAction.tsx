@@ -10,6 +10,8 @@ import { useUpdateCorrectiveAction } from "@/hooks/useUpdateCorrectiveAction";
 import type {
   CreateCorrectiveActionRequest,
 } from "@/api/correctiveActions";
+import { notify } from "@/lib/notify";
+import { apiErrorMessage } from "@/lib/apiError";
 
 export default function EditCorrectiveAction() {
   const { id } = useParams();
@@ -41,10 +43,8 @@ export default function EditCorrectiveAction() {
       navigate(
         `/corrective-actions/${actionId}`
       );
-    } catch {
-      alert(
-        "Failed to update corrective action."
-      );
+    } catch (error) {
+      notify.error(apiErrorMessage(error, "Failed to update corrective action."));
     }
   }
 

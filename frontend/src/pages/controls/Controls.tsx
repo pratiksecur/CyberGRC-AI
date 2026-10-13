@@ -16,6 +16,8 @@ import FrameworkCoverage from "@/components/controls/FrameworkCoverage";
 import RecentControls from "@/components/controls/RecentControls";
 import HighestFramework from "@/components/controls/HighestFramework";
 import ControlsTable from "@/components/controls/ControlsTable";
+import { notify, confirmAction } from "@/lib/notify";
+import { apiErrorMessage } from "@/lib/apiError";
 
 export default function Controls() {
   const navigate = useNavigate();
@@ -204,7 +206,7 @@ export default function Controls() {
             navigate(`/controls/${id}/edit`)
           }
           onDelete={async (id) => {
-            const confirmed = window.confirm(
+            const confirmed = await confirmAction(
               "Are you sure you want to delete this control?"
             );
 
@@ -214,7 +216,7 @@ export default function Controls() {
               await deleteMutation.mutateAsync(id);
             } catch (error) {
               console.error(error);
-              alert("Failed to delete control.");
+              notify.error(apiErrorMessage(error, "Failed to delete control."));
             }
           }}
         />

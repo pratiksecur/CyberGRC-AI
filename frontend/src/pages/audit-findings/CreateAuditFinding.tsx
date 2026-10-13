@@ -10,6 +10,7 @@ import { useCreateAuditFinding } from "@/hooks/useCreateAuditFinding";
 import type {
   CreateAuditFindingRequest,
 } from "@/api/auditFindings";
+import { notify } from "@/lib/notify";
 
 export default function CreateAuditFinding() {
 
@@ -46,7 +47,7 @@ export default function CreateAuditFinding() {
           ? detail
           : "Failed to create audit finding.";
 
-      alert(message);
+      notify.error(message);
 
     }
 

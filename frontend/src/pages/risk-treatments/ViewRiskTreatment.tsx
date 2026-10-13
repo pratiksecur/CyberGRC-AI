@@ -27,6 +27,8 @@ import {
 import {
   useDeleteRiskTreatment,
 } from "@/hooks/useDeleteRiskTreatment";
+import { notify, confirmAction } from "@/lib/notify";
+import { apiErrorMessage } from "@/lib/apiError";
 
 
 function statusClass(
@@ -134,7 +136,7 @@ export default function ViewRiskTreatment() {
 
 
     const confirmed =
-      window.confirm(
+      await confirmAction(
         "Delete this risk treatment?"
       );
 
@@ -154,11 +156,9 @@ export default function ViewRiskTreatment() {
         `/risks/${treatment.risk_id}`
       );
 
-    } catch {
+    } catch (error) {
 
-      alert(
-        "Failed to delete risk treatment."
-      );
+      notify.error(apiErrorMessage(error, "Failed to delete risk treatment."));
 
     }
   }

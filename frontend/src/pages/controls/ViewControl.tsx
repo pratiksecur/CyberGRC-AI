@@ -24,6 +24,8 @@ import { useFrameworks } from "@/hooks/useFrameworks";
 import { useFrameworkControlsForControl } from "@/hooks/useFrameworkControlsForControl";
 import { useCreateControlFrameworkMapping } from "@/hooks/useCreateControlFrameworkMapping";
 import { useRisksForControl } from "@/hooks/useRisksForControl";
+import { notify } from "@/lib/notify";
+import { apiErrorMessage } from "@/lib/apiError";
 
 
 // ==========================================================
@@ -864,7 +866,7 @@ export default function ViewControl() {
                       Number(select.value);
 
                     if (!frameworkControlId) {
-                      alert(
+                      notify.error(
                         "Please select a framework requirement."
                       );
                       return;
@@ -885,9 +887,7 @@ export default function ViewControl() {
 
                       console.error(error);
 
-                      alert(
-                        "Failed to create framework mapping."
-                      );
+                      notify.error(apiErrorMessage(error, "Failed to create framework mapping."));
 
                     }
 

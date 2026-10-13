@@ -7,6 +7,7 @@ import type { Risk } from "@/api/risks";
 import RiskActions from "./RiskActions";
 import RiskScoreBadge from "./RiskScoreBadge";
 import RiskStatusBadge from "./RiskStatusBadge";
+import { confirmAction } from "@/lib/notify";
 
 interface Props {
   risks: Risk[];
@@ -17,8 +18,8 @@ export default function RiskTable({ risks }: Props) {
 
   const deleteMutation = useDeleteRisk();
 
-  function handleDelete(id: number) {
-    const confirmed = window.confirm(
+  async function handleDelete(id: number) {
+    const confirmed = await confirmAction(
       "Are you sure you want to delete this risk?"
     );
 

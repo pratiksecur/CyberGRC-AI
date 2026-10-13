@@ -20,6 +20,8 @@ import {
 import {
   useDeleteRiskTreatment,
 } from "@/hooks/useDeleteRiskTreatment";
+import { notify, confirmAction } from "@/lib/notify";
+import { apiErrorMessage } from "@/lib/apiError";
 
 
 interface Props {
@@ -115,7 +117,7 @@ export default function RiskTreatmentSection({
   ) {
 
     const confirmed =
-      window.confirm(
+      await confirmAction(
         "Delete this risk treatment?"
       );
 
@@ -129,11 +131,9 @@ export default function RiskTreatmentSection({
         treatmentId
       );
 
-    } catch {
+    } catch (error) {
 
-      alert(
-        "Failed to delete risk treatment."
-      );
+      notify.error(apiErrorMessage(error, "Failed to delete risk treatment."));
 
     }
   }

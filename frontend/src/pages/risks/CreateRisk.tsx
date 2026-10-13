@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 
 import { useCreateRisk } from "@/hooks/useCreateRisk";
 import { useVisibleUsers } from "@/hooks/useVisibleUsers";
+import { notify } from "@/lib/notify";
+import { apiErrorMessage } from "@/lib/apiError";
 
 export default function CreateRisk() {
 
@@ -55,7 +57,7 @@ export default function CreateRisk() {
     e.preventDefault();
 
     if (ownerId === null) {
-      alert("Please select a risk owner.");
+      notify.error("Please select a risk owner.");
       return;
     }
 
@@ -75,7 +77,7 @@ export default function CreateRisk() {
 
       console.error(error);
 
-      alert("Failed to create risk.");
+      notify.error(apiErrorMessage(error, "Failed to create risk."));
 
     }
 

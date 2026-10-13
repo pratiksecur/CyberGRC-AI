@@ -8,6 +8,8 @@ import { useCreateFrameworkControl } from "@/hooks/useCreateFrameworkControl";
 import Can from "@/components/auth/Can";
 
 import FrameworkControlForm from "@/components/framework-controls/FrameworkControlForm";
+import { notify } from "@/lib/notify";
+import { apiErrorMessage } from "@/lib/apiError";
 
 export default function CreateFrameworkControl() {
   const navigate = useNavigate();
@@ -61,7 +63,7 @@ export default function CreateFrameworkControl() {
             loading={mutation.isPending}
             onSubmit={async (data) => {
               if (!data.framework_id) {
-                alert(
+                notify.error(
                   "Please select a framework."
                 );
                 return;
@@ -79,9 +81,7 @@ export default function CreateFrameworkControl() {
               } catch (error) {
                 console.error(error);
 
-                alert(
-                  "Failed to create framework control."
-                );
+                notify.error(apiErrorMessage(error, "Failed to create framework control."));
               }
             }}
           />

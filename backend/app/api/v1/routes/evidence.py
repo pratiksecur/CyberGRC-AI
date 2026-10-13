@@ -9,6 +9,7 @@ from fastapi import (
     Form,
     HTTPException,
     Query,
+    Response,
     UploadFile,
 )
 from fastapi.responses import FileResponse
@@ -22,6 +23,12 @@ from app.core.config import (
     ALLOWED_UPLOAD_CONTENT_TYPES,
     ALLOWED_UPLOAD_EXTENSIONS,
     MAX_UPLOAD_SIZE_BYTES,
+)
+from app.core.pagination import (
+    PageParams,
+    get_page_params,
+    paginate,
+    paginate_list,
 )
 from app.database.database import get_db
 from app.models.control import Control
@@ -47,10 +54,6 @@ from app.schemas.evidence import (
     EvidenceResponse,
     EvidenceUpdate,
     EvidenceIntelligenceResponse,
-    EvidenceIntelligenceItemResponse,
-    MissingEvidenceResponse,
-    EvidenceCollectionWorkflowResponse,
-    EvidenceCoverageResponse,
 )
 
 from app.core.upload_validation import (
@@ -153,8 +156,7 @@ def _save_upload(
 ) -> int:
     """
     Stream the uploaded file to disk while enforcing
-    the configured maximum size and checking that the
-    content matches the file extension.
+    the configured maximum size.
 
     Returns the number of bytes written.
     """
@@ -333,6 +335,8 @@ def create_new_evidence(
     response_model=list[EvidenceResponse],
 )
 def list_all_evidence(
+    response: Response,
+    page: PageParams = Depends(get_page_params),
     db: Session = Depends(get_db),
     current_user: User = Depends(
         require_permission(
@@ -347,7 +351,7 @@ def list_all_evidence(
         "evidence",
     )
 
-    return (
+    return paginate(
         apply_tenant_filter(
             db.query(Evidence),
             Evidence,
@@ -362,8 +366,9 @@ def list_all_evidence(
             Control.owner_id.in_(
                 visible_user_ids
             )
-        )
-        .all()
+        ),
+        page,
+        response,
     )
 
 # ==========================================================

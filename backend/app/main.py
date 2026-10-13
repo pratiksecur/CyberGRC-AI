@@ -420,6 +420,7 @@ app.add_middleware(
     ],
     expose_headers=[
         "X-Request-ID",
+        "X-Total-Count",
     ],
 )
 

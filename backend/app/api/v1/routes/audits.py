@@ -1,6 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 
+from app.core.pagination import (
+    PageParams,
+    get_page_params,
+    paginate,
+    paginate_list,
+)
 from app.database.database import get_db
 
 from app.auth.permissions import require_permission
@@ -105,6 +111,8 @@ def create_new_audit(
     response_model=list[AuditResponse],
 )
 def list_all_audits(
+    response: Response,
+    page: PageParams = Depends(get_page_params),
     db: Session = Depends(get_db),
     current_user: User = Depends(
         require_permission(
@@ -124,7 +132,7 @@ def list_all_audits(
         "audits",
     )
 
-    return (
+    return paginate(
         apply_tenant_filter(
             db.query(Audit),
             Audit,
@@ -132,8 +140,9 @@ def list_all_audits(
         )
         .filter(
             Audit.auditor_id.in_(visible_user_ids)
-        )
-        .all()
+        ),
+        page,
+        response,
     )
 
 

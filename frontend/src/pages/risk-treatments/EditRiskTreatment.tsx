@@ -23,6 +23,8 @@ import type {
 import type {
   UpdateRiskTreatmentRequest,
 } from "@/api/riskTreatments";
+import { notify } from "@/lib/notify";
+import { apiErrorMessage } from "@/lib/apiError";
 
 
 export default function EditRiskTreatment() {
@@ -183,9 +185,7 @@ export default function EditRiskTreatment() {
         error
       );
 
-      alert(
-        "Failed to update risk treatment."
-      );
+      notify.error(apiErrorMessage(error, "Failed to update risk treatment."));
 
     }
   }

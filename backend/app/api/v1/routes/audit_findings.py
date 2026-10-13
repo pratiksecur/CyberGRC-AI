@@ -1,8 +1,14 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 
 from sqlalchemy.orm import Session
 
 
+from app.core.pagination import (
+    PageParams,
+    get_page_params,
+    paginate,
+    paginate_list,
+)
 from app.database.database import get_db
 
 from app.auth.permissions import require_permission
@@ -183,6 +189,8 @@ def create_new_audit_finding(
     response_model=list[AuditFindingResponse],
 )
 def list_all_findings(
+    response: Response,
+    page: PageParams = Depends(get_page_params),
     db: Session = Depends(get_db),
     current_user: User = Depends(
         require_permission("audit_findings", "view")
@@ -202,7 +210,7 @@ def list_all_findings(
         "audit_findings",
     )
 
-    results = (
+    results_query = (
         db.query(
             AuditFinding,
             Audit.name,
@@ -222,8 +230,9 @@ def list_all_findings(
             AuditFinding.organization_id == current_user.organization_id,
             Control.organization_id == current_user.organization_id,
         )
-        .all()
     )
+
+    results = paginate(results_query, page, response)
 
     return [
         {

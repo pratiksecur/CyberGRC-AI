@@ -20,6 +20,14 @@ export function apiErrorMessage(
     return "Cannot reach the server. Check your connection and try again.";
   }
 
+  /* Errors raised by the application's own handlers look like
+     { error: { message } } instead of { detail }. */
+  const handlerMessage = error.response.data?.error?.message;
+
+  if (typeof handlerMessage === "string" && handlerMessage.trim()) {
+    return handlerMessage;
+  }
+
   const detail = error.response.data?.detail;
 
   if (typeof detail === "string" && detail.trim()) {

@@ -13,6 +13,8 @@ import EvidenceCards from "@/components/evidence/EvidenceCards";
 import RecentEvidence from "@/components/evidence/RecentEvidence";
 import EvidenceTable from "@/components/evidence/EvidenceTable";
 import EvidenceIntelligence from "@/components/evidence/EvidenceIntelligence";
+import { notify, confirmAction } from "@/lib/notify";
+import { apiErrorMessage } from "@/lib/apiError";
 
 export default function Evidence() {
   const navigate = useNavigate();
@@ -164,19 +166,17 @@ export default function Evidence() {
           }
           onDelete={async (id) => {
             if (
-              !confirm(
+              !(await confirmAction(
                 "Delete this evidence?"
-              )
+              ))
             ) {
               return;
             }
 
             try {
               await deleteMutation.mutateAsync(id);
-            } catch {
-              alert(
-                "Failed to delete evidence."
-              );
+            } catch (error) {
+              notify.error(apiErrorMessage(error, "Failed to delete evidence."));
             }
           }}
         />

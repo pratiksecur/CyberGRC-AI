@@ -24,6 +24,8 @@ import {
 } from "@/hooks/useControls";
 
 import { useAuth } from "@/contexts/useAuth";
+import { notify } from "@/lib/notify";
+import { apiErrorMessage } from "@/lib/apiError";
 
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
@@ -120,7 +122,7 @@ export default function CreateEvidence() {
     }
 
     if (!isAllowedFile(file)) {
-      alert(
+      notify.error(
         "This file type is not allowed."
       );
 
@@ -134,7 +136,7 @@ export default function CreateEvidence() {
       file.size >
       MAX_FILE_SIZE
     ) {
-      alert(
+      notify.error(
         "The selected file is larger than the 10 MB upload limit."
       );
 
@@ -163,7 +165,7 @@ export default function CreateEvidence() {
     e.preventDefault();
 
     if (!user) {
-      alert(
+      notify.error(
         "Your session has expired. Please sign in again."
       );
 
@@ -171,7 +173,7 @@ export default function CreateEvidence() {
     }
 
     if (controlId === 0) {
-      alert(
+      notify.error(
         "Please select a control."
       );
 
@@ -179,7 +181,7 @@ export default function CreateEvidence() {
     }
 
     if (!title.trim()) {
-      alert(
+      notify.error(
         "Please enter an evidence title."
       );
 
@@ -187,7 +189,7 @@ export default function CreateEvidence() {
     }
 
     if (!description.trim()) {
-      alert(
+      notify.error(
         "Please enter a description."
       );
 
@@ -195,7 +197,7 @@ export default function CreateEvidence() {
     }
 
     if (!selectedFile) {
-      alert(
+      notify.error(
         "Please select a file."
       );
 
@@ -242,9 +244,7 @@ export default function CreateEvidence() {
         error
       );
 
-      alert(
-        "Failed to upload evidence. Please try again."
-      );
+      notify.error(apiErrorMessage(error, "Failed to upload evidence. Please try again."));
     }
   };
 

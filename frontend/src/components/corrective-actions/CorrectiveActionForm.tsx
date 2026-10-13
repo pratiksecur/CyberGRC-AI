@@ -7,6 +7,7 @@ import type {
 
 import { useAuditFindings } from "@/hooks/useAuditFindings";
 import { useCorrectiveActionAssignees } from "@/hooks/useCorrectiveActionAssignees";
+import { notify } from "@/lib/notify";
 
 interface Props {
   initialData?: CorrectiveAction;
@@ -114,12 +115,12 @@ export default function CorrectiveActionForm({
     e.preventDefault();
 
     if (!findingId) {
-      alert("Please select an audit finding.");
+      notify.error("Please select an audit finding.");
       return;
     }
 
     if (!assignedTo) {
-      alert("Please select an assignee.");
+      notify.error("Please select an assignee.");
       return;
     }
 
