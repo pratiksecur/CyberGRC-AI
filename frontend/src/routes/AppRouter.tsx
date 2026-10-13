@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import {
   BrowserRouter,
   Routes,
@@ -5,77 +6,79 @@ import {
   Navigate,
 } from "react-router-dom";
 
-import Dashboard from "@/pages/dashboard/Dashboard";
-
-import Risks from "@/pages/risks/Risks";
-import CreateRisk from "@/pages/risks/CreateRisk";
-import ViewRisk from "@/pages/risks/ViewRisk";
-import EditRisk from "@/pages/risks/EditRisk";
-
-import Controls from "@/pages/controls/Controls";
-import CreateControl from "@/pages/controls/CreateControl";
-import ViewControl from "@/pages/controls/ViewControl";
-import EditControl from "@/pages/controls/EditControl";
-
-import Frameworks from "@/pages/frameworks/Frameworks";
-import CreateFramework from "@/pages/frameworks/CreateFramework";
-import ViewFramework from "@/pages/frameworks/ViewFramework";
-import EditFramework from "@/pages/frameworks/EditFramework";
-
-import FrameworkControls from "@/pages/framework-controls/FrameworkControls";
-import CreateFrameworkControl from "@/pages/framework-controls/CreateFrameworkControl";
-import ViewFrameworkControl from "@/pages/framework-controls/ViewFrameworkControl";
-import EditFrameworkControl from "@/pages/framework-controls/EditFrameworkControl";
-
-import Evidence from "@/pages/evidence/Evidence";
-import CreateEvidence from "@/pages/evidence/CreateEvidence";
-import ViewEvidence from "@/pages/evidence/ViewEvidence";
-import EditEvidence from "@/pages/evidence/EditEvidence";
-
-import Audits from "@/pages/audits/Audits";
-import CreateAudit from "@/pages/audits/CreateAudit";
-import ViewAudit from "@/pages/audits/ViewAudit";
-import EditAudit from "@/pages/audits/EditAudit";
-
-import AuditFindings from "@/pages/audit-findings/AuditFindings";
-import CreateAuditFinding from "@/pages/audit-findings/CreateAuditFinding";
-import ViewAuditFinding from "@/pages/audit-findings/ViewAuditFinding";
-import EditAuditFinding from "@/pages/audit-findings/EditAuditFinding";
-
-import CorrectiveActions from "@/pages/corrective-actions/CorrectiveActions";
-import CreateCorrectiveAction from "@/pages/corrective-actions/CreateCorrectiveAction";
-import ViewCorrectiveAction from "@/pages/corrective-actions/ViewCorrectiveAction";
-import EditCorrectiveAction from "@/pages/corrective-actions/EditCorrectiveAction";
-
-import GRCIntelligence from "@/pages/intelligence/GRCIntelligence";
-import Monitoring from "@/pages/monitoring/Monitoring";
-
-import Reports from "@/pages/reports/Reports";
-import RiskReport from "@/pages/reports/RiskReport";
-import AuditReport from "@/pages/reports/AuditReport";
-import ComplianceReport from "@/pages/reports/ComplianceReport";
-import CorrectiveActionsReport from "@/pages/reports/CorrectiveActionsReport";
-
-import CreateRiskTreatment from "@/pages/risk-treatments/CreateRiskTreatment";
-import ViewRiskTreatment from "@/pages/risk-treatments/ViewRiskTreatment";
-import EditRiskTreatment from "@/pages/risk-treatments/EditRiskTreatment";
-
-import KnowledgeGraph from "@/pages/intelligence/KnowledgeGraph";
-
-import AI from "@/pages/ai/AI";
-import AIGRCAnalyst from "@/pages/ai/AIGRCAnalyst";
-import Settings from "@/pages/settings/Settings";
-
 import Login from "@/pages/auth/Login";
-import Register from "@/pages/auth/Register";
-import Users from "@/pages/users/Users";
-import AuditLog from "@/pages/audit-log/AuditLog";
 
 import ProtectedRoute from "./ProtectedRoute";
+
+// Pages are loaded on demand, so the first visit downloads only the code it
+// needs instead of the whole application.
+const Dashboard = lazy(() => import("@/pages/dashboard/Dashboard"));
+const Risks = lazy(() => import("@/pages/risks/Risks"));
+const CreateRisk = lazy(() => import("@/pages/risks/CreateRisk"));
+const ViewRisk = lazy(() => import("@/pages/risks/ViewRisk"));
+const EditRisk = lazy(() => import("@/pages/risks/EditRisk"));
+const Controls = lazy(() => import("@/pages/controls/Controls"));
+const CreateControl = lazy(() => import("@/pages/controls/CreateControl"));
+const ViewControl = lazy(() => import("@/pages/controls/ViewControl"));
+const EditControl = lazy(() => import("@/pages/controls/EditControl"));
+const Frameworks = lazy(() => import("@/pages/frameworks/Frameworks"));
+const CreateFramework = lazy(() => import("@/pages/frameworks/CreateFramework"));
+const ViewFramework = lazy(() => import("@/pages/frameworks/ViewFramework"));
+const EditFramework = lazy(() => import("@/pages/frameworks/EditFramework"));
+const FrameworkControls = lazy(() => import("@/pages/framework-controls/FrameworkControls"));
+const CreateFrameworkControl = lazy(() => import("@/pages/framework-controls/CreateFrameworkControl"));
+const ViewFrameworkControl = lazy(() => import("@/pages/framework-controls/ViewFrameworkControl"));
+const EditFrameworkControl = lazy(() => import("@/pages/framework-controls/EditFrameworkControl"));
+const Evidence = lazy(() => import("@/pages/evidence/Evidence"));
+const CreateEvidence = lazy(() => import("@/pages/evidence/CreateEvidence"));
+const ViewEvidence = lazy(() => import("@/pages/evidence/ViewEvidence"));
+const EditEvidence = lazy(() => import("@/pages/evidence/EditEvidence"));
+const Audits = lazy(() => import("@/pages/audits/Audits"));
+const CreateAudit = lazy(() => import("@/pages/audits/CreateAudit"));
+const ViewAudit = lazy(() => import("@/pages/audits/ViewAudit"));
+const EditAudit = lazy(() => import("@/pages/audits/EditAudit"));
+const AuditFindings = lazy(() => import("@/pages/audit-findings/AuditFindings"));
+const CreateAuditFinding = lazy(() => import("@/pages/audit-findings/CreateAuditFinding"));
+const ViewAuditFinding = lazy(() => import("@/pages/audit-findings/ViewAuditFinding"));
+const EditAuditFinding = lazy(() => import("@/pages/audit-findings/EditAuditFinding"));
+const CorrectiveActions = lazy(() => import("@/pages/corrective-actions/CorrectiveActions"));
+const CreateCorrectiveAction = lazy(() => import("@/pages/corrective-actions/CreateCorrectiveAction"));
+const ViewCorrectiveAction = lazy(() => import("@/pages/corrective-actions/ViewCorrectiveAction"));
+const EditCorrectiveAction = lazy(() => import("@/pages/corrective-actions/EditCorrectiveAction"));
+const GRCIntelligence = lazy(() => import("@/pages/intelligence/GRCIntelligence"));
+const Monitoring = lazy(() => import("@/pages/monitoring/Monitoring"));
+const Reports = lazy(() => import("@/pages/reports/Reports"));
+const RiskReport = lazy(() => import("@/pages/reports/RiskReport"));
+const AuditReport = lazy(() => import("@/pages/reports/AuditReport"));
+const ComplianceReport = lazy(() => import("@/pages/reports/ComplianceReport"));
+const CorrectiveActionsReport = lazy(() => import("@/pages/reports/CorrectiveActionsReport"));
+const CreateRiskTreatment = lazy(() => import("@/pages/risk-treatments/CreateRiskTreatment"));
+const ViewRiskTreatment = lazy(() => import("@/pages/risk-treatments/ViewRiskTreatment"));
+const EditRiskTreatment = lazy(() => import("@/pages/risk-treatments/EditRiskTreatment"));
+const KnowledgeGraph = lazy(() => import("@/pages/intelligence/KnowledgeGraph"));
+const AI = lazy(() => import("@/pages/ai/AI"));
+const AIGRCAnalyst = lazy(() => import("@/pages/ai/AIGRCAnalyst"));
+const Settings = lazy(() => import("@/pages/settings/Settings"));
+const Register = lazy(() => import("@/pages/auth/Register"));
+const Users = lazy(() => import("@/pages/users/Users"));
+const AuditLog = lazy(() => import("@/pages/audit-log/AuditLog"));
+
+function PageLoading() {
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      className="flex min-h-screen items-center justify-center text-sm text-gray-500"
+    >
+      Loading…
+    </div>
+  );
+}
 
 export default function AppRouter() {
   return (
     <BrowserRouter>
+      <Suspense fallback={<PageLoading />}>
       <Routes>
 
         {/* ================================================== */}
@@ -762,6 +765,7 @@ export default function AppRouter() {
         />
 
       </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 }
