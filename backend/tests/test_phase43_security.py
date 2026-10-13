@@ -31,7 +31,7 @@ from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
-from jose import jwt
+import jwt
 
 from app.auth.hashing import (
     hash_password,
