@@ -154,7 +154,7 @@ services:
       - ALL
 
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O - http://localhost/health | grep -q '^ok$'"]
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1/health | grep -q '^ok$'"]
       interval: 10s
       timeout: 5s
       retries: 5
