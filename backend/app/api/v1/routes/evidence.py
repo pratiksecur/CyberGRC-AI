@@ -47,6 +47,15 @@ from app.schemas.evidence import (
     EvidenceResponse,
     EvidenceUpdate,
     EvidenceIntelligenceResponse,
+    EvidenceIntelligenceItemResponse,
+    MissingEvidenceResponse,
+    EvidenceCollectionWorkflowResponse,
+    EvidenceCoverageResponse,
+)
+
+from app.core.upload_validation import (
+    HEAD_BYTES,
+    check_file_signature,
 )
 
 UPLOAD_DIR = Path("uploads")
@@ -144,12 +153,15 @@ def _save_upload(
 ) -> int:
     """
     Stream the uploaded file to disk while enforcing
-    the configured maximum size.
+    the configured maximum size and checking that the
+    content matches the file extension.
 
     Returns the number of bytes written.
     """
 
     total_bytes = 0
+
+    extension = destination.suffix.lower()
 
     try:
         with destination.open("wb") as buffer:
@@ -176,7 +188,27 @@ def _save_upload(
                         ),
                     )
 
+                if total_bytes == len(chunk):
+                    # First chunk: the file must really be what its
+                    # extension says it is.
+                    problem = check_file_signature(
+                        extension,
+                        chunk[:HEAD_BYTES],
+                    )
+
+                    if problem:
+                        raise HTTPException(
+                            status_code=400,
+                            detail=problem,
+                        )
+
                 buffer.write(chunk)
+
+        if total_bytes == 0:
+            raise HTTPException(
+                status_code=400,
+                detail="The uploaded file is empty.",
+            )
 
     except HTTPException:
         if destination.exists():
