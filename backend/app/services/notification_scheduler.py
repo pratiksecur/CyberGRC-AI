@@ -146,10 +146,14 @@ def run_notification_scheduler():
                     notify_continuous_risk_response(db, risk)
                 processed_risks += 1
             except Exception as exc:
+                # The database's own message names the column or value at
+                # fault. Only its first line is logged, cut to 300 characters.
+                detail = str(getattr(exc, "orig", exc)).splitlines()
                 logger.error(
-                    "scheduled_continuous_risk_response_failed risk_id=%s exception_type=%s",
+                    "scheduled_continuous_risk_response_failed risk_id=%s exception_type=%s detail=%s",
                     risk.id,
                     type(exc).__name__,
+                    (detail[0] if detail else "")[:300],
                 )
 
         db.commit()

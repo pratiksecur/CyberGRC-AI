@@ -498,3 +498,18 @@ def test_response_notification_contains_event_key(
     db.flush()
 
     notifications = _response_notifications
+
+def test_response_event_key_fits_the_database_column(monkeypatch):
+    response = _review_response(risk_id=3)
+
+    monkeypatch.setattr(
+        "app.services.continuous_risk_response_notification_service."
+        "_build_response_signature",
+        lambda response: "reason_code_" * 100,
+    )
+
+    key = build_response_event_key(response)
+
+    assert len(key) <= 255
+    assert key.startswith("risk:3:continuous-response:")
+    assert key == build_response_event_key(response)

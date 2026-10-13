@@ -26,6 +26,7 @@ Governance principles:
 
 from __future__ import annotations
 
+import hashlib
 from enum import Enum
 
 from sqlalchemy.orm import Session
@@ -321,22 +322,42 @@ def _build_response_signature(
     )
 
 
+# Matches the width of Notification.event_key.
+MAX_EVENT_KEY_LENGTH = 255
+
+
 def build_response_event_key(
     response: ContinuousRiskResponse,
 ) -> str:
     """
     Build the stable notification event key for a continuous
     risk response.
+
+    The readable form is used when it fits in the database column.
+    A risk with many decisions can produce a longer signature, so
+    in that case the signature is replaced by its SHA-256 hash. The
+    key stays deterministic and always fits.
     """
 
     signature = _build_response_signature(
         response
     )
 
-    return (
+    prefix = (
         f"risk:{response.risk_id}:"
-        f"continuous-response:{signature}"
+        "continuous-response:"
     )
+
+    key = f"{prefix}{signature}"
+
+    if len(key) <= MAX_EVENT_KEY_LENGTH:
+        return key
+
+    digest = hashlib.sha256(
+        signature.encode("utf-8")
+    ).hexdigest()
+
+    return f"{prefix}sha256:{digest}"
 
 
 # ============================================================
