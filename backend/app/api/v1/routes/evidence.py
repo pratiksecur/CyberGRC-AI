@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 import shutil
 from uuid import uuid4
@@ -61,6 +62,7 @@ from app.core.upload_validation import (
     check_file_signature,
 )
 
+logger = logging.getLogger(__name__)
 UPLOAD_DIR = Path("uploads")
 UPLOAD_DIR.mkdir(
     parents=True,
@@ -219,6 +221,9 @@ def _save_upload(
         raise
 
     except Exception:
+        # Keep the real cause (disk full, permissions, ...) in the logs.
+        logger.exception("Could not store an uploaded evidence file")
+
         if destination.exists():
             destination.unlink()
 
