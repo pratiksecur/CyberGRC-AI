@@ -1,4 +1,5 @@
 import api from "./axios";
+import { getAllPages } from "./pagination";
 
 export interface Audit {
   id: number;
@@ -24,8 +25,7 @@ export interface CreateAuditRequest {
 }
 
 export async function getAudits(): Promise<Audit[]> {
-  const response = await api.get("/audits/");
-  return response.data;
+  return getAllPages<Audit>("/audits/");
 }
 
 export async function getAudit(
@@ -67,4 +67,4 @@ export async function deleteAudit(
   await api.delete(
     `/audits/${id}`
   );
-}
+}

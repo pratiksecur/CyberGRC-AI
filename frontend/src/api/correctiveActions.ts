@@ -1,4 +1,5 @@
 import api from "./axios";
+import { getAllPages } from "./pagination";
 
 export interface CorrectiveAction {
   id: number;
@@ -44,14 +45,8 @@ export interface CreateCorrectiveActionRequest {
 export type UpdateCorrectiveActionRequest =
   Partial<CreateCorrectiveActionRequest>;
 
-export async function getCorrectiveActions(): Promise<
-  CorrectiveAction[]
-> {
-  const response = await api.get(
-    "/corrective-actions/"
-  );
-
-  return response.data;
+export async function getCorrectiveActions(): Promise<CorrectiveAction[]> {
+  return getAllPages<CorrectiveAction>("/corrective-actions/");
 }
 
 export async function getCorrectiveAction(
@@ -103,4 +98,4 @@ export async function deleteCorrectiveAction(
   await api.delete(
     `/corrective-actions/${id}`
   );
-}
+}

@@ -1,4 +1,5 @@
 import api from "./axios";
+import { getAllPages } from "./pagination";
 
 export interface Risk {
   id: number;
@@ -173,11 +174,7 @@ export interface RiskResponseWorkflowIntelligence {
 // ==========================================================
 
 export async function getRisks(): Promise<Risk[]> {
-  const response = await api.get(
-    "/risks/"
-  );
-
-  return response.data;
+  return getAllPages<Risk>("/risks/");
 }
 
 
@@ -269,4 +266,4 @@ export async function getRiskResponseWorkflowIntelligence(
   );
 
   return response.data;
-}
+}

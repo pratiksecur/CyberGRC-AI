@@ -58,7 +58,7 @@ export const getDashboard =
   async (): Promise<DashboardResponse> => {
 
     const response =
-      await api.get("/dashboard");
+      await api.get("/dashboard/");
 
     return response.data;
-  };
+  };

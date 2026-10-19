@@ -81,6 +81,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Unit tests
+        run: npm test
+
       - name: Type-check and build
         run: npm run build
 
@@ -115,4 +118,4 @@ jobs:
       - name: npm packages (production dependencies)
         if: ${{ !cancelled() }}
         working-directory: frontend
-        run: npm audit --omit=dev --audit-level=high
+        run: npm audit --omit=dev --audit-level=high

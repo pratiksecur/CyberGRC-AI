@@ -1,4 +1,5 @@
 import api from "./axios";
+import { getAllPages } from "./pagination";
 
 
 export interface RiskTreatment {
@@ -94,14 +95,8 @@ export type UpdateRiskTreatmentRequest =
   >;
 
 
-export async function getRiskTreatments(): Promise<
-  RiskTreatment[]
-> {
-  const response = await api.get(
-    "/risk-treatments/"
-  );
-
-  return response.data;
+export async function getRiskTreatments(): Promise<RiskTreatment[]> {
+  return getAllPages<RiskTreatment>("/risk-treatments/");
 }
 
 
@@ -158,4 +153,4 @@ export async function deleteRiskTreatment(
   await api.delete(
     `/risk-treatments/${id}`
   );
-}
+}

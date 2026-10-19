@@ -1,4 +1,5 @@
 import api from "./axios";
+import { getAllPages } from "./pagination";
 
 
 export interface Evidence {
@@ -102,11 +103,7 @@ export interface EvidenceIntelligence {
 
 
 export async function getEvidence(): Promise<Evidence[]> {
-  const response = await api.get(
-    "/evidence/"
-  );
-
-  return response.data;
+  return getAllPages<Evidence>("/evidence/");
 }
 
 
@@ -214,4 +211,4 @@ export async function openEvidence(
   setTimeout(() => {
     URL.revokeObjectURL(objectUrl);
   }, 60_000);
-}
+}

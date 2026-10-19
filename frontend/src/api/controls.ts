@@ -1,4 +1,5 @@
 import api from "./axios";
+import { getAllPages } from "./pagination";
 
 export interface Control {
   id: number;
@@ -22,8 +23,7 @@ export interface CreateControlRequest {
 }
 
 export async function getControls(): Promise<Control[]> {
-  const response = await api.get("/controls/");
-  return response.data;
+  return getAllPages<Control>("/controls/");
 }
 
 export async function getControl(
@@ -155,4 +155,4 @@ export async function getControlIntelligence(): Promise<
   );
 
   return response.data;
-}
+}
