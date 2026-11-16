@@ -6,6 +6,7 @@ import { useFrameworkControl } from "@/hooks/useFrameworkControl";
 import { useControlsForFrameworkControl } from "@/hooks/useControlsForFrameworkControl";
 
 import Can from "@/components/auth/Can";
+import RelatedRequirements from "@/components/frameworks/RelatedRequirements";
 
 export default function ViewFrameworkControl() {
   const { id } = useParams();
@@ -211,6 +212,10 @@ export default function ViewFrameworkControl() {
             )}
           </div>
         </div>
+
+        <RelatedRequirements
+          frameworkControlId={frameworkControlId}
+        />
       </div>
     </AppLayout>
   );

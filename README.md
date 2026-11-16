@@ -354,6 +354,16 @@ The platform currently targets integration with frameworks and regulations inclu
 
 Frameworks can be connected to controls and risks to support compliance mapping and analysis.
 
+### Cross-framework crosswalk
+
+The built-in catalogs are tagged with security themes (access control, logging and monitoring, backup, supplier risk and so on). From those tags the platform suggests, for a person to review:
+
+- requirements in other frameworks related to the one you are looking at;
+- further requirements a control may support, based on what it is already mapped to;
+- unmapped requirements that controls you already have may cover (**Frameworks → Crosswalk**).
+
+Nothing is mapped automatically. Each suggestion is applied by a person through the normal mapping action, with the usual permissions and audit trail. The crosswalk is an original working aid written for this platform, not an official mapping, and a shared theme does not mean two requirements are equivalent. Frameworks you create or rename yourself are not part of it.
+
 ---
 
 # 🏗️ Architecture

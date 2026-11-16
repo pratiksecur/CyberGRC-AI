@@ -25,6 +25,7 @@ const Frameworks = lazy(() => import("@/pages/frameworks/Frameworks"));
 const CreateFramework = lazy(() => import("@/pages/frameworks/CreateFramework"));
 const ViewFramework = lazy(() => import("@/pages/frameworks/ViewFramework"));
 const EditFramework = lazy(() => import("@/pages/frameworks/EditFramework"));
+const FrameworkCrosswalk = lazy(() => import("@/pages/frameworks/FrameworkCrosswalk"));
 const FrameworkControls = lazy(() => import("@/pages/framework-controls/FrameworkControls"));
 const CreateFrameworkControl = lazy(() => import("@/pages/framework-controls/CreateFrameworkControl"));
 const ViewFrameworkControl = lazy(() => import("@/pages/framework-controls/ViewFrameworkControl"));
@@ -285,6 +286,18 @@ export default function AppRouter() {
               action="view"
             >
               <Frameworks />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/frameworks/crosswalk"
+          element={
+            <ProtectedRoute
+              resource="control_framework_mappings"
+              action="view"
+            >
+              <FrameworkCrosswalk />
             </ProtectedRoute>
           }
         />

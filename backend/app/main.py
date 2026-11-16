@@ -52,6 +52,9 @@ from app.api.v1.routes.evidence import (
 from app.api.v1.routes.framework_controls import (
     router as framework_controls_router,
 )
+from app.api.v1.routes.framework_crosswalk import (
+    router as framework_crosswalk_router,
+)
 from app.api.v1.routes.frameworks import (
     router as frameworks_router,
 )
@@ -516,6 +519,11 @@ app.include_router(
 
 app.include_router(
     control_framework_controls_router,
+    prefix="/api/v1",
+)
+
+app.include_router(
+    framework_crosswalk_router,
     prefix="/api/v1",
 )
 

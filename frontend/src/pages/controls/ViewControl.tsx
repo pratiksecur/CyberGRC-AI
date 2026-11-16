@@ -23,6 +23,7 @@ import { useFrameworkControls } from "@/hooks/useFrameworkControls";
 import { useFrameworks } from "@/hooks/useFrameworks";
 import { useFrameworkControlsForControl } from "@/hooks/useFrameworkControlsForControl";
 import { useCreateControlFrameworkMapping } from "@/hooks/useCreateControlFrameworkMapping";
+import CrosswalkSuggestions from "@/components/frameworks/CrosswalkSuggestions";
 import { useRisksForControl } from "@/hooks/useRisksForControl";
 import { notify } from "@/lib/notify";
 import { apiErrorMessage } from "@/lib/apiError";
@@ -806,6 +807,11 @@ export default function ViewControl() {
             )}
 
           </div>
+
+
+          {/* Suggestions from related requirements in other frameworks */}
+
+          <CrosswalkSuggestions controlId={controlId} />
 
 
           {/* Create Mapping */}
